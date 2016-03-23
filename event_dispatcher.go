@@ -120,6 +120,7 @@ func (d eventDispatcher) distributeEvents() {
 		case s := <-d.addSubscriber:
 			log.Printf("New subscriber [%s].", s.subscriber.Addr)
 			d.subscribers[s.ch] = s.subscriber
+			s.ch <- heartbeatMsg
 		case s := <-d.removeSubscriber:
 			delete(d.subscribers, s.ch)
 			log.Printf("Subscriber [%s] left.", s.subscriber)
