@@ -6,6 +6,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strconv"
 	"strings"
 
 	queueConsumer "github.com/Financial-Times/message-queue-gonsumer/consumer"
@@ -62,6 +63,12 @@ func main() {
 		Desc:   "Kafka topic to read from.",
 		EnvVar: "TOPIC",
 	})
+	port := app.Int(cli.IntOpt{
+		Name:   "port",
+		Value:  8080,
+		Desc:   "application port",
+		EnvVar: "PORT",
+	})
 	app.Action = func() {
 		dispatcher := newDispatcher(notificationBuilder{*apiBaseURL})
 		go dispatcher.distributeEvents()
@@ -85,7 +92,7 @@ func main() {
 		http.HandleFunc("/__gtg", hc.gtg)
 
 		go func() {
-			err := http.ListenAndServe(":8080", nil)
+			err := http.ListenAndServe(":"+strconv.Itoa(*port), nil)
 			errorLogger.Println(err)
 		}()
 
