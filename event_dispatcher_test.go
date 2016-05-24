@@ -20,7 +20,7 @@ func TestBuildNotification_MissingPayload_EventTypeDELETE(t *testing.T) {
 	nb := notificationBuilder{"http://test.api.ft.com"}
 	testCmsPubEvent := cmsPublicationEvent{
 		UUID:    "foobar",
-		Payload: "",
+		Payload: []byte{},
 	}
 	n := nb.buildNotification(testCmsPubEvent)
 	if !strings.HasSuffix(n.Type, "DELETE") {
@@ -32,7 +32,7 @@ func TestBuildNotification_HappyScenario(t *testing.T) {
 	nb := notificationBuilder{"http://test.api.ft.com"}
 	testCmsPubEvent := cmsPublicationEvent{
 		UUID:    "baz",
-		Payload: `{ "foo" : "bar" }`,
+		Payload: []byte(`{ "foo" : "bar" }`),
 	}
 	n := nb.buildNotification(testCmsPubEvent)
 	if !strings.HasSuffix(n.Type, "UPDATE") {
