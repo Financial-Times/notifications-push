@@ -20,7 +20,31 @@ func TestBuildNotification_MissingPayload_EventTypeDELETE(t *testing.T) {
 	nb := notificationBuilder{"http://test.api.ft.com"}
 	testCmsPubEvent := cmsPublicationEvent{
 		UUID:    "foobar",
-		Payload: []byte{},
+		Payload: nil,
+	}
+	n := nb.buildNotification(testCmsPubEvent)
+	if !strings.HasSuffix(n.Type, "DELETE") {
+		t.Errorf("Expected event type DELETE. Actual type URL: [%v]", n.Type)
+	}
+}
+
+func TestBuildNotification_PayloadIsEmptyString_EventTypeDELETE(t *testing.T) {
+	nb := notificationBuilder{"http://test.api.ft.com"}
+	testCmsPubEvent := cmsPublicationEvent{
+		UUID:    "foobar",
+		Payload: "",
+	}
+	n := nb.buildNotification(testCmsPubEvent)
+	if !strings.HasSuffix(n.Type, "DELETE") {
+		t.Errorf("Expected event type DELETE. Actual type URL: [%v]", n.Type)
+	}
+}
+
+func TestBuildNotification_PayloadIsEmptyMap_EventTypeDELETE(t *testing.T) {
+	nb := notificationBuilder{"http://test.api.ft.com"}
+	testCmsPubEvent := cmsPublicationEvent{
+		UUID:    "foobar",
+		Payload: map[string]interface{}{},
 	}
 	n := nb.buildNotification(testCmsPubEvent)
 	if !strings.HasSuffix(n.Type, "DELETE") {

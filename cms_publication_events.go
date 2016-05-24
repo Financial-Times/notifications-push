@@ -3,6 +3,6 @@ package main
 type cmsPublicationEvent struct {
 	ContentURI   string
 	UUID         string
-	Payload      []byte
+	Payload      interface{}
 	LastModified string
 }

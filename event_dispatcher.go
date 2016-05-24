@@ -91,8 +91,21 @@ func (nb notificationBuilder) buildNotification(cmsPubEvent cmsPublicationEvent)
 		return nil
 	}
 
+	empty := false
+	switch v := cmsPubEvent.Payload.(type) {
+	case nil:
+		empty = true
+	case string:
+		if len(v) == 0 {
+			empty = true
+		}
+	case map[string]interface{}:
+		if len(v) == 0 {
+			empty = true
+		}
+	}
 	eventType := "UPDATE"
-	if len(cmsPubEvent.Payload) == 0 {
+	if empty {
 		eventType = "DELETE"
 	}
 	return &notification{
