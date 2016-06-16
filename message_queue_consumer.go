@@ -10,10 +10,8 @@ import (
 	queueConsumer "github.com/Financial-Times/message-queue-gonsumer/consumer"
 )
 
-func (n notificationsApp) consumeMessages() {
-	consumerConfig := n.consumerConfig
-
-	consumer := queueConsumer.NewConsumer(*consumerConfig, n.eventDispatcher.receiveEvents, http.Client{})
+func (app notificationsApp) consumeMessages() {
+	consumer := queueConsumer.NewConsumer(*app.consumerConfig, app.receiveEvents, http.Client{})
 
 	var wg sync.WaitGroup
 	wg.Add(1)

@@ -20,9 +20,14 @@ var warnLogger *log.Logger
 var errorLogger *log.Logger
 
 type notificationsApp struct {
-	eventDispatcher *eventDispatcher
-	consumerConfig  *queueConsumer.QueueConfig
-	handler         *handler
+	eventDispatcher     *eventDispatcher
+	consumerConfig      *queueConsumer.QueueConfig
+	handler             *handler
+	notificationBuilder notificationBuilder
+}
+
+type notificationBuilder struct {
+	APIBaseURL string
 }
 
 func main() {
@@ -76,7 +81,7 @@ func main() {
 		EnvVar: "PORT",
 	})
 	app.Action = func() {
-		dispatcher := newDispatcher(notificationBuilder{*apiBaseURL})
+		dispatcher := newDispatcher()
 		go dispatcher.distributeEvents()
 
 		consumerConfig := queueConsumer.QueueConfig{}
@@ -91,7 +96,7 @@ func main() {
 		c := handler{dispatcher}
 		hc := &healthcheck{client: http.Client{}, consumerConf: consumerConfig}
 
-		app := notificationsApp{dispatcher, &consumerConfig, &c}
+		app := notificationsApp{dispatcher, &consumerConfig, &c, notificationBuilder{*apiBaseURL}}
 
 		http.HandleFunc("/content/notifications-push", c.notificationsPush)
 		http.HandleFunc("/content/notifications", c.notifications)
