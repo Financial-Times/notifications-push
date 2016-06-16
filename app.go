@@ -23,7 +23,7 @@ type notificationsApp struct {
 	eventDispatcher     *eventDispatcher
 	consumerConfig      *queueConsumer.QueueConfig
 	notificationBuilder notificationBuilder
-	notifications       queue
+	notificationsCache  queue
 }
 
 func main() {
@@ -77,7 +77,7 @@ func main() {
 		EnvVar: "PORT",
 	})
 	nCap := app.Int(cli.IntOpt{
-		Name:   "notifications-capacity",
+		Name:   "notifications_capacity",
 		Value:  200,
 		Desc:   "the nr of recent notifications to be saved and returned on the /notifications endpoint",
 		EnvVar: "NOTIFICATIONS_CAPACITY",
@@ -94,7 +94,7 @@ func main() {
 		consumerConfig.AuthorizationKey = *consumerAuthorizationKey
 		consumerConfig.AutoCommitEnable = *consumerAutoCommitEnable
 
-		infoLogger.Printf("Config: [\n\tconsumerAddrs: [%v]\n\tconsumerGroupID: [%v]\n\ttopic: [%v]\n\tconsumerAutoCommitEnable: [%v]\n\tapiBaseURL: [%v]\n]", *consumerAddrs, *consumerGroupID, *topic, *consumerAutoCommitEnable, *apiBaseURL)
+		infoLogger.Printf("Config: [\n\tconsumerAddrs: [%v]\n\tconsumerGroupID: [%v]\n\ttopic: [%v]\n\tconsumerAutoCommitEnable: [%v]\n\tapiBaseURL: [%v]\n\tnotifications_capacity: [%v]\n]", *consumerAddrs, *consumerGroupID, *topic, *consumerAutoCommitEnable, *apiBaseURL, *nCap)
 
 		notificationsCache := newCircularBuffer(*nCap)
 		h := handler{dispatcher, notificationsCache}

@@ -70,6 +70,6 @@ func (app notificationsApp) receiveEvents(msg queueConsumer.Message) {
 		app.eventDispatcher.incoming <- string(bytes[:])
 
 		uppN := buildUPPNotification(n, tid, msg.Headers["Message-Timestamp"])
-		app.notifications.enqueue(uppN)
+		app.notificationsCache.enqueue(uppN)
 	}()
 }

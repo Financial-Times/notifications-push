@@ -47,8 +47,8 @@ func (nb notificationBuilder) buildNotification(cmsPubEvent cmsPublicationEvent)
 
 func buildUPPNotification(n *notification, tid, lastModified string) *notificationUPP {
 	return &notificationUPP{
-		*n,
-		tid,
-		lastModified,
+		notification:     *n,
+		LastModified:     lastModified,
+		PublishReference: tid,
 	}
 }
