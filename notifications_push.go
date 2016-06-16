@@ -22,7 +22,6 @@ var errorLogger *log.Logger
 type notificationsApp struct {
 	eventDispatcher     *eventDispatcher
 	consumerConfig      *queueConsumer.QueueConfig
-	handler             *handler
 	notificationBuilder notificationBuilder
 }
 
@@ -89,22 +88,20 @@ func main() {
 		consumerConfig.AutoCommitEnable = *consumerAutoCommitEnable
 
 		infoLogger.Printf("Config: [\n\tconsumerAddrs: [%v]\n\tconsumerGroupID: [%v]\n\ttopic: [%v]\n\tconsumerAutoCommitEnable: [%v]\n\tapiBaseURL: [%v]\n]", *consumerAddrs, *consumerGroupID, *topic, *consumerAutoCommitEnable, *apiBaseURL)
-		c := handler{dispatcher}
+
+		h := handler{dispatcher}
 		hc := &healthcheck{client: http.Client{}, consumerConf: consumerConfig}
-
-		app := notificationsApp{dispatcher, &consumerConfig, &c, notificationBuilder{*apiBaseURL}}
-
-		http.HandleFunc("/content/notifications-push", c.notificationsPush)
-		http.HandleFunc("/content/notifications", c.notifications)
-		http.HandleFunc("/stats", c.stats)
+		http.HandleFunc("/content/notifications-push", h.notificationsPush)
+		http.HandleFunc("/content/notifications", h.notifications)
+		http.HandleFunc("/stats", h.stats)
 		http.HandleFunc("/__health", hc.healthcheck())
 		http.HandleFunc("/__gtg", hc.gtg)
-
 		go func() {
 			err := http.ListenAndServe(":"+strconv.Itoa(*port), nil)
 			errorLogger.Println(err)
 		}()
 
+		app := notificationsApp{dispatcher, &consumerConfig, notificationBuilder{*apiBaseURL}}
 		app.consumeMessages()
 	}
 	if err := app.Run(os.Args); err != nil {
