@@ -14,7 +14,7 @@ type controller struct {
 	dispatcher *eventDispatcher
 }
 
-func (c controller) notifications(w http.ResponseWriter, r *http.Request) {
+func (c controller) notificationsPush(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Connection", "keep-alive")
@@ -61,6 +61,11 @@ func (c controller) notifications(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+func (c controller) notifications(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "application/json")
+
 }
 
 func getClientAddr(r *http.Request) string {

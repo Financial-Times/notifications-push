@@ -42,7 +42,7 @@ func TestHTTPEndpoints_IntegrationTest(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "notifications") {
-			controller.notifications(w, r)
+			controller.notificationsPush(w, r)
 			return
 		}
 		controller.stats(w, r)

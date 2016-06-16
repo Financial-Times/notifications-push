@@ -93,7 +93,8 @@ func main() {
 
 		app := notificationsApp{dispatcher, &consumerConfig, &c}
 
-		http.HandleFunc("/content/notifications-push", c.notifications)
+		http.HandleFunc("/content/notifications-push", c.notificationsPush)
+		http.HandleFunc("/content/notifications", c.notifications)
 		http.HandleFunc("/stats", c.stats)
 		http.HandleFunc("/__health", hc.healthcheck())
 		http.HandleFunc("/__gtg", hc.gtg)

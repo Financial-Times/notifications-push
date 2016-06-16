@@ -36,6 +36,12 @@ type notification struct {
 	Type   string `json:"type"`
 }
 
+type notificationUPP struct {
+	notification
+	LastModified     string `json:"lastModified"`
+	PublishReference string `json:"publishReference"`
+}
+
 type subscriberEvent struct {
 	ch         chan string
 	subscriber subscriber
@@ -53,7 +59,6 @@ func (d eventDispatcher) receiveEvents(msg consumer.Message) {
 	if strings.HasPrefix(tid, "SYNTH") {
 		return
 	}
-
 	infoLogger.Printf("Received event: tid=[%v].", tid)
 	var cmsPubEvent cmsPublicationEvent
 	err := json.Unmarshal([]byte(msg.Body), &cmsPubEvent)
@@ -83,6 +88,10 @@ func (d eventDispatcher) receiveEvents(msg consumer.Message) {
 		time.Sleep(30 * time.Second)
 		infoLogger.Printf("Notifying clients about tid=[%v] uuid=[%v].", tid, uuid)
 		d.incoming <- string(bytes[:])
+
+		uppN := buildUPPNotification(n, tid, msg.Headers["Message-Timestamp"])
+		infoLogger.Println(uppN)
+
 	}()
 }
 
@@ -112,6 +121,14 @@ func (nb notificationBuilder) buildNotification(cmsPubEvent cmsPublicationEvent)
 		Type:   "http://www.ft.com/thing/ThingChangeType/" + eventType,
 		ID:     "http://www.ft.com/thing/" + cmsPubEvent.UUID,
 		APIURL: nb.APIBaseURL + "/content/" + cmsPubEvent.UUID,
+	}
+}
+
+func buildUPPNotification(n *notification, tid, lastModified string) *notificationUPP {
+	return &notificationUPP{
+		*n,
+		tid,
+		lastModified,
 	}
 }
 
