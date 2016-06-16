@@ -22,7 +22,7 @@ var errorLogger *log.Logger
 type notificationsApp struct {
 	eventDispatcher *eventDispatcher
 	consumerConfig  *queueConsumer.QueueConfig
-	controller      *controller
+	handler         *handler
 }
 
 func main() {
@@ -88,7 +88,7 @@ func main() {
 		consumerConfig.AutoCommitEnable = *consumerAutoCommitEnable
 
 		infoLogger.Printf("Config: [\n\tconsumerAddrs: [%v]\n\tconsumerGroupID: [%v]\n\ttopic: [%v]\n\tconsumerAutoCommitEnable: [%v]\n\tapiBaseURL: [%v]\n]", *consumerAddrs, *consumerGroupID, *topic, *consumerAutoCommitEnable, *apiBaseURL)
-		c := controller{dispatcher}
+		c := handler{dispatcher}
 		hc := &healthcheck{client: http.Client{}, consumerConf: consumerConfig}
 
 		app := notificationsApp{dispatcher, &consumerConfig, &c}

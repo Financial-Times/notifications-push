@@ -10,11 +10,11 @@ import (
 
 const evPrefix = "data: "
 
-type controller struct {
+type handler struct {
 	dispatcher *eventDispatcher
 }
 
-func (c controller) notificationsPush(w http.ResponseWriter, r *http.Request) {
+func (h handler) notificationsPush(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Connection", "keep-alive")
@@ -37,9 +37,9 @@ func (c controller) notificationsPush(w http.ResponseWriter, r *http.Request) {
 			Since: time.Now(),
 		},
 	}
-	c.dispatcher.addSubscriber <- subscriberEvent
+	h.dispatcher.addSubscriber <- subscriberEvent
 	defer func() {
-		c.dispatcher.removeSubscriber <- subscriberEvent
+		h.dispatcher.removeSubscriber <- subscriberEvent
 	}()
 
 	for {
@@ -63,7 +63,7 @@ func (c controller) notificationsPush(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (c controller) notifications(w http.ResponseWriter, r *http.Request) {
+func (h handler) notifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 
 }
@@ -82,13 +82,13 @@ type stats struct {
 	Subscribers     []subscriber `json:"subscribers"`
 }
 
-func (c controller) stats(w http.ResponseWriter, r *http.Request) {
+func (h handler) stats(w http.ResponseWriter, r *http.Request) {
 	subscribers := []subscriber{}
-	for _, s := range c.dispatcher.subscribers {
+	for _, s := range h.dispatcher.subscribers {
 		subscribers = append(subscribers, s)
 	}
 	stats := stats{
-		NrOfSubscribers: len(c.dispatcher.subscribers),
+		NrOfSubscribers: len(h.dispatcher.subscribers),
 		Subscribers:     subscribers,
 	}
 	bytes, err := json.Marshal(stats)

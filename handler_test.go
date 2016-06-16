@@ -37,15 +37,15 @@ func TestGetClientAddr_XForwardedHeadersMissing(t *testing.T) {
 
 func TestHTTPEndpoints_IntegrationTest(t *testing.T) {
 	//setting up test controller
-	controller := controller{newDispatcher(notificationBuilder{"http://test.api.ft.com"})}
-	go controller.dispatcher.distributeEvents()
+	h := handler{newDispatcher(notificationBuilder{"http://test.api.ft.com"})}
+	go h.dispatcher.distributeEvents()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "notifications") {
-			controller.notificationsPush(w, r)
+			h.notificationsPush(w, r)
 			return
 		}
-		controller.stats(w, r)
+		h.stats(w, r)
 	}))
 	defer func() {
 		ts.Close()
