@@ -14,6 +14,11 @@ type handler struct {
 	dispatcher *eventDispatcher
 }
 
+type stats struct {
+	NrOfSubscribers int          `json:"nrOfSubscribers"`
+	Subscribers     []subscriber `json:"subscribers"`
+}
+
 func (h handler) notificationsPush(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -68,20 +73,6 @@ func (h handler) notifications(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func getClientAddr(r *http.Request) string {
-	xForwardedFor := r.Header.Get("X-Forwarded-For")
-	if xForwardedFor != "" {
-		addr := strings.Split(xForwardedFor, ",")
-		return addr[0]
-	}
-	return r.RemoteAddr
-}
-
-type stats struct {
-	NrOfSubscribers int          `json:"nrOfSubscribers"`
-	Subscribers     []subscriber `json:"subscribers"`
-}
-
 func (h handler) stats(w http.ResponseWriter, r *http.Request) {
 	subscribers := []subscriber{}
 	for _, s := range h.dispatcher.subscribers {
@@ -99,4 +90,13 @@ func (h handler) stats(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-type", "application/json")
 	w.Write(bytes)
+}
+
+func getClientAddr(r *http.Request) string {
+	xForwardedFor := r.Header.Get("X-Forwarded-For")
+	if xForwardedFor != "" {
+		addr := strings.Split(xForwardedFor, ",")
+		return addr[0]
+	}
+	return r.RemoteAddr
 }

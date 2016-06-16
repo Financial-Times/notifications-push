@@ -21,18 +21,6 @@ func newDispatcher() *eventDispatcher {
 	return &eventDispatcher{incoming, subscribers, addSubscriber, removeSubscriber}
 }
 
-type notification struct {
-	APIURL string `json:"apiUrl"`
-	ID     string `json:"id"`
-	Type   string `json:"type"`
-}
-
-type notificationUPP struct {
-	notification
-	LastModified     string `json:"lastModified"`
-	PublishReference string `json:"publishReference"`
-}
-
 type subscriberEvent struct {
 	ch         chan string
 	subscriber subscriber

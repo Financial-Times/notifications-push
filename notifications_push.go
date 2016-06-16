@@ -26,10 +26,6 @@ type notificationsApp struct {
 	notificationBuilder notificationBuilder
 }
 
-type notificationBuilder struct {
-	APIBaseURL string
-}
-
 func main() {
 	app := cli.App("notifications-push", "Proactively notifies subscribers about new content publishes/modifications.")
 	consumerAddrs := app.String(cli.StringOpt{
