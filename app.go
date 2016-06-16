@@ -23,6 +23,7 @@ type notificationsApp struct {
 	eventDispatcher     *eventDispatcher
 	consumerConfig      *queueConsumer.QueueConfig
 	notificationBuilder notificationBuilder
+	notifications       queue
 }
 
 func main() {
@@ -75,6 +76,12 @@ func main() {
 		Desc:   "application port",
 		EnvVar: "PORT",
 	})
+	nCap := app.Int(cli.IntOpt{
+		Name:   "notifications-capacity",
+		Value:  200,
+		Desc:   "the nr of recent notifications to be saved and returned on the /notifications endpoint",
+		EnvVar: "NOTIFICATIONS_CAPACITY",
+	})
 	app.Action = func() {
 		dispatcher := newDispatcher()
 		go dispatcher.distributeEvents()
@@ -89,10 +96,11 @@ func main() {
 
 		infoLogger.Printf("Config: [\n\tconsumerAddrs: [%v]\n\tconsumerGroupID: [%v]\n\ttopic: [%v]\n\tconsumerAutoCommitEnable: [%v]\n\tapiBaseURL: [%v]\n]", *consumerAddrs, *consumerGroupID, *topic, *consumerAutoCommitEnable, *apiBaseURL)
 
-		h := handler{dispatcher}
+		notificationsCache := newCircularBuffer(*nCap)
+		h := handler{dispatcher, notificationsCache}
 		hc := &healthcheck{client: http.Client{}, consumerConf: consumerConfig}
 		http.HandleFunc("/content/notifications-push", h.notificationsPush)
-		http.HandleFunc("/content/notifications", h.notifications)
+		http.HandleFunc("/notifications", h.notifications)
 		http.HandleFunc("/stats", h.stats)
 		http.HandleFunc("/__health", hc.healthcheck())
 		http.HandleFunc("/__gtg", hc.gtg)
@@ -101,7 +109,7 @@ func main() {
 			errorLogger.Println(err)
 		}()
 
-		app := notificationsApp{dispatcher, &consumerConfig, notificationBuilder{*apiBaseURL}}
+		app := notificationsApp{dispatcher, &consumerConfig, notificationBuilder{*apiBaseURL}, notificationsCache}
 		app.consumeMessages()
 	}
 	if err := app.Run(os.Args); err != nil {

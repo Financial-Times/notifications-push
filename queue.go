@@ -1,5 +1,7 @@
 package main
 
+import "sync"
+
 type item interface{}
 
 type queue interface {
@@ -9,18 +11,21 @@ type queue interface {
 }
 
 type circularBuffer struct {
+	mutex  *sync.Mutex
 	buffer []item
 }
 
 func newCircularBuffer(capacity int) queue {
-	return &circularBuffer{make([]item, 0, capacity)}
+	return &circularBuffer{&sync.Mutex{}, make([]item, 0, capacity)}
 }
 
 func (cb *circularBuffer) enqueue(i item) {
+	cb.mutex.Lock()
 	if cb.isFull() {
 		cb.dequeue()
 	}
 	cb.buffer = append(cb.buffer, i)
+	cb.mutex.Unlock()
 }
 
 func (cb *circularBuffer) dequeue() item {

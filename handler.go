@@ -11,7 +11,8 @@ import (
 const evPrefix = "data: "
 
 type handler struct {
-	dispatcher *eventDispatcher
+	dispatcher         *eventDispatcher
+	notificationsCache queue
 }
 
 type stats struct {
@@ -71,6 +72,19 @@ func (h handler) notificationsPush(w http.ResponseWriter, r *http.Request) {
 func (h handler) notifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 
+	var errMsgPrefix = "Serving /notifications request:"
+
+	bytes, err := json.Marshal(h.notificationsCache.items())
+	if err != nil {
+		warnLogger.Printf(errMsgPrefix, "[%v]", err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+	_, err = w.Write(bytes)
+	if err != nil {
+		warnLogger.Printf(errMsgPrefix, "[%v]", err)
+		http.Error(w, "", http.StatusInternalServerError)
+	}
 }
 
 func (h handler) stats(w http.ResponseWriter, r *http.Request) {
