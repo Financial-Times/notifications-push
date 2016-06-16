@@ -4,7 +4,7 @@ import "testing"
 
 func TestNewCircularBuffer(t *testing.T) {
 	maxSize := 5
-	cb := NewCircularBuffer(maxSize)
+	cb := newCircularBuffer(maxSize)
 	items := cb.items()
 	if len(items) != 0 {
 		t.Errorf("Expected empty buffer. Actual: [%d]", len(items))
@@ -15,7 +15,7 @@ func TestNewCircularBuffer(t *testing.T) {
 }
 
 func TestEnqueue_EnqueuingSizePlusOneNrOfItems_CapacityDoesNotChange(t *testing.T) {
-	cb := NewCircularBuffer(2)
+	cb := newCircularBuffer(2)
 	cb.enqueue(1)
 	cb.enqueue(2)
 	cb.enqueue(3)
@@ -26,7 +26,7 @@ func TestEnqueue_EnqueuingSizePlusOneNrOfItems_CapacityDoesNotChange(t *testing.
 }
 
 func TestEnqueue_EnqueuingSizePlusOneNrOfItems_FirstItemInsertedIsDequeued(t *testing.T) {
-	cb := NewCircularBuffer(2)
+	cb := newCircularBuffer(2)
 	cb.enqueue(1)
 	cb.enqueue(2)
 	cb.enqueue(3)
@@ -39,7 +39,7 @@ func TestEnqueue_EnqueuingSizePlusOneNrOfItems_FirstItemInsertedIsDequeued(t *te
 }
 
 func TestDequeue_ReadingFromEmptyCircularBuffer_ResultIsNil(t *testing.T) {
-	cb := NewCircularBuffer(2)
+	cb := newCircularBuffer(2)
 
 	if cb.dequeue() != nil {
 		t.Errorf("Expected getting [nil] from dequeueing an empty list.")
@@ -47,7 +47,7 @@ func TestDequeue_ReadingFromEmptyCircularBuffer_ResultIsNil(t *testing.T) {
 }
 
 func TestDequeue_EnqueuingSizePlusTwoNrOfItems_DequeuingOrderIsPreserved(t *testing.T) {
-	cb := NewCircularBuffer(2)
+	cb := newCircularBuffer(2)
 	cb.enqueue(1)
 	cb.enqueue(2)
 	cb.enqueue(3)

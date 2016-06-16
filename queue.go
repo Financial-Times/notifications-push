@@ -12,7 +12,7 @@ type circularBuffer struct {
 	buffer []item
 }
 
-func NewCircularBuffer(capacity int) queue {
+func newCircularBuffer(capacity int) queue {
 	return &circularBuffer{make([]item, 0, capacity)}
 }
 

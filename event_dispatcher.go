@@ -6,19 +6,16 @@ import (
 	"time"
 )
 
+const heartbeatMsg = "[]"
+const heartbeatPeriod = 30
+
+var whitelist = regexp.MustCompile("^http://(methode-article|wordpress-article)-transformer-(pr|iw)-uk-.*\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$")
+
 type eventDispatcher struct {
 	incoming         chan string
 	subscribers      map[chan string]subscriber
 	addSubscriber    chan subscriberEvent
 	removeSubscriber chan subscriberEvent
-}
-
-func newDispatcher() *eventDispatcher {
-	incoming := make(chan string)
-	subscribers := make(map[chan string]subscriber)
-	addSubscriber := make(chan subscriberEvent)
-	removeSubscriber := make(chan subscriberEvent)
-	return &eventDispatcher{incoming, subscribers, addSubscriber, removeSubscriber}
 }
 
 type subscriberEvent struct {
@@ -31,7 +28,13 @@ type subscriber struct {
 	Since time.Time
 }
 
-var whitelist = regexp.MustCompile("^http://(methode-article|wordpress-article)-transformer-(pr|iw)-uk-.*\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$")
+func newDispatcher() *eventDispatcher {
+	incoming := make(chan string)
+	subscribers := make(map[chan string]subscriber)
+	addSubscriber := make(chan subscriberEvent)
+	removeSubscriber := make(chan subscriberEvent)
+	return &eventDispatcher{incoming, subscribers, addSubscriber, removeSubscriber}
+}
 
 func (d eventDispatcher) distributeEvents() {
 	heartbeat := time.NewTimer(heartbeatPeriod * time.Second)
@@ -65,9 +68,6 @@ func (d eventDispatcher) distributeEvents() {
 		}
 	}
 }
-
-const heartbeatMsg = "[]"
-const heartbeatPeriod = 30
 
 func resetTimer(timer *time.Timer) {
 	timer.Reset(heartbeatPeriod * time.Second)
