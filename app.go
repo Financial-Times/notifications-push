@@ -100,7 +100,7 @@ func main() {
 		h := handler{dispatcher, notificationsCache}
 		hc := &healthcheck{client: http.Client{}, consumerConf: consumerConfig}
 		http.HandleFunc("/content/notifications-push", h.notificationsPush)
-		http.HandleFunc("/notifications", h.notifications)
+		http.HandleFunc("/content/notifications", h.notifications)
 		http.HandleFunc("/stats", h.stats)
 		http.HandleFunc("/__health", hc.healthcheck())
 		http.HandleFunc("/__gtg", hc.gtg)
