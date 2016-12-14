@@ -32,7 +32,6 @@ func (msg NotificationQueueMessage) ToPublicationEvent() (event PublicationEvent
 
 type PublicationEvent struct {
 	ContentURI   string      `json:"contentUri"`
-	UUID         string      `json:"uuid"`
 	Payload      interface{} `json:"payload"`
 	LastModified string      `json:"lastModified"`
 }

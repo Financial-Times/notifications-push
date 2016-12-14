@@ -96,7 +96,7 @@ func TestFailsConversionToNotification(t *testing.T) {
 				"X-Request-Id": "tid_summin",
 			},
 			Body: `{
-	         "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah"
+	         "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a" +
 	      }`,
 		},
 	}
@@ -123,7 +123,7 @@ func TestHandleMessage(t *testing.T) {
 			},
 			Body: `{
 	         "UUID": "a uuid",
-	         "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah"
+	         "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"
 	      }`,
 		},
 	}
