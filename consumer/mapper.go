@@ -24,7 +24,7 @@ func (n NotificationMapper) MapNotification(event PublicationEvent, transactionI
 	}
 
 	var eventType string
-	var scoop bool
+	var standout *dispatcher.Standout
 	var title = ""
 	var contentType = ""
 
@@ -34,9 +34,11 @@ func (n NotificationMapper) MapNotification(event PublicationEvent, transactionI
 		eventType = "UPDATE"
 		notificationPayloadMap, ok := event.Payload.(map[string]interface{})
 		if ok {
-			title = getValueFromPayload("title", notificationPayloadMap)
 			contentType = getValueFromPayload("type", notificationPayloadMap)
-			scoop = getScoopFromPayload(notificationPayloadMap)
+			if contentType != "Content" {
+				title = getValueFromPayload("title", notificationPayloadMap)
+				standout = &dispatcher.Standout{Scoop: getScoopFromPayload(notificationPayloadMap)}
+			}
 		}
 	}
 
@@ -47,7 +49,7 @@ func (n NotificationMapper) MapNotification(event PublicationEvent, transactionI
 		PublishReference: transactionID,
 		LastModified:     event.LastModified,
 		Title:            title,
-		Standout:         dispatcher.Standout{Scoop: scoop},
+		Standout:		  standout,
 		ContentType:      contentType,
 	}, nil
 }

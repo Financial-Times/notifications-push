@@ -31,6 +31,30 @@ func TestMapToUpdateNotification(t *testing.T) {
 	assert.Equal(t, "Article", n.ContentType, "ContentType field should be mapped correctly")
 }
 
+func TestMapToUpdateContentNotification(t *testing.T) {
+	standout := map[string]interface{}{"scoop": true}
+	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Content"}
+
+	event := PublicationEvent{
+		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + uuid.NewV4().String(),
+		LastModified: "2016-11-02T10:54:22.234Z",
+		Payload:      payload,
+	}
+
+	mapper := NotificationMapper{
+		APIBaseURL: "test.api.ft.com",
+		Resource:   "list",
+	}
+
+	n, err := mapper.MapNotification(event, "tid_test1")
+
+	assert.Nil(t, err, "The mapping should not return an error")
+	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/UPDATE", n.Type, "It is an UPDATE notification")
+	assert.Equal(t, "", n.Title, "Title should be nil for Content")
+	assert.Nil(t, n.Standout, "Scoop should be nil for Content")
+	assert.Equal(t, "Content", n.ContentType, "ContentType field should be mapped correctly")
+}
+
 func TestMapToUpdateNotification_ForContentWithVersion3UUID(t *testing.T) {
 	payload := struct{ Foo string }{"bar"}
 

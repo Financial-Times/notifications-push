@@ -9,7 +9,7 @@ type Notification struct {
 	LastModified     string   `json:"lastModified,omitempty"`
 	NotificationDate string   `json:"notificationDate,omitempty"`
 	Title            string   `json:"title,omitempty"`
-	Standout         Standout `json:"standout"`
+	Standout         *Standout `json:"standout"`
 	ContentType      string   `json:"-"`
 }
 
