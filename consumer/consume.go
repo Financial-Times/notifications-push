@@ -74,7 +74,7 @@ func (qHandler *simpleMessageQueueHandler) HandleMessage(queueMsg kafka.FTMessag
 		return nil
 	}
 
-	strippedDirectivesContentType := StripDirectives(contentType)
+	strippedDirectivesContentType := stripDirectives(contentType)
 	if strippedDirectivesContentType == "application/json" || strippedDirectivesContentType == "" {
 		if !pubEvent.Matches(qHandler.contentUriWhitelist) {
 			monitoringLogger.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: contentUri is not in the whitelist.")
@@ -87,6 +87,7 @@ func (qHandler *simpleMessageQueueHandler) HandleMessage(queueMsg kafka.FTMessag
 		}
 	}
 
+	pubEvent.ContentTypeHeader = strippedDirectivesContentType
 	notification, err := qHandler.mapper.MapNotification(pubEvent, msg.TransactionID())
 	if err != nil {
 		monitoringLogger.WithError(err).Warn("Skipping event: Cannot build notification for message.")
@@ -99,6 +100,6 @@ func (qHandler *simpleMessageQueueHandler) HandleMessage(queueMsg kafka.FTMessag
 	return nil
 }
 
-func StripDirectives(contentType string) string {
+func stripDirectives(contentType string) string {
 	return strings.Split(contentType, ";")[0]
 }

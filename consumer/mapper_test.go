@@ -70,6 +70,26 @@ func TestMapToDeleteNotification(t *testing.T) {
 	assert.Nil(t, err, "The mapping should not return an error")
 }
 
+func TestMapToDeleteNotification_ContentTypeHeader(t *testing.T) {
+	event := PublicationEvent{
+		ContentURI:        "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah/" + uuid.NewV4().String(),
+		LastModified:      "2016-11-02T10:54:22.234Z",
+		ContentTypeHeader: "application/vnd.ft-upp-article+json",
+		Payload:           "",
+	}
+
+	mapper := NotificationMapper{
+		APIBaseURL: "test.api.ft.com",
+		Resource:   "list",
+	}
+
+	n, err := mapper.MapNotification(event, "tid_test1")
+
+	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/DELETE", n.Type, "It should be a DELETE notification")
+	assert.Equal(t, "Article", n.ContentType, "ContentType should be mapped based on the message header")
+	assert.Nil(t, err, "The mapping should not return an error")
+}
+
 func TestNotificationMappingFailure(t *testing.T) {
 	event := PublicationEvent{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah",
