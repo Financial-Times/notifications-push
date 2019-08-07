@@ -17,7 +17,7 @@ import (
 	"github.com/Financial-Times/notifications-push/resources"
 	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/gorilla/mux"
-	"github.com/jawher/mow.cli"
+	cli "github.com/jawher/mow.cli"
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/wvanbergen/kazoo-go"
 )
@@ -32,19 +32,21 @@ func main() {
 	app := cli.App(serviceName, appDescription)
 	resource := app.String(cli.StringOpt{
 		Name:   "notifications_resource",
-		Value:  "",
+		Value:  "content",
 		Desc:   "The resource of which notifications are produced (e.g., content or lists)",
 		EnvVar: "NOTIFICATIONS_RESOURCE",
 	})
+
 	consumerAddrs := app.String(cli.StringOpt{
 		Name:   "consumer_addr",
-		Value:  "",
+		Value:  "localhost:2181",
 		Desc:   "Comma separated kafka hosts for message consuming.",
 		EnvVar: "KAFKA_ADDRS",
 	})
+
 	consumerGroupID := app.String(cli.StringOpt{
 		Name:   "consumer_group_id",
-		Value:  "",
+		Value:  "notifications-push",
 		Desc:   "Kafka qroup id used for message consuming.",
 		EnvVar: "GROUP_ID",
 	})
@@ -62,7 +64,7 @@ func main() {
 	})
 	topic := app.String(cli.StringOpt{
 		Name:   "topic",
-		Value:  "",
+		Value:  "PostPublicationEvents",
 		Desc:   "Kafka topic to read from.",
 		EnvVar: "TOPIC",
 	})
@@ -95,6 +97,13 @@ func main() {
 		Desc:   `Comma-separated list of whitelisted ContentTypes for incoming notifications - i.e. application/vnd.ft-upp-article+json,application/vnd.ft-upp-audio+json`,
 		EnvVar: "CONTENT_TYPE_WHITELIST",
 	})
+	apiGatewayAddrs := app.String(cli.StringOpt{
+		Name:   "api-gateway-check_addr",
+		Value:  "",
+		Desc:   "notifications-push service has a dependency on the following API gateway address",
+		EnvVar: "APIGATEWAY_ADDRS",
+	})
+	fmt.Printf("%+v\n", *apiGatewayAddrs)
 
 	logLevel := app.String(cli.StringOpt{
 		Name:   "logLevel",
@@ -160,7 +169,7 @@ func main() {
 		}
 
 		apiGatewayKeyValidationURL := fmt.Sprintf("%s/%s", *apiBaseURL, *apiKeyValidationEndpoint)
-		go server(":"+strconv.Itoa(*port), *resource, dispatcher, history, messageConsumer, apiGatewayKeyValidationURL, httpClient)
+		go server(":"+strconv.Itoa(*port), *resource, dispatcher, history, messageConsumer, apiGatewayKeyValidationURL, httpClient, *apiGatewayAddrs)
 
 		ctWhitelist := queueConsumer.NewSet()
 		for _, value := range *contentTypeWhitelist {
@@ -176,7 +185,7 @@ func main() {
 	}
 }
 
-func server(listen string, resource string, dispatcher dispatch.Dispatcher, history dispatch.History, consumer kafka.Consumer, apiGatewayKeyValidationURL string, httpClient *http.Client) {
+func server(listen string, resource string, dispatcher dispatch.Dispatcher, history dispatch.History, consumer kafka.Consumer, apiGatewayKeyValidationURL string, httpClient *http.Client, apiGatewayAddrs string) {
 	notificationsPushPath := "/" + resource + "/notifications-push"
 
 	r := mux.NewRouter()
@@ -185,7 +194,8 @@ func server(listen string, resource string, dispatcher dispatch.Dispatcher, hist
 	r.HandleFunc("/__history", resources.History(history)).Methods("GET")
 	r.HandleFunc("/__stats", resources.Stats(dispatcher)).Methods("GET")
 
-	hc := resources.NewHealthCheck(consumer)
+	healthCheckHttpClient := &resources.HttpClient{}
+	hc := resources.NewHealthCheck(consumer, apiGatewayAddrs, healthCheckHttpClient)
 
 	r.HandleFunc("/__health", hc.Health())
 	r.HandleFunc(httphandlers.GTGPath, httphandlers.NewGoodToGoHandler(hc.GTG))
