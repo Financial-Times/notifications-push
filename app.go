@@ -103,7 +103,6 @@ func main() {
 		Desc:   "notifications-push service has a dependency on the following API gateway address",
 		EnvVar: "APIGATEWAY_ADDRS",
 	})
-	fmt.Printf("%+v\n", *apiGatewayAddrs)
 
 	logLevel := app.String(cli.StringOpt{
 		Name:   "logLevel",

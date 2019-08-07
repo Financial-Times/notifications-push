@@ -9,3 +9,6 @@ env:
   CONTENT_URI_WHITELIST: "^http://(methode|wordpress-article|content)(-collection|-content-placeholder)?-(mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$"
   CONTENT_TYPE_WHITELIST: "application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json,application/vnd.ft-upp-audio+json"
   PUSH_PORT: "8599"
+
+apiGateway:
+  address: "http://test.api.ft.com/t800/a"

@@ -38,6 +38,11 @@ spec:
             configMapKeyRef:
               name: global-config
               key: zookeeper.url
+        - name: APIGATEWAY_ADDRESS
+            valueFrom:
+              configMapKeyRef:
+                name: notifications-push-config
+                key: apiGateway.address
         - name: API_BASE_URL
           valueFrom:
             configMapKeyRef:
