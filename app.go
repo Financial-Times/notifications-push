@@ -17,7 +17,7 @@ import (
 	"github.com/Financial-Times/notifications-push/resources"
 	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/gorilla/mux"
-	"github.com/jawher/mow.cli"
+	cli "github.com/jawher/mow.cli"
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/wvanbergen/kazoo-go"
 )
@@ -35,12 +35,14 @@ func main() {
 		Desc:   "The resource of which notifications are produced (e.g., content or lists)",
 		EnvVar: "NOTIFICATIONS_RESOURCE",
 	})
+
 	consumerAddrs := app.String(cli.StringOpt{
 		Name:   "consumer_addr",
 		Value:  "",
 		Desc:   "Comma separated kafka hosts for message consuming.",
 		EnvVar: "KAFKA_ADDRS",
 	})
+
 	consumerGroupID := app.String(cli.StringOpt{
 		Name:   "consumer_group_id",
 		Value:  "",
@@ -95,7 +97,14 @@ func main() {
 		EnvVar: "CONTENT_TYPE_WHITELIST",
 	})
 
-	log.InitLogger(serviceName, "info")
+	logLevel := app.String(cli.StringOpt{
+		Name:   "logLevel",
+		Value:  "INFO",
+		Desc:   "Logging level (DEBUG, INFO, WARN, ERROR)",
+		EnvVar: "LOG_LEVEL",
+	})
+
+	log.InitLogger(serviceName, *logLevel)
 
 	log.WithFields(map[string]interface{}{
 		"KAFKA_TOPIC": *topic,
@@ -178,7 +187,8 @@ func server(listen string, resource string, dispatcher dispatch.Dispatcher, hist
 	r.HandleFunc("/__history", resources.History(history)).Methods("GET")
 	r.HandleFunc("/__stats", resources.Stats(dispatcher)).Methods("GET")
 
-	hc := resources.NewHealthCheck(consumer)
+	healthCheckHttpClient := &resources.HttpClient{}
+	hc := resources.NewHealthCheck(consumer, apiGatewayKeyValidationURL, healthCheckHttpClient)
 
 	r.HandleFunc("/__health", hc.Health())
 	r.HandleFunc(httphandlers.GTGPath, httphandlers.NewGoodToGoHandler(hc.GTG))
