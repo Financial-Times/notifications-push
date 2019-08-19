@@ -72,6 +72,15 @@ If not specified, by default `Article` is used. If an invalid type is requested 
 E.g.
 ```curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push?type=Article```
 
+### Filter DELETE messages by type
+When a content has been deleted (`http://www.ft.com/thing/ThingChangeType/DELETE`), the kafka payload is empty and we cannot extract the content type from the message. In this case, there are 2 possible behaviours:
+- if the `Content-Type` header is empty or equal to `application-json`, then we cannot resolve the content type of the message. Therefore, the notification will be sent to all the subscribers despite their accepted content type.
+
+- if the `Content-Type` header has been specified and it is not equal to `application-json`, then we can resolve the content type based on this header.
+
+e.g. a DELETE message with header `Content-Type: application/vnd.ft-upp-audio+json` will be considered an Audio content. Therefore, the notification will be sent to those subscribers who accept `type=Audio` or `type=All`.
+
+
 ### Push stream
 
 By opening a HTTP connection with a GET method to the `/{resource}/notifications-push` endpoint, subscribers can consume the notifications push stream for the resource specified in the configuration (content or lists).
@@ -193,6 +202,10 @@ Clients
 
 Example client code is provided in `bin/client` directory
 
+### Logging
+
+* The application uses [go-logger](https://github.com/Financial-Times/go-logger ); the log file is initialised in [app.go](app.go).
+
 Useful Links
 ------------
 * Production: 
@@ -204,4 +217,5 @@ Useful Links
 [https://prod-coco-up-read.ft.com/content/notifications-push](#https://prod-coco-up-read.ft.com/content/notifications-push) (needs credentials) 
 
 [https://prod-coco-up-read.ft.com/lists/notifications-push](#https://prod-coco-up-read.ft.com/lists/notifications-push) (needs credentials)
+
 

@@ -39,10 +39,11 @@ func (msg NotificationQueueMessage) ToPublicationEvent() (event PublicationEvent
 
 // PublicationEvent is the data structure that represents a publication event consumed from Kafka
 type PublicationEvent struct {
-	ContentURI   string
-	LastModified string
-	Payload      interface{}
-	UUID         string
+	ContentURI        string
+	ContentTypeHeader string
+	LastModified      string
+	Payload           interface{}
+	UUID              string
 }
 
 // Matches is a method that returns True if the ContentURI of a publication event

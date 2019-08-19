@@ -4,11 +4,11 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/kafka-client-go/kafka"
 	"github.com/Financial-Times/notifications-push/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/Financial-Times/go-logger"
 )
 
 var defaultContentUriWhitelist = regexp.MustCompile(`^http://.*-transformer-(pr|iw)-uk-.*\.svc\.ft\.com(:\d{2,5})?/(lists)/[\w-]+.*$`)
@@ -97,8 +97,8 @@ func TestAcceptNotificationBasedOnContentType(t *testing.T) {
 
 	handler := NewMessageQueueHandler(defaultContentUriWhitelist, contentTypeWhitelist, mapper, dispatcher)
 
-	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/vnd.ft-upp-article+json"},
-	`{"ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
+	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/vnd.ft-upp-article+json; version=1.0; charset=utf-8"},
+		`{"ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
 	err := handler.HandleMessage(msg)
 	assert.NoError(t, err)
@@ -119,7 +119,7 @@ func TestAcceptNotificationBasedOnAudioContentType(t *testing.T) {
 	handler := NewMessageQueueHandler(defaultContentUriWhitelist, contentTypeWhitelist, mapper, dispatcher)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/vnd.ft-upp-audio+json"},
-	`{"ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
+		`{"ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
 	err := handler.HandleMessage(msg)
 	assert.NoError(t, err)

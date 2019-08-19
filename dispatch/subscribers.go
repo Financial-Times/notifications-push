@@ -66,7 +66,11 @@ func (s *standardSubscriber) Since() time.Time {
 }
 
 func (s *standardSubscriber) matchesContentType(n Notification) bool {
-	if strings.Contains(n.Type, "DELETE") || strings.ToLower(s.acceptedContentType) == "all" {
+	if strings.ToLower(s.acceptedContentType) == "all" {
+		return true
+	}
+
+	if strings.Contains(n.Type, "DELETE") && n.ContentType == "" {
 		return true
 	}
 

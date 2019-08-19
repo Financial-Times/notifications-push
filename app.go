@@ -25,10 +25,11 @@ import (
 const (
 	heartbeatPeriod = 30 * time.Second
 	serviceName     = "notifications-push"
+	appDescription  = "Proactively notifies subscribers about new publishes/modifications."
 )
 
 func main() {
-	app := cli.App(serviceName, "Proactively notifies subscribers about new publishes/modifications.")
+	app := cli.App(serviceName, appDescription)
 	resource := app.String(cli.StringOpt{
 		Name:   "notifications_resource",
 		Value:  "",
@@ -105,7 +106,6 @@ func main() {
 	})
 
 	log.InitLogger(serviceName, *logLevel)
-
 	log.WithFields(map[string]interface{}{
 		"KAFKA_TOPIC": *topic,
 		"GROUP_ID":    *consumerGroupID,

@@ -30,6 +30,7 @@ func (n NotificationMapper) MapNotification(event PublicationEvent, transactionI
 
 	if event.HasEmptyPayload() {
 		eventType = "DELETE"
+		contentType = resolveTypeFromMessageHeader(event.ContentTypeHeader)
 	} else {
 		eventType = "UPDATE"
 		notificationPayloadMap, ok := event.Payload.(map[string]interface{})
@@ -50,6 +51,19 @@ func (n NotificationMapper) MapNotification(event PublicationEvent, transactionI
 		Standout:         dispatch.Standout{Scoop: scoop},
 		ContentType:      contentType,
 	}, nil
+}
+
+func resolveTypeFromMessageHeader(contentTypeHeader string) string {
+	switch contentTypeHeader {
+	case "application/vnd.ft-upp-article+json":
+		return "Article"
+	case "application/vnd.ft-upp-content-package+json":
+		return "ContentPackage"
+	case "application/vnd.ft-upp-audio+json":
+		return "Audio"
+	default:
+		return ""
+	}
 }
 
 func getScoopFromPayload(notificationPayloadMap map[string]interface{}) bool {
