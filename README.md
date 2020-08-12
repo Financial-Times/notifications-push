@@ -41,6 +41,7 @@ export NOTIFICATIONS_RESOURCE=content \
     && export API_BASE_URL="http://api.ft.com" \
     && export CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
     && export CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
+    && export ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio"
     && ./notifications-push
 ```
 
@@ -57,6 +58,7 @@ export NOTIFICATIONS_RESOURCE=content \
     --api_key_validation_endpoint="t800/a" \
     --content_type_whitelist="application/vnd.ft-upp-article+json" --content_type_whitelist="application/vnd.ft-upp-content-package+json" \
     --content_uri_whitelist="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$"
+    --allowed_all_contentType="Article,ContentPackage,Audio"
 ```
 
 NB: for the complete list of options run `./notifications-push -h`
@@ -70,7 +72,9 @@ The following subscription types could be also specified for which the client wo
 * `Article`
 * `ContentPackage`
 * `Audio`
-* `All`- all content changes including CPH, but not annotation changes.
+* `LiveBlogPackage`
+* `LiveBlogPost`
+* `All`- all content changes including CPH, but not annotation, LiveBlogPackage and LiveBlogPost changes.
 * `Annotations` - notifications for manual annotation changes
 
 If not specified, by default `Article` is used. If an invalid type is requested an HTTP 400 Bad Request is returned.
@@ -219,6 +223,7 @@ How to Build & Run with Docker
         --env API_BASE_URL="http://api.ft.com" \
         --env CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
         --env CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
+        --env ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
         coco/notifications-push
 ```
 

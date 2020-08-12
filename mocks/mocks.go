@@ -46,8 +46,8 @@ func (m *Dispatcher) Subscribers() []dispatch.Subscriber {
 	return args.Get(0).([]dispatch.Subscriber)
 }
 
-func (m *Dispatcher) Subscribe(address string, subType string, monitoring bool) dispatch.Subscriber {
-	args := m.Called(address, subType, monitoring)
+func (m *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool) dispatch.Subscriber {
+	args := m.Called(address, subTypes, monitoring)
 	return args.Get(0).(dispatch.Subscriber)
 }
 func (m *Dispatcher) Unsubscribe(s dispatch.Subscriber) {

@@ -10,10 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/notifications-push/v5/resources"
 	"github.com/gorilla/mux"
 	cli "github.com/jawher/mow.cli"
+
+	"github.com/Financial-Times/go-logger/v2"
+	"github.com/Financial-Times/notifications-push/v5/dispatch"
+	"github.com/Financial-Times/notifications-push/v5/resources"
 )
 
 const (
@@ -117,6 +119,13 @@ func main() {
 		EnvVar: "LOG_LEVEL",
 	})
 
+	allowedAllContentType := app.Strings(cli.StringsOpt{
+		Name:   "allowed_all_contentType",
+		Value:  []string{"Article", "ContentPackage", "Audio"},
+		Desc:   `Comma-separated list of ContentTypes that compose ALL (contentType) - i.e. Article,`,
+		EnvVar: "ALLOWED_ALL_CONTENT_TYPE",
+	})
+
 	log := logger.NewUPPLogger(serviceName, *logLevel)
 
 	app.Action = func() {
@@ -172,6 +181,7 @@ func main() {
 		hc := resources.NewHealthCheck(kafkaConsumer, healthCheckEndpoint.String(), requestStatusCode)
 
 		dispatcher, history := createDispatcher(*delay, *historySize, log)
+		dispatch.SetAllAllowedList(*allowedAllContentType)
 
 		msgConfig := msgHandlerCfg{
 			Resource:        *resource,

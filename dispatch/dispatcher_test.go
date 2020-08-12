@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	contentTypeFilter = "All"
 	typeArticle       = "Article"
 	annotationSubType = "Annotations"
 )
+
+var contentSubscribeTypes = []string{"Article", "ContentPackage", "Audio"}
 
 var delay = 2 * time.Second
 var historySize = 10
@@ -56,8 +57,8 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m := d.Subscribe("192.168.1.2", contentTypeFilter, true)
-	s := d.Subscribe("192.168.1.3", contentTypeFilter, false)
+	m := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
+	s := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -84,7 +85,7 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	t.Parallel()
 
-	l := logger.NewUPPLogger("test", "info")
+	l := logger.NewUPPLogger("test", "panic")
 	l.Out = ioutil.Discard
 	hook := hooks.NewLocal(l.Logger)
 	defer hook.Reset()
@@ -92,9 +93,9 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m := d.Subscribe("192.168.1.2", contentTypeFilter, true)
-	s := d.Subscribe("192.168.1.3", typeArticle, false)
-	annSub := d.Subscribe("192.168.1.4", annotationSubType, false)
+	m := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
+	s := d.Subscribe("192.168.1.3", []string{typeArticle}, false)
+	annSub := d.Subscribe("192.168.1.4", []string{annotationSubType}, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -110,6 +111,7 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	actualN2StdMsg := <-s.Notifications()
 	verifyNotificationResponse(t, n2, zeroTime, zeroTime, actualN2StdMsg)
 
+	// stops exec here ...
 	msg := <-annSub.Notifications()
 	verifyNotificationResponse(t, annNotif, notBefore, time.Now(), msg)
 
@@ -154,8 +156,8 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m := d.Subscribe("192.168.1.2", contentTypeFilter, true).(NotificationConsumer)
-	s := d.Subscribe("192.168.1.3", contentTypeFilter, false).(NotificationConsumer)
+	m := d.Subscribe("192.168.1.2", contentSubscribeTypes, true).(NotificationConsumer)
+	s := d.Subscribe("192.168.1.3", contentSubscribeTypes, false).(NotificationConsumer)
 
 	go d.Start()
 	defer d.Stop()
@@ -185,7 +187,7 @@ func TestDispatchDelay(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	s := d.Subscribe("192.168.1.3", contentTypeFilter, false)
+	s := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -312,8 +314,8 @@ type MockSubscriber struct {
 }
 
 // AcceptedSubType provides a mock function with given fields:
-func (_m *MockSubscriber) SubType() string {
-	return "ContentPackage"
+func (_m *MockSubscriber) SubTypes() []string {
+	return []string{"ContentPackage"}
 }
 
 // Address provides a mock function with given fields:

@@ -22,21 +22,22 @@ const (
 	defaultSubscriptionType = dispatch.ArticleContentType
 )
 
-var supportedSubscriptionTypes = []string{
-	dispatch.AnnotationsType,
-	dispatch.ArticleContentType,
-	dispatch.ContentPackageType,
-	dispatch.AudioContentType,
-	dispatch.AllContentType,
+var supportedSubscriptionTypes = map[string]bool{
+	strings.ToLower(dispatch.AnnotationsType):    true,
+	strings.ToLower(dispatch.ArticleContentType): true,
+	strings.ToLower(dispatch.ContentPackageType): true,
+	strings.ToLower(dispatch.AudioContentType):   true,
+	strings.ToLower(dispatch.AllContentType):     true,
+	strings.ToLower(dispatch.LiveBlogPackage):    true,
+	strings.ToLower(dispatch.LiveBlogPost):       true,
 }
 
 type keyValidator interface {
 	Validate(ctx context.Context, key string) error
 }
 
-//
 type notifier interface {
-	Subscribe(address string, subType string, monitoring bool) dispatch.Subscriber
+	Subscribe(address string, subTypes []string, monitoring bool) dispatch.Subscriber
 	Unsubscribe(subscriber dispatch.Subscriber)
 }
 
@@ -87,7 +88,7 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	subscriptionParam, err := resolveSubType(r)
+	subscriptionParams, err := resolveSubType(r)
 	if err != nil {
 		h.log.WithError(err).Error("Invalid content type")
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -96,7 +97,7 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 	monitorParam := r.URL.Query().Get("monitor")
 	isMonitor, _ := strconv.ParseBool(monitorParam)
 
-	s := h.notif.Subscribe(getClientAddr(r), subscriptionParam, isMonitor)
+	s := h.notif.Subscribe(getClientAddr(r), subscriptionParams, isMonitor)
 	defer h.notif.Unsubscribe(s)
 
 	ctx, cancel := context.WithCancel(r.Context())
@@ -171,17 +172,30 @@ func getClientAddr(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-func resolveSubType(r *http.Request) (string, error) {
-	subType := r.URL.Query().Get("type")
-	if subType == "" {
-		return defaultSubscriptionType, nil
+func resolveSubType(r *http.Request) ([]string, error) {
+	retVal := make([]string, 0)
+	values := r.URL.Query()
+	subTypes := values["type"]
+	if len(subTypes) == 0 {
+		return []string{defaultSubscriptionType}, nil
 	}
-	for _, t := range supportedSubscriptionTypes {
-		if strings.EqualFold(subType, t) {
-			return subType, nil
+	// subTypes are being send by the client (subscriber), and needs to be matched with such string value
+	var subType string
+	for _, subType = range subTypes {
+		if supportedSubscriptionTypes[strings.ToLower(subType)] {
+			if subType == dispatch.AllContentType {
+				retVal = append(retVal, dispatch.AllAllowedList...)
+				continue
+			}
+			retVal = append(retVal, subType)
 		}
 	}
-	return "", fmt.Errorf("specified type (%s) is unsupported", subType)
+
+	if len(retVal) == 0 {
+		return nil, fmt.Errorf("specified type (%s) is unsupported", subType)
+	}
+
+	return retVal, nil
 }
 
 //ApiKey is provided either as a request param or as a header.
