@@ -227,6 +227,52 @@ How to Build & Run with Docker
         coco/notifications-push
 ```
 
+
+Running locally with docker-compose
+------------------------------
+
+```
+docker build -t local/notifications-push:latest .
+docker-compose up -d
+```
+
+!Note: If the app crashes it is probably kafka is not ready yet, give it a minute and then execute:
+```
+docker-compose up -d app
+```
+
+Install [kafkacat](https://github.com/edenhill/kafkacat) and configure it like this:
+```
+printf "api.version.request=false\nbroker.version.fallback=0.8.2.0" > ~/.config/kafkacat.conf
+```
+
+Prepare a file like this one `payload.ftmessage` containing similar payload:
+```
+FTMSG/1.0
+Content-Type: application/vnd.ft-upp-live-blog-post+json
+
+{
+    "payload": {
+        "brands": [
+            {
+                "id": "http://api.ft.com/things/5c7592a8-1f0c-11e4-b0cb-b2227cce2b54"
+            }
+        ],
+        "title": "LiveBlogPostTitle",
+        "uuid": "661516b6-2917-42fb-92b9-326bb205ae53",
+        "type": "LiveBlogPost",
+        "bodyXML": "<body />"
+    },
+    "lastModified": "2020-08-11T09:00:00.020Z",
+    "contentURI": "http://methode-article-internal-components-mapper.svc.ft.com/internalcomponents/661516b6-2917-42fb-92b9-326bb205ae53"
+}
+```
+
+and send it to kafka like this:
+```
+kafkacat -P -b localhost:9092 -t PostPublicationEvents -p 0 payload.ftmessage
+```
+
 Clients
 -------
 

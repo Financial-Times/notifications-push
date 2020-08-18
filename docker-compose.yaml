@@ -1,0 +1,44 @@
+version: '2'
+
+services:
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka:0.8.2.2
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ADVERTISED_HOST_NAME: 172.17.0.1
+      #KAFKA_ADVERTISED_HOST_NAME: 192.168.1.239
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper
+      KAFKA_CREATE_TOPICS: "PostPublicationEvents:1:1,PostConceptAnnotations:1:1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  app:
+    image: local/notifications-push:latest
+    environment:
+      KAFKA_ADDRS: "zookeeper:2181"
+      API_BASE_URL: "http://test.api.ft.com"
+      GROUP_ID: "notifications-push-test1"
+      TOPIC: "PostPublicationEvents"
+      METADATA_TOPIC: "PostConceptAnnotations"
+      NOTIFICATIONS_DELAY: "10"
+      CONSUMER_BACKOFF: "2"
+      NOTIFICATIONS_RESOURCE: "content"
+      CONTENT_URI_WHITELIST: "^http://(methode|wordpress-article|content)(-collection|-content-placeholder)?-(mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$$"
+      CONTENT_TYPE_WHITELIST: "application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json,application/vnd.ft-upp-audio+json,application/vnd.ft-upp-live-blog-post+json,application/vnd.ft-upp-live-blog-package+json"
+      ALLOWED_ALL_CONTENT_TYPE: "Article,ContentPackage,Audio"
+      WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS: "http://cmdb.ft.com/systems/pac, http://cmdb.ft.com/systems/methode-web-pub, http://cmdb.ft.com/systems/next-video-editor"
+      APP_PORT: 8080
+    ports:
+      - 8000:8080
+    depends_on:
+      - kafka
