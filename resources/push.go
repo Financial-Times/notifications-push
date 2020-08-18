@@ -180,19 +180,18 @@ func resolveSubType(r *http.Request) ([]string, error) {
 		return []string{defaultSubscriptionType}, nil
 	}
 	// subTypes are being send by the client (subscriber), and needs to be matched with such string value
-	var subType string
-	for _, subType = range subTypes {
+	for _, subType := range subTypes {
+		if subType == dispatch.AllContentType {
+			retVal = append(retVal, dispatch.AllAllowedList...)
+			continue
+		}
 		if supportedSubscriptionTypes[strings.ToLower(subType)] {
-			if subType == dispatch.AllContentType {
-				retVal = append(retVal, dispatch.AllAllowedList...)
-				continue
-			}
 			retVal = append(retVal, subType)
 		}
 	}
 
 	if len(retVal) == 0 {
-		return nil, fmt.Errorf("specified type (%s) is unsupported", subType)
+		return nil, fmt.Errorf("specified type (%s) is unsupported", r.URL.Query().Get("type"))
 	}
 
 	return retVal, nil
