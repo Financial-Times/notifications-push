@@ -39,7 +39,6 @@ type Dispatcher struct {
 }
 
 func (d *Dispatcher) Start() {
-
 	for {
 		select {
 		case notification := <-d.inbound:
@@ -130,7 +129,6 @@ func (d *Dispatcher) forwardToSubscribers(notification Notification) {
 				"skipped":  skipped,
 			})
 		if len(d.subscribers) == 0 || sent > 0 || len(d.subscribers) == skipped {
-
 			entry.WithMonitoringEvent("NotificationsPush", notification.PublishReference, notification.SubscriptionType).
 				Info("Processed subscribers.")
 		} else {
@@ -162,7 +160,6 @@ func (d *Dispatcher) forwardToSubscribers(notification Notification) {
 
 // matchesSubType matches subscriber's ContentType with the incoming contentType notification.
 func matchesSubType(n Notification, s Subscriber) bool {
-
 	subTypes := make(map[string]bool)
 	for _, subType := range s.SubTypes() {
 		subTypes[strings.ToLower(subType)] = true

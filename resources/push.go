@@ -47,29 +47,31 @@ type onShutdown interface {
 
 // SubHandler manages subscription requests
 type SubHandler struct {
-	notif           notifier
-	validator       keyValidator
-	shutdown        onShutdown
-	heartbeatPeriod time.Duration
-	log             *logger.UPPLogger
+	notif                     notifier
+	validator                 keyValidator
+	shutdown                  onShutdown
+	heartbeatPeriod           time.Duration
+	log                       *logger.UPPLogger
+	contentTypesIncludedInAll []string
 }
 
 func NewSubHandler(n notifier,
 	validator keyValidator,
 	shutdown onShutdown,
 	heartbeatPeriod time.Duration,
-	log *logger.UPPLogger) *SubHandler {
+	log *logger.UPPLogger,
+	contentTypesIncludedInAll []string) *SubHandler {
 	return &SubHandler{
-		notif:           n,
-		validator:       validator,
-		shutdown:        shutdown,
-		heartbeatPeriod: heartbeatPeriod,
-		log:             log,
+		notif:                     n,
+		validator:                 validator,
+		shutdown:                  shutdown,
+		heartbeatPeriod:           heartbeatPeriod,
+		log:                       log,
+		contentTypesIncludedInAll: contentTypesIncludedInAll,
 	}
 }
 
 func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) {
-
 	w.Header().Set("Content-type", "text/event-stream; charset=UTF-8")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Connection", "keep-alive")
@@ -88,7 +90,7 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	subscriptionParams, err := resolveSubType(r)
+	subscriptionParams, err := resolveSubType(r, h.contentTypesIncludedInAll)
 	if err != nil {
 		h.log.WithError(err).Error("Invalid content type")
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -172,7 +174,7 @@ func getClientAddr(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-func resolveSubType(r *http.Request) ([]string, error) {
+func resolveSubType(r *http.Request, contentTypesIncludedInAll []string) ([]string, error) {
 	retVal := make([]string, 0)
 	values := r.URL.Query()
 	subTypes := values["type"]
@@ -182,7 +184,7 @@ func resolveSubType(r *http.Request) ([]string, error) {
 	// subTypes are being send by the client (subscriber), and needs to be matched with such string value
 	for _, subType := range subTypes {
 		if subType == dispatch.AllContentType {
-			retVal = append(retVal, dispatch.AllAllowedList...)
+			retVal = append(retVal, contentTypesIncludedInAll...)
 			continue
 		}
 		if supportedSubscriptionTypes[strings.ToLower(subType)] {

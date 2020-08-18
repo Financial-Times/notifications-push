@@ -71,7 +71,7 @@ func TestSubscription(t *testing.T) {
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, v, r, heartbeat, l)
+	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	for name, test := range tests {
 		test := test
@@ -112,7 +112,6 @@ func TestSubscription(t *testing.T) {
 			assert.Equal(t, test.ExpectedStatus, resp.Code)
 			d.AssertExpectations(t)
 			v.AssertExpectations(t)
-
 		})
 	}
 }
@@ -150,7 +149,7 @@ func TestPassKeyAsParameter(t *testing.T) {
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, v, r, heartbeat, l)
+	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	handler.HandleSubscription(resp, req)
 
@@ -180,7 +179,7 @@ func TestInvalidKey(t *testing.T) {
 	d := &mocks.Dispatcher{}
 	r := mocks.NewShutdownReg()
 
-	handler := NewSubHandler(d, v, r, heartbeat, l)
+	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/content/notifications-push", nil)
@@ -218,7 +217,7 @@ func TestHeartbeat(t *testing.T) {
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, v, r, heartbeat, l)
+	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)
@@ -291,7 +290,7 @@ func TestPushNotificationDelay(t *testing.T) {
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, v, r, heartbeat, l)
+	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)

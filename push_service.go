@@ -27,7 +27,6 @@ type notificationSystem interface {
 }
 
 func startService(srv *http.Server, n notificationSystem, consumer kafka.Consumer, msgHandler queueConsumer.MessageQueueHandler, log *logger.UPPLogger) func(time.Duration) {
-
 	go n.Start()
 
 	consumer.StartListening(msgHandler.HandleMessage)
@@ -56,7 +55,6 @@ func initRouter(r *mux.Router,
 	h dispatch.History,
 	hc *resources.HealthCheck,
 	log *logger.UPPLogger) {
-
 	r.HandleFunc("/"+resource+"/notifications-push", s.HandleSubscription).Methods("GET")
 
 	r.HandleFunc("/__health", hc.Health())
@@ -66,7 +64,6 @@ func initRouter(r *mux.Router,
 
 	r.HandleFunc("/__stats", resources.Stats(d, log)).Methods("GET")
 	r.HandleFunc("/__history", resources.History(h, log)).Methods("GET")
-
 }
 
 type supervisedConsumer struct {
@@ -146,7 +143,6 @@ func createMessageHandler(config msgHandlerCfg, dispatcher *dispatch.Dispatcher,
 }
 
 func requestStatusCode(ctx context.Context, url string) (int, error) {
-
 	r, err := http.NewRequestWithContext(ctx, http.MethodGet, url, bytes.NewReader([]byte("")))
 	if err != nil {
 		return 0, fmt.Errorf("error creating request: %w", err)

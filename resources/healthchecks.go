@@ -33,7 +33,6 @@ func NewHealthCheck(kafkaConsumer KafkaConsumer, apiGatewayGTGAddress string, st
 }
 
 func (h *HealthCheck) Health() func(w http.ResponseWriter, r *http.Request) {
-
 	var checks []fthealth.Check
 	checks = append(checks, h.queueCheck())
 	checks = append(checks, h.apiGatewayCheck())
@@ -99,7 +98,6 @@ func (h *HealthCheck) apiGatewayCheck() fthealth.Check {
 }
 
 func (h *HealthCheck) checkAPIGatewayService() (string, error) {
-
 	if h.StatusFunc == nil {
 		return "", errors.New("no status func")
 	}
@@ -113,5 +111,4 @@ func (h *HealthCheck) checkAPIGatewayService() (string, error) {
 	}
 
 	return "", errors.New("unable to verify ApiGateway service is working")
-
 }

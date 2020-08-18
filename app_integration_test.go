@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"errors"
+
 	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/kafka-client-go/kafka"
 	"github.com/Financial-Times/notifications-push/v5/consumer"
@@ -19,7 +21,6 @@ import (
 	"github.com/Financial-Times/notifications-push/v5/mocks"
 	"github.com/Financial-Times/notifications-push/v5/resources"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -109,7 +110,7 @@ func TestPushNotifications(t *testing.T) {
 	hc := resources.NewHealthCheck(queue, apiGatewayGTGURL, nil)
 
 	keyValidator := resources.NewKeyValidator(server.URL+apiGatewayURL, http.DefaultClient, l)
-	s := resources.NewSubHandler(d, keyValidator, reg, heartbeat, l)
+	s := resources.NewSubHandler(d, keyValidator, reg, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	initRouter(router, s, resource, d, h, hc, l)
 
@@ -337,7 +338,6 @@ func startSubscriber(ctx context.Context, serverURL string, subType string) (<-c
 }
 
 func startDispatcher(delay time.Duration, historySize int, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History) {
-	dispatch.SetAllAllowedList([]string{"Article", "ContentPackage", "Audio"})
 	h := dispatch.NewHistory(historySize)
 	d := dispatch.NewDispatcher(delay, h, log)
 	go d.Start()

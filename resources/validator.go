@@ -46,7 +46,6 @@ func NewKeyErr(msg string, status int, key string) *KeyErr {
 }
 
 func (v *KeyValidator) Validate(ctx context.Context, key string) error {
-
 	if key == "" {
 		return NewKeyErr("Empty api key", http.StatusUnauthorized, "")
 	}
@@ -84,7 +83,6 @@ func (v *KeyValidator) Validate(ctx context.Context, key string) error {
 }
 
 func (v *KeyValidator) logFailedRequest(resp *http.Response, keySuffix string) *KeyErr {
-
 	msg := struct {
 		Error string `json:"error"`
 	}{}
@@ -93,7 +91,6 @@ func (v *KeyValidator) logFailedRequest(resp *http.Response, keySuffix string) *
 	if err != nil {
 		v.log.WithField("apiKeyLastChars", keySuffix).WithError(err).Warnf("Getting API Gateway response body failed")
 	} else {
-
 		err = json.Unmarshal(data, &msg)
 		if err != nil {
 			v.log.WithField("apiKeyLastChars", keySuffix).Warnf("Decoding API Gateway response body as json failed: %v", err)

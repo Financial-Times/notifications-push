@@ -155,7 +155,6 @@ func TestMonitoringEvents(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-
 			msg := kafka.NewFTMessage(test.Headers, test.Body)
 			err := handler.HandleMessage(msg)
 			if test.ExpectError {
@@ -171,7 +170,6 @@ func TestMonitoringEvents(t *testing.T) {
 			assert.Equal(t, test.Message, entry.Message)
 		})
 	}
-
 }
 
 func TestAcceptNotificationBasedOnContentType(t *testing.T) {

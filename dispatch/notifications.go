@@ -18,12 +18,6 @@ const (
 	AnnotationUpdateType = "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE"
 )
 
-var AllAllowedList = make([]string, 0)
-
-func SetAllAllowedList(allAllowedList []string) {
-	AllAllowedList = append(AllAllowedList, allAllowedList...)
-}
-
 // Notification model
 type Notification struct {
 	APIURL           string    `json:"apiUrl"`

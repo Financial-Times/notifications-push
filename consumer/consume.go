@@ -27,7 +27,6 @@ func NewMessageQueueHandler(contentHandler, metadataHandler MessageQueueHandler)
 }
 
 func (h *MessageQueueRouter) HandleMessage(queueMsg kafka.FTMessage) error {
-
 	if isAnnotationMessage(queueMsg.Headers) {
 		return h.metadataHandler.HandleMessage(queueMsg)
 	}

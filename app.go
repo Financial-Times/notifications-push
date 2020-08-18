@@ -14,7 +14,6 @@ import (
 	cli "github.com/jawher/mow.cli"
 
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/Financial-Times/notifications-push/v5/resources"
 )
 
@@ -129,7 +128,6 @@ func main() {
 	log := logger.NewUPPLogger(serviceName, *logLevel)
 
 	app.Action = func() {
-
 		log.WithFields(map[string]interface{}{
 			"CONTENT_TOPIC":  *contentTopic,
 			"METADATA_TOPIC": *metadataTopic,
@@ -181,7 +179,6 @@ func main() {
 		hc := resources.NewHealthCheck(kafkaConsumer, healthCheckEndpoint.String(), requestStatusCode)
 
 		dispatcher, history := createDispatcher(*delay, *historySize, log)
-		dispatch.SetAllAllowedList(*allowedAllContentType)
 
 		msgConfig := msgHandlerCfg{
 			Resource:        *resource,
@@ -202,7 +199,7 @@ func main() {
 		}
 		keyValidateURL = baseURL.ResolveReference(keyValidateURL)
 		keyValidator := resources.NewKeyValidator(keyValidateURL.String(), httpClient, log)
-		subHandler := resources.NewSubHandler(dispatcher, keyValidator, srv, heartbeatPeriod, log)
+		subHandler := resources.NewSubHandler(dispatcher, keyValidator, srv, heartbeatPeriod, log, *allowedAllContentType)
 		if err != nil {
 			log.WithError(err).Fatal("Could not create request handler")
 		}

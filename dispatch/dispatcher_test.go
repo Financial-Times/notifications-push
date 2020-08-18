@@ -177,7 +177,6 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	assert.NotContains(t, d.Subscribers(), s, "Dispatcher does not contain standard subscriber")
 	assert.NotContains(t, d.Subscribers(), m, "Dispatcher does not contain monitor subscriber")
 	assert.Equal(t, 0, len(d.Subscribers()), "Dispatcher has no subscribers")
-
 }
 
 func TestDispatchDelay(t *testing.T) {

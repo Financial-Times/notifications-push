@@ -55,7 +55,6 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 }
 
 func (n NotificationMapper) MapMetadataNotification(event AnnotationsMessage, transactionID string) (dispatch.Notification, error) {
-
 	UUID := UUIDRegexp.FindString(event.ContentURI)
 	if UUID == "" {
 		return dispatch.Notification{}, errors.New("contentURI does not contain a UUID")
