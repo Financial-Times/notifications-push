@@ -11,5 +11,5 @@ env:
   CONTENT_URI_WHITELIST: "^http://(methode|wordpress-article|content)(-collection|-content-placeholder)?-(mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$"
   CONTENT_TYPE_WHITELIST: "application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json,application/vnd.ft-upp-audio+json,application/vnd.ft-upp-live-blog-post+json,application/vnd.ft-upp-live-blog-package+json"
   WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS: "http://cmdb.ft.com/systems/pac, http://cmdb.ft.com/systems/methode-web-pub, http://cmdb.ft.com/systems/next-video-editor"
-  ALLOWED_ALL_CONTENT_TYPE: "Article,ContentPackage,Audio"
+  ALLOWED_ALL_CONTENT_TYPE: "Article,ContentPackage,Audio,Content"
   PUSH_PORT: "8599"

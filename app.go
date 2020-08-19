@@ -120,7 +120,7 @@ func main() {
 
 	allowedAllContentType := app.Strings(cli.StringsOpt{
 		Name:   "allowed_all_contentType",
-		Value:  []string{"Article", "ContentPackage", "Audio"},
+		Value:  []string{"Article", "ContentPackage", "Audio", "Content"},
 		Desc:   `Comma-separated list of ContentTypes that compose ALL (contentType) - i.e. Article,`,
 		EnvVar: "ALLOWED_ALL_CONTENT_TYPE",
 	})

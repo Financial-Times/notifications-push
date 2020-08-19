@@ -82,9 +82,9 @@ func resolveTypeFromMessageHeader(contentTypeHeader string) string {
 	case "application/vnd.ft-upp-audio+json":
 		return dispatch.AudioContentType
 	case "application/vnd.ft-upp-live-blog-post+json":
-		return dispatch.LiveBlogPost
+		return dispatch.LiveBlogPostType
 	case "application/vnd.ft-upp-live-blog-package+json":
-		return dispatch.LiveBlogPackage
+		return dispatch.LiveBlogPackageType
 	default:
 		return ""
 	}

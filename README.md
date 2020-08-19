@@ -71,16 +71,20 @@ The following subscription types could be also specified for which the client wo
 
 * `Article`
 * `ContentPackage`
+* `Content` a.k.a ContentPlaceholder
 * `Audio`
 * `LiveBlogPackage`
 * `LiveBlogPost`
-* `All`- all content changes including CPH, but not annotation, LiveBlogPackage and LiveBlogPost changes.
+* `All`- all content changes (Article, ContentPackage, Audio, Content), but not annotation, LiveBlogPackage and LiveBlogPost changes.
 * `Annotations` - notifications for manual annotation changes
 
 If not specified, by default `Article` is used. If an invalid type is requested an HTTP 400 Bad Request is returned.
 
 E.g.
 ```curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push?type=Article```
+
+You can be subscribed for multiple types:
+```curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push?type=All&type=LiveBlogPost&type=LiveBlogPackage```
 
 ### Filter DELETE messages by type
 When a content has been deleted (`http://www.ft.com/thing/ThingChangeType/DELETE`), the kafka payload is empty and we cannot extract the content type from the message. In this case, there are 2 possible behaviours:

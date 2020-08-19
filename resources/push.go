@@ -23,13 +23,14 @@ const (
 )
 
 var supportedSubscriptionTypes = map[string]bool{
-	strings.ToLower(dispatch.AnnotationsType):    true,
-	strings.ToLower(dispatch.ArticleContentType): true,
-	strings.ToLower(dispatch.ContentPackageType): true,
-	strings.ToLower(dispatch.AudioContentType):   true,
-	strings.ToLower(dispatch.AllContentType):     true,
-	strings.ToLower(dispatch.LiveBlogPackage):    true,
-	strings.ToLower(dispatch.LiveBlogPost):       true,
+	strings.ToLower(dispatch.AnnotationsType):        true,
+	strings.ToLower(dispatch.ArticleContentType):     true,
+	strings.ToLower(dispatch.ContentPackageType):     true,
+	strings.ToLower(dispatch.AudioContentType):       true,
+	strings.ToLower(dispatch.AllContentType):         true,
+	strings.ToLower(dispatch.LiveBlogPackageType):    true,
+	strings.ToLower(dispatch.LiveBlogPostType):       true,
+	strings.ToLower(dispatch.ContentPlaceholderType): true,
 }
 
 type keyValidator interface {
