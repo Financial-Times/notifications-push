@@ -5,13 +5,14 @@ package main
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"testing"
 	"time"
+
+	"errors"
 
 	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/kafka-client-go/kafka"
@@ -109,7 +110,7 @@ func TestPushNotifications(t *testing.T) {
 	hc := resources.NewHealthCheck(queue, apiGatewayGTGURL, nil)
 
 	keyValidator := resources.NewKeyValidator(server.URL+apiGatewayURL, http.DefaultClient, l)
-	s := resources.NewSubHandler(d, keyValidator, reg, heartbeat, l)
+	s := resources.NewSubHandler(d, keyValidator, reg, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	initRouter(router, s, resource, d, h, hc, l)
 

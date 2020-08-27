@@ -2,11 +2,14 @@ package dispatch
 
 // subscription types
 const (
-	AnnotationsType    = "Annotations"
-	ArticleContentType = "Article"
-	ContentPackageType = "ContentPackage"
-	AudioContentType   = "Audio"
-	AllContentType     = "All"
+	AnnotationsType        = "Annotations"
+	ArticleContentType     = "Article"
+	ContentPackageType     = "ContentPackage"
+	AudioContentType       = "Audio"
+	LiveBlogPackageType    = "LiveBlogPackage"
+	LiveBlogPostType       = "LiveBlogPost"
+	ContentPlaceholderType = "Content"
+	AllContentType         = "All"
 )
 
 // notification types

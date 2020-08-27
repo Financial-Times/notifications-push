@@ -55,7 +55,6 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 }
 
 func (n NotificationMapper) MapMetadataNotification(event AnnotationsMessage, transactionID string) (dispatch.Notification, error) {
-
 	UUID := UUIDRegexp.FindString(event.ContentURI)
 	if UUID == "" {
 		return dispatch.Notification{}, errors.New("contentURI does not contain a UUID")
@@ -82,6 +81,10 @@ func resolveTypeFromMessageHeader(contentTypeHeader string) string {
 		return dispatch.ContentPackageType
 	case "application/vnd.ft-upp-audio+json":
 		return dispatch.AudioContentType
+	case "application/vnd.ft-upp-live-blog-post+json":
+		return dispatch.LiveBlogPostType
+	case "application/vnd.ft-upp-live-blog-package+json":
+		return dispatch.LiveBlogPackageType
 	default:
 		return ""
 	}

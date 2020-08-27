@@ -30,28 +30,28 @@ func TestSubscription(t *testing.T) {
 	tests := map[string]struct {
 		Request        string
 		IsMonitor      bool
-		ExpectedType   string
+		ExpectedType   []string
 		ExpectedBody   string
 		ExpectedStatus int
 		ExpectStream   bool
 	}{
 		"Test Push Default Subscriber": {
 
-			ExpectedType:   defaultSubscriptionType,
+			ExpectedType:   []string{defaultSubscriptionType},
 			Request:        "/content/notifications-push",
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
 		},
 		"Test Push Standard Subscriber": {
-			ExpectedType:   "Audio",
+			ExpectedType:   []string{"Audio"},
 			Request:        "/content/notifications-push?type=Audio",
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
 		},
 		"Test Push Monitor Subscriber": {
-			ExpectedType:   defaultSubscriptionType,
+			ExpectedType:   []string{defaultSubscriptionType},
 			Request:        "/content/notifications-push?monitor=true",
 			IsMonitor:      true,
 			ExpectedBody:   "data: []\n\n",
@@ -71,7 +71,7 @@ func TestSubscription(t *testing.T) {
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, v, r, heartbeat, l)
+	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	for name, test := range tests {
 		test := test
@@ -112,7 +112,6 @@ func TestSubscription(t *testing.T) {
 			assert.Equal(t, test.ExpectedStatus, resp.Code)
 			d.AssertExpectations(t)
 			v.AssertExpectations(t)
-
 		})
 	}
 }
@@ -137,9 +136,9 @@ func TestPassKeyAsParameter(t *testing.T) {
 	v := &mocks.KeyValidator{}
 	v.On("Validate", mock.Anything, keyAPI).Return(nil)
 
-	sub := dispatch.NewStandardSubscriber(req.RemoteAddr, defaultSubscriptionType)
+	sub := dispatch.NewStandardSubscriber(req.RemoteAddr, []string{defaultSubscriptionType})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", req.RemoteAddr, defaultSubscriptionType, false).Run(func(args mock.Arguments) {
+	d.On("Subscribe", req.RemoteAddr, []string{defaultSubscriptionType}, false).Run(func(args mock.Arguments) {
 		go func() {
 			<-time.After(time.Millisecond * 10)
 			cancel()
@@ -150,7 +149,7 @@ func TestPassKeyAsParameter(t *testing.T) {
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, v, r, heartbeat, l)
+	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	handler.HandleSubscription(resp, req)
 
@@ -180,7 +179,7 @@ func TestInvalidKey(t *testing.T) {
 	d := &mocks.Dispatcher{}
 	r := mocks.NewShutdownReg()
 
-	handler := NewSubHandler(d, v, r, heartbeat, l)
+	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/content/notifications-push", nil)
@@ -210,15 +209,15 @@ func TestHeartbeat(t *testing.T) {
 	v := &mocks.KeyValidator{}
 	v.On("Validate", mock.Anything, keyAPI).Return(nil)
 
-	sub := dispatch.NewStandardSubscriber(subAddress, defaultSubscriptionType)
+	sub := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", subAddress, defaultSubscriptionType, false).Return(sub)
+	d.On("Subscribe", subAddress, []string{defaultSubscriptionType}, false).Return(sub)
 	d.On("Unsubscribe", mock.AnythingOfType("*dispatch.StandardSubscriber")).Return()
 	r := mocks.NewShutdownReg()
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, v, r, heartbeat, l)
+	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)
@@ -277,9 +276,9 @@ func TestPushNotificationDelay(t *testing.T) {
 	v := &mocks.KeyValidator{}
 	v.On("Validate", mock.Anything, keyAPI).Return(nil)
 
-	sub := dispatch.NewStandardSubscriber(subAddress, defaultSubscriptionType)
+	sub := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", subAddress, defaultSubscriptionType, false).Run(func(args mock.Arguments) {
+	d.On("Subscribe", subAddress, []string{defaultSubscriptionType}, false).Run(func(args mock.Arguments) {
 		go func() {
 			<-time.After(notificationDelay)
 			err := sub.Send(dispatch.Notification{})
@@ -291,7 +290,7 @@ func TestPushNotificationDelay(t *testing.T) {
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, v, r, heartbeat, l)
+	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)

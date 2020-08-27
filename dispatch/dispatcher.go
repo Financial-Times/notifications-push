@@ -39,7 +39,6 @@ type Dispatcher struct {
 }
 
 func (d *Dispatcher) Start() {
-
 	for {
 		select {
 		case notification := <-d.inbound:
@@ -75,12 +74,12 @@ func (d *Dispatcher) Subscribers() []Subscriber {
 	return subs
 }
 
-func (d *Dispatcher) Subscribe(address string, subType string, monitoring bool) Subscriber {
+func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool) Subscriber {
 	var s NotificationConsumer
 	if monitoring {
-		s = NewMonitorSubscriber(address, subType)
+		s = NewMonitorSubscriber(address, subTypes)
 	} else {
-		s = NewStandardSubscriber(address, subType)
+		s = NewStandardSubscriber(address, subTypes)
 	}
 	d.addSubscriber(s)
 	return s
@@ -111,7 +110,7 @@ func logWithSubscriber(log *logger.UPPLogger, s Subscriber) *logger.LogEntry {
 		"subscriberAddress":   s.Address(),
 		"subscriberType":      reflect.TypeOf(s).Elem().Name(),
 		"subscriberSince":     s.Since().Format(time.RFC3339),
-		"acceptedContentType": s.SubType(),
+		"acceptedContentType": s.SubTypes(),
 	})
 }
 
@@ -130,7 +129,6 @@ func (d *Dispatcher) forwardToSubscribers(notification Notification) {
 				"skipped":  skipped,
 			})
 		if len(d.subscribers) == 0 || sent > 0 || len(d.subscribers) == skipped {
-
 			entry.WithMonitoringEvent("NotificationsPush", notification.PublishReference, notification.SubscriptionType).
 				Info("Processed subscribers.")
 		} else {
@@ -160,23 +158,25 @@ func (d *Dispatcher) forwardToSubscribers(notification Notification) {
 	}
 }
 
+// matchesSubType matches subscriber's ContentType with the incoming contentType notification.
 func matchesSubType(n Notification, s Subscriber) bool {
+	subTypes := make(map[string]bool)
+	for _, subType := range s.SubTypes() {
+		subTypes[strings.ToLower(subType)] = true
+	}
 
-	subType := strings.ToLower(s.SubType())
 	notifType := strings.ToLower(n.SubscriptionType)
-
-	all := strings.ToLower(AllContentType)
 	ann := strings.ToLower(AnnotationsType)
 
-	if subType == all && notifType != ann {
+	if n.Type == ContentDeleteType {
+		if notifType != "" {
+			return subTypes[notifType]
+		}
+		if len(subTypes) <= 1 && subTypes[ann] {
+			return false
+		}
 		return true
 	}
 
-	if n.Type == ContentDeleteType &&
-		notifType == "" &&
-		subType != ann {
-		return true
-	}
-
-	return subType == notifType
+	return subTypes[notifType]
 }

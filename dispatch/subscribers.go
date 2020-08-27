@@ -20,7 +20,7 @@ type Subscriber interface {
 	Notifications() <-chan string
 	Address() string
 	Since() time.Time
-	SubType() string
+	SubTypes() []string
 }
 
 type NotificationConsumer interface {
@@ -34,18 +34,18 @@ type StandardSubscriber struct {
 	notificationChannel chan string
 	addr                string
 	sinceTime           time.Time
-	acceptedType        string
+	acceptedTypes       []string
 }
 
 // NewStandardSubscriber returns a new instance of a standard subscriber
-func NewStandardSubscriber(address string, subType string) *StandardSubscriber {
+func NewStandardSubscriber(address string, subTypes []string) *StandardSubscriber {
 	notificationChannel := make(chan string, notificationBuffer)
 	return &StandardSubscriber{
 		id:                  uuid.NewV4().String(),
 		notificationChannel: notificationChannel,
 		addr:                address,
 		sinceTime:           time.Now(),
-		acceptedType:        subType,
+		acceptedTypes:       subTypes,
 	}
 }
 
@@ -60,9 +60,9 @@ func (s *StandardSubscriber) Address() string {
 	return s.addr
 }
 
-// SubType returns the accepted subscription type for which notifications are returned
-func (s *StandardSubscriber) SubType() string {
-	return s.acceptedType
+// SubTypes returns the accepted subscription type for which notifications are returned
+func (s *StandardSubscriber) SubTypes() []string {
+	return s.acceptedTypes
 }
 
 // Since returns the time since a subscriber have been registered
@@ -128,7 +128,7 @@ type MonitorSubscriber struct {
 	notificationChannel chan string
 	addr                string
 	sinceTime           time.Time
-	acceptedType        string
+	acceptedTypes       []string
 }
 
 func (m *MonitorSubscriber) ID() string {
@@ -147,8 +147,8 @@ func (m *MonitorSubscriber) Since() time.Time {
 	return m.sinceTime
 }
 
-func (m *MonitorSubscriber) SubType() string {
-	return m.acceptedType
+func (m *MonitorSubscriber) SubTypes() []string {
+	return m.acceptedTypes
 }
 
 func (m *MonitorSubscriber) Send(n Notification) error {
@@ -167,14 +167,14 @@ func (m *MonitorSubscriber) Send(n Notification) error {
 }
 
 // NewMonitorSubscriber returns a new instance of a Monitor subscriber
-func NewMonitorSubscriber(address string, subType string) *MonitorSubscriber {
+func NewMonitorSubscriber(address string, subTypes []string) *MonitorSubscriber {
 	notificationChannel := make(chan string, notificationBuffer)
 	return &MonitorSubscriber{
 		id:                  uuid.NewV4().String(),
 		notificationChannel: notificationChannel,
 		addr:                address,
 		sinceTime:           time.Now(),
-		acceptedType:        subType,
+		acceptedTypes:       subTypes,
 	}
 }
 

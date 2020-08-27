@@ -129,7 +129,6 @@ func TestIsValidApiKeyResponseInternalServerError(t *testing.T) {
 	assert.True(t, errors.As(err, &keyErr), "Validate should return KeyErr error")
 	assert.Equal(t, "Request to validate api key returned an unexpected response", keyErr.Msg)
 	assert.Equal(t, http.StatusInternalServerError, keyErr.Status)
-
 }
 
 func TestIsValidApiKeyResponseOtherServerError(t *testing.T) {

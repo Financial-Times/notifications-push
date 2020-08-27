@@ -41,6 +41,7 @@ export NOTIFICATIONS_RESOURCE=content \
     && export API_BASE_URL="http://api.ft.com" \
     && export CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
     && export CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
+    && export ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio"
     && ./notifications-push
 ```
 
@@ -57,6 +58,7 @@ export NOTIFICATIONS_RESOURCE=content \
     --api_key_validation_endpoint="t800/a" \
     --content_type_whitelist="application/vnd.ft-upp-article+json" --content_type_whitelist="application/vnd.ft-upp-content-package+json" \
     --content_uri_whitelist="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$"
+    --allowed_all_contentType="Article,ContentPackage,Audio"
 ```
 
 NB: for the complete list of options run `./notifications-push -h`
@@ -69,14 +71,20 @@ The following subscription types could be also specified for which the client wo
 
 * `Article`
 * `ContentPackage`
+* `Content` a.k.a ContentPlaceholder
 * `Audio`
-* `All`- all content changes including CPH, but not annotation changes.
+* `LiveBlogPackage`
+* `LiveBlogPost`
+* `All`- all content changes (Article, ContentPackage, Audio, Content), but not annotation, LiveBlogPackage and LiveBlogPost changes.
 * `Annotations` - notifications for manual annotation changes
 
 If not specified, by default `Article` is used. If an invalid type is requested an HTTP 400 Bad Request is returned.
 
 E.g.
 ```curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push?type=Article```
+
+You can be subscribed for multiple types:
+```curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push?type=All&type=LiveBlogPost&type=LiveBlogPackage```
 
 ### Filter DELETE messages by type
 When a content has been deleted (`http://www.ft.com/thing/ThingChangeType/DELETE`), the kafka payload is empty and we cannot extract the content type from the message. In this case, there are 2 possible behaviours:
@@ -219,7 +227,54 @@ How to Build & Run with Docker
         --env API_BASE_URL="http://api.ft.com" \
         --env CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
         --env CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
+        --env ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
         coco/notifications-push
+```
+
+
+Running locally with docker-compose
+------------------------------
+
+```
+docker build -t local/notifications-push:latest .
+docker-compose up -d
+```
+
+!Note: If the app crashes it is probably kafka is not ready yet, give it a minute and then execute:
+```
+docker-compose up -d app
+```
+
+Install [kafkacat](https://github.com/edenhill/kafkacat) and configure it like this:
+```
+printf "api.version.request=false\nbroker.version.fallback=0.8.2.0" > ~/.config/kafkacat.conf
+```
+
+Prepare a file like this one `payload.ftmessage` containing similar payload:
+```
+FTMSG/1.0
+Content-Type: application/vnd.ft-upp-live-blog-post+json
+
+{
+    "payload": {
+        "brands": [
+            {
+                "id": "http://api.ft.com/things/5c7592a8-1f0c-11e4-b0cb-b2227cce2b54"
+            }
+        ],
+        "title": "LiveBlogPostTitle",
+        "uuid": "661516b6-2917-42fb-92b9-326bb205ae53",
+        "type": "LiveBlogPost",
+        "bodyXML": "<body />"
+    },
+    "lastModified": "2020-08-11T09:00:00.020Z",
+    "contentURI": "http://methode-article-internal-components-mapper.svc.ft.com/internalcomponents/661516b6-2917-42fb-92b9-326bb205ae53"
+}
+```
+
+and send it to kafka like this:
+```
+kafkacat -P -b localhost:9092 -t PostPublicationEvents -p 0 payload.ftmessage
 ```
 
 Clients

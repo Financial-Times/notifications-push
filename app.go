@@ -10,10 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/notifications-push/v5/resources"
 	"github.com/gorilla/mux"
 	cli "github.com/jawher/mow.cli"
+
+	"github.com/Financial-Times/go-logger/v2"
+	"github.com/Financial-Times/notifications-push/v5/resources"
 )
 
 const (
@@ -117,10 +118,16 @@ func main() {
 		EnvVar: "LOG_LEVEL",
 	})
 
+	allowedAllContentType := app.Strings(cli.StringsOpt{
+		Name:   "allowed_all_contentType",
+		Value:  []string{"Article", "ContentPackage", "Audio", "Content"},
+		Desc:   `Comma-separated list of ContentTypes that compose ALL (contentType) - i.e. Article,`,
+		EnvVar: "ALLOWED_ALL_CONTENT_TYPE",
+	})
+
 	log := logger.NewUPPLogger(serviceName, *logLevel)
 
 	app.Action = func() {
-
 		log.WithFields(map[string]interface{}{
 			"CONTENT_TOPIC":  *contentTopic,
 			"METADATA_TOPIC": *metadataTopic,
@@ -192,7 +199,7 @@ func main() {
 		}
 		keyValidateURL = baseURL.ResolveReference(keyValidateURL)
 		keyValidator := resources.NewKeyValidator(keyValidateURL.String(), httpClient, log)
-		subHandler := resources.NewSubHandler(dispatcher, keyValidator, srv, heartbeatPeriod, log)
+		subHandler := resources.NewSubHandler(dispatcher, keyValidator, srv, heartbeatPeriod, log, *allowedAllContentType)
 		if err != nil {
 			log.WithError(err).Fatal("Could not create request handler")
 		}

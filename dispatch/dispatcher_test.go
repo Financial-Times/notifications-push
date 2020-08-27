@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	contentTypeFilter = "All"
 	typeArticle       = "Article"
 	annotationSubType = "Annotations"
 )
+
+var contentSubscribeTypes = []string{"Article", "ContentPackage", "Audio"}
 
 var delay = 2 * time.Second
 var historySize = 10
@@ -56,8 +57,8 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m := d.Subscribe("192.168.1.2", contentTypeFilter, true)
-	s := d.Subscribe("192.168.1.3", contentTypeFilter, false)
+	m := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
+	s := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -84,7 +85,7 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	t.Parallel()
 
-	l := logger.NewUPPLogger("test", "info")
+	l := logger.NewUPPLogger("test", "panic")
 	l.Out = ioutil.Discard
 	hook := hooks.NewLocal(l.Logger)
 	defer hook.Reset()
@@ -92,9 +93,9 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m := d.Subscribe("192.168.1.2", contentTypeFilter, true)
-	s := d.Subscribe("192.168.1.3", typeArticle, false)
-	annSub := d.Subscribe("192.168.1.4", annotationSubType, false)
+	m := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
+	s := d.Subscribe("192.168.1.3", []string{typeArticle}, false)
+	annSub := d.Subscribe("192.168.1.4", []string{annotationSubType}, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -110,6 +111,7 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	actualN2StdMsg := <-s.Notifications()
 	verifyNotificationResponse(t, n2, zeroTime, zeroTime, actualN2StdMsg)
 
+	// stops exec here ...
 	msg := <-annSub.Notifications()
 	verifyNotificationResponse(t, annNotif, notBefore, time.Now(), msg)
 
@@ -154,8 +156,8 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m := d.Subscribe("192.168.1.2", contentTypeFilter, true).(NotificationConsumer)
-	s := d.Subscribe("192.168.1.3", contentTypeFilter, false).(NotificationConsumer)
+	m := d.Subscribe("192.168.1.2", contentSubscribeTypes, true).(NotificationConsumer)
+	s := d.Subscribe("192.168.1.3", contentSubscribeTypes, false).(NotificationConsumer)
 
 	go d.Start()
 	defer d.Stop()
@@ -175,7 +177,6 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	assert.NotContains(t, d.Subscribers(), s, "Dispatcher does not contain standard subscriber")
 	assert.NotContains(t, d.Subscribers(), m, "Dispatcher does not contain monitor subscriber")
 	assert.Equal(t, 0, len(d.Subscribers()), "Dispatcher has no subscribers")
-
 }
 
 func TestDispatchDelay(t *testing.T) {
@@ -185,7 +186,7 @@ func TestDispatchDelay(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	s := d.Subscribe("192.168.1.3", contentTypeFilter, false)
+	s := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -302,6 +303,89 @@ func verifyNotification(t *testing.T, expected Notification, notBefore time.Time
 	}
 }
 
+func TestMatchesSubType(t *testing.T) {
+	tests := []struct {
+		name string
+		n    Notification
+		s    *StandardSubscriber
+		res  bool
+	}{
+		{
+			name: "test that notification type matches if subscriber has it as subscription type",
+			n: Notification{
+				SubscriptionType: AudioContentType,
+				Type:             AudioContentType,
+			},
+			s: &StandardSubscriber{
+				acceptedTypes: []string{ArticleContentType, AudioContentType},
+			},
+			res: true,
+		},
+		{
+			name: "test that notification type does not match if subscriber does not have it as subscription type",
+			n: Notification{
+				SubscriptionType: AudioContentType,
+				Type:             AudioContentType,
+			},
+			s: &StandardSubscriber{
+				acceptedTypes: []string{ArticleContentType, ContentPackageType},
+			},
+			res: false,
+		},
+		{
+			name: "test that if notification is of type DELETE and the content type can be resolved - we should match it only if the subscriber has been subscribed for this type",
+			n: Notification{
+				SubscriptionType: AudioContentType,
+				Type:             ContentDeleteType,
+			},
+			s: &StandardSubscriber{
+				acceptedTypes: []string{ArticleContentType, AudioContentType},
+			},
+			res: true,
+		},
+		{
+			name: "test if subscriber is subscribed only for annotations and notification is of type DELETE and its content type cannot be resolved - we should NOT match it",
+			n: Notification{
+				SubscriptionType: "",
+				Type:             ContentDeleteType,
+			},
+			s: &StandardSubscriber{
+				acceptedTypes: []string{AnnotationsType},
+			},
+			res: false,
+		},
+		{
+			name: "test if subscriber is not subscribed for annotations and notification is of type DELETE and its content type cannot be resolved - we should match it",
+			n: Notification{
+				SubscriptionType: "",
+				Type:             ContentDeleteType,
+			},
+			s: &StandardSubscriber{
+				acceptedTypes: []string{ArticleContentType},
+			},
+			res: true,
+		},
+		{
+			name: "test if subscriber is subscribed for annotations and another content type AND notification is of type DELETE and its content type cannot be resolved - we should match it",
+			n: Notification{
+				SubscriptionType: "",
+				Type:             ContentDeleteType,
+			},
+			s: &StandardSubscriber{
+				acceptedTypes: []string{AnnotationsType, ArticleContentType},
+			},
+			res: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			res := matchesSubType(test.n, test.s)
+			assert.Equal(t, test.res, res)
+		})
+	}
+}
+
 // MockSubscriber is an autogenerated mock type for the MockSubscriber type
 type MockSubscriber struct {
 	// _dummy property exists to prevent the compiler to apply empty struct optimizations on MockSubscriber
@@ -312,8 +396,8 @@ type MockSubscriber struct {
 }
 
 // AcceptedSubType provides a mock function with given fields:
-func (_m *MockSubscriber) SubType() string {
-	return "ContentPackage"
+func (_m *MockSubscriber) SubTypes() []string {
+	return []string{"ContentPackage"}
 }
 
 // Address provides a mock function with given fields:
