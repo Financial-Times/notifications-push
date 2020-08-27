@@ -36,9 +36,22 @@ func TestSubscription(t *testing.T) {
 		ExpectStream   bool
 	}{
 		"Test Push Default Subscriber": {
-
 			ExpectedType:   []string{defaultSubscriptionType},
 			Request:        "/content/notifications-push",
+			ExpectedBody:   "data: []\n\n",
+			ExpectedStatus: http.StatusOK,
+			ExpectStream:   true,
+		},
+		"Test Push All Subscriber": {
+			ExpectedType:   []string{"Article", "ContentPackage", "Audio"},
+			Request:        "/content/notifications-push?type=All",
+			ExpectedBody:   "data: []\n\n",
+			ExpectedStatus: http.StatusOK,
+			ExpectStream:   true,
+		},
+		"Test Push all lowercase Subscriber": {
+			ExpectedType:   []string{"Article", "ContentPackage", "Audio"},
+			Request:        "/content/notifications-push?type=all",
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
@@ -65,17 +78,16 @@ func TestSubscription(t *testing.T) {
 		},
 	}
 
-	v := &mocks.KeyValidator{}
-	d := &mocks.Dispatcher{}
-	r := mocks.NewShutdownReg()
-	r.On("RegisterOnShutdown", mock.Anything).Return()
-	defer r.Shutdown()
-
-	handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
-
 	for name, test := range tests {
 		test := test
 		t.Run(name, func(t *testing.T) {
+			v := &mocks.KeyValidator{}
+			d := &mocks.Dispatcher{}
+			r := mocks.NewShutdownReg()
+			r.On("RegisterOnShutdown", mock.Anything).Return()
+			defer r.Shutdown()
+			handler := NewSubHandler(d, v, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
+
 			ctx, cancel := context.WithCancel(context.Background())
 
 			v.On("Validate", mock.Anything, apiKey).Return(nil)
