@@ -184,7 +184,7 @@ func resolveSubType(r *http.Request, contentTypesIncludedInAll []string) ([]stri
 	}
 	// subTypes are being send by the client (subscriber), and needs to be matched with such string value
 	for _, subType := range subTypes {
-		if subType == dispatch.AllContentType {
+		if strings.EqualFold(subType, dispatch.AllContentType) {
 			retVal = append(retVal, contentTypesIncludedInAll...)
 			continue
 		}
