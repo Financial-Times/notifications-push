@@ -2,7 +2,6 @@
 replicaCount: 2
 service:
   name: notifications-push
-eksCluster: true
 env:
   TOPIC: "PostPublicationEvents"
   METADATA_TOPIC: "PostConceptAnnotations"
