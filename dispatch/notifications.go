@@ -31,6 +31,7 @@ type Notification struct {
 	Title            string    `json:"title,omitempty"`
 	Standout         *Standout `json:"standout,omitempty"`
 	SubscriptionType string    `json:"-"`
+	IsE2ETest        bool      `json:"-"`
 }
 
 // Standout model for a Notification

@@ -148,10 +148,18 @@ func (d *Dispatcher) forwardToSubscribers(notification Notification) {
 			WithTransactionID(notification.PublishReference).
 			WithField("resource", notification.APIURL)
 
-		if !matchesSubType(notification, sub) {
-			skipped++
-			entry.Info("Skipping subscriber.")
-			continue
+		if notification.IsE2ETest {
+			if _, isStandard := sub.(*StandardSubscriber); isStandard {
+				skipped++
+				entry.Info("Skipping subscriber.")
+				continue
+			}
+		} else {
+			if !matchesSubType(notification, sub) {
+				skipped++
+				entry.Info("Skipping subscriber.")
+				continue
+			}
 		}
 
 		err := sub.Send(notification)

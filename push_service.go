@@ -121,6 +121,7 @@ type msgHandlerCfg struct {
 	ContentURI      string
 	ContentTypes    []string
 	MetadataHeaders []string
+	E2ETestUUIDs    []string
 }
 
 func createMessageHandler(config msgHandlerCfg, dispatcher *dispatch.Dispatcher, log *logger.UPPLogger) (*queueConsumer.MessageQueueRouter, error) {
@@ -136,7 +137,8 @@ func createMessageHandler(config msgHandlerCfg, dispatcher *dispatch.Dispatcher,
 	for _, value := range config.ContentTypes {
 		ctWhitelist.Add(value)
 	}
-	contentHandler := queueConsumer.NewContentQueueHandler(whitelistR, ctWhitelist, mapper, dispatcher, log)
+
+	contentHandler := queueConsumer.NewContentQueueHandler(whitelistR, ctWhitelist, config.E2ETestUUIDs, mapper, dispatcher, log)
 	metadataHandler := queueConsumer.NewMetadataQueueHandler(config.MetadataHeaders, mapper, dispatcher, log)
 	handler := queueConsumer.NewMessageQueueHandler(contentHandler, metadataHandler)
 	return handler, nil

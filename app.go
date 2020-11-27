@@ -125,6 +125,13 @@ func main() {
 		EnvVar: "ALLOWED_ALL_CONTENT_TYPE",
 	})
 
+	e2eTestUUIDs := app.Strings(cli.StringsOpt{
+		Name:   "e2e_test_ids",
+		Value:  []string{},
+		Desc:   `Comma-separated list of allowed UUIDs used for end-to-end tests.`,
+		EnvVar: "E2E_TEST_IDS",
+	})
+
 	log := logger.NewUPPLogger(serviceName, *logLevel)
 
 	app.Action = func() {
@@ -133,6 +140,7 @@ func main() {
 			"METADATA_TOPIC": *metadataTopic,
 			"GROUP_ID":       *consumerGroupID,
 			"KAFKA_ADDRS":    *consumerAddrs,
+			"E2E_TEST_IDS":   *e2eTestUUIDs,
 		}).Infof("[Startup] notifications-push is starting ")
 
 		kafkaConsumer, err := createSupervisedConsumer(log,
@@ -186,6 +194,7 @@ func main() {
 			ContentURI:      *contentURIWhitelist,
 			ContentTypes:    *contentTypeWhitelist,
 			MetadataHeaders: *whitelistedMetadataOriginSystemHeaders,
+			E2ETestUUIDs:    *e2eTestUUIDs,
 		}
 
 		queueHandler, err := createMessageHandler(msgConfig, dispatcher, log)
