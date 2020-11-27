@@ -57,8 +57,8 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
-	s := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -93,9 +93,9 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
-	s := d.Subscribe("192.168.1.3", []string{typeArticle}, false)
-	annSub := d.Subscribe("192.168.1.4", []string{annotationSubType}, false)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
+	s, _ := d.Subscribe("192.168.1.3", []string{typeArticle}, false)
+	annSub, _ := d.Subscribe("192.168.1.4", []string{annotationSubType}, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -156,8 +156,10 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m := d.Subscribe("192.168.1.2", contentSubscribeTypes, true).(NotificationConsumer)
-	s := d.Subscribe("192.168.1.3", contentSubscribeTypes, false).(NotificationConsumer)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
+	m = m.(NotificationConsumer)
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	s = s.(NotificationConsumer)
 
 	go d.Start()
 	defer d.Stop()
@@ -186,7 +188,7 @@ func TestDispatchDelay(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	s := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
 
 	go d.Start()
 	defer d.Stop()

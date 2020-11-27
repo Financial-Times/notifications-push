@@ -93,7 +93,7 @@ func TestSubscription(t *testing.T) {
 			v.On("Validate", mock.Anything, apiKey).Return(nil)
 
 			if test.ExpectStream {
-				sub := dispatch.NewStandardSubscriber(subAddress, test.ExpectedType)
+				sub, _ := dispatch.NewStandardSubscriber(subAddress, test.ExpectedType)
 				d.On("Subscribe", subAddress, test.ExpectedType, test.IsMonitor).Run(func(args mock.Arguments) {
 					go func() {
 						<-time.After(time.Millisecond * 10)
@@ -148,7 +148,7 @@ func TestPassKeyAsParameter(t *testing.T) {
 	v := &mocks.KeyValidator{}
 	v.On("Validate", mock.Anything, keyAPI).Return(nil)
 
-	sub := dispatch.NewStandardSubscriber(req.RemoteAddr, []string{defaultSubscriptionType})
+	sub, _ := dispatch.NewStandardSubscriber(req.RemoteAddr, []string{defaultSubscriptionType})
 	d := &mocks.Dispatcher{}
 	d.On("Subscribe", req.RemoteAddr, []string{defaultSubscriptionType}, false).Run(func(args mock.Arguments) {
 		go func() {
@@ -221,7 +221,7 @@ func TestHeartbeat(t *testing.T) {
 	v := &mocks.KeyValidator{}
 	v.On("Validate", mock.Anything, keyAPI).Return(nil)
 
-	sub := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType})
+	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType})
 	d := &mocks.Dispatcher{}
 	d.On("Subscribe", subAddress, []string{defaultSubscriptionType}, false).Return(sub)
 	d.On("Unsubscribe", mock.AnythingOfType("*dispatch.StandardSubscriber")).Return()
@@ -288,7 +288,7 @@ func TestPushNotificationDelay(t *testing.T) {
 	v := &mocks.KeyValidator{}
 	v.On("Validate", mock.Anything, keyAPI).Return(nil)
 
-	sub := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType})
+	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType})
 	d := &mocks.Dispatcher{}
 	d.On("Subscribe", subAddress, []string{defaultSubscriptionType}, false).Run(func(args mock.Arguments) {
 		go func() {

@@ -74,15 +74,22 @@ func (d *Dispatcher) Subscribers() []Subscriber {
 	return subs
 }
 
-func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool) Subscriber {
+func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool) (Subscriber, error) {
 	var s NotificationConsumer
+	var err error
 	if monitoring {
-		s = NewMonitorSubscriber(address, subTypes)
+		s, err = NewMonitorSubscriber(address, subTypes)
 	} else {
-		s = NewStandardSubscriber(address, subTypes)
+		s, err = NewStandardSubscriber(address, subTypes)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
 	d.addSubscriber(s)
-	return s
+
+	return s, nil
 }
 
 func (d *Dispatcher) Unsubscribe(subscriber Subscriber) {

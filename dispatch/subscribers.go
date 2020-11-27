@@ -38,15 +38,20 @@ type StandardSubscriber struct {
 }
 
 // NewStandardSubscriber returns a new instance of a standard subscriber
-func NewStandardSubscriber(address string, subTypes []string) *StandardSubscriber {
+func NewStandardSubscriber(address string, subTypes []string) (*StandardSubscriber, error) {
 	notificationChannel := make(chan string, notificationBuffer)
+	id, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
 	return &StandardSubscriber{
-		id:                  uuid.NewV4().String(),
+		id:                  id.String(),
 		notificationChannel: notificationChannel,
 		addr:                address,
 		sinceTime:           time.Now(),
 		acceptedTypes:       subTypes,
-	}
+	}, nil
 }
 
 // Id returns the uniquely generated subscriber identifier
@@ -167,15 +172,20 @@ func (m *MonitorSubscriber) Send(n Notification) error {
 }
 
 // NewMonitorSubscriber returns a new instance of a Monitor subscriber
-func NewMonitorSubscriber(address string, subTypes []string) *MonitorSubscriber {
+func NewMonitorSubscriber(address string, subTypes []string) (*MonitorSubscriber, error) {
 	notificationChannel := make(chan string, notificationBuffer)
+	id, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
 	return &MonitorSubscriber{
-		id:                  uuid.NewV4().String(),
+		id:                  id.String(),
 		notificationChannel: notificationChannel,
 		addr:                address,
 		sinceTime:           time.Now(),
 		acceptedTypes:       subTypes,
-	}
+	}, nil
 }
 
 func buildMonitorNotificationMsg(n Notification) (string, error) {
