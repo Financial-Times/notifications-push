@@ -3,7 +3,7 @@ replicaCount: 2
 service:
   name: notifications-push
 env:
-  TOPIC: "PostPublicationEvents"
+  TOPIC: "PublicationNotificationEvents"
   METADATA_TOPIC: "PostConceptAnnotations"
   CONSUMER_BACKOFF: "2"
   NOTIFICATIONS_RESOURCE: "content"
