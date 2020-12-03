@@ -151,7 +151,7 @@ func (d *Dispatcher) forwardToSubscribers(notification Notification) {
 		if notification.IsE2ETest {
 			if _, isStandard := sub.(*StandardSubscriber); isStandard {
 				skipped++
-				entry.Info("Skipping subscriber.")
+				entry.Info("Test notification. Skipping standard subscriber.")
 				continue
 			}
 		} else {
