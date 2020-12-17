@@ -74,15 +74,22 @@ func (d *Dispatcher) Subscribers() []Subscriber {
 	return subs
 }
 
-func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool) Subscriber {
+func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool) (Subscriber, error) {
 	var s NotificationConsumer
+	var err error
 	if monitoring {
-		s = NewMonitorSubscriber(address, subTypes)
+		s, err = NewMonitorSubscriber(address, subTypes)
 	} else {
-		s = NewStandardSubscriber(address, subTypes)
+		s, err = NewStandardSubscriber(address, subTypes)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
 	d.addSubscriber(s)
-	return s
+
+	return s, nil
 }
 
 func (d *Dispatcher) Unsubscribe(subscriber Subscriber) {
@@ -141,10 +148,18 @@ func (d *Dispatcher) forwardToSubscribers(notification Notification) {
 			WithTransactionID(notification.PublishReference).
 			WithField("resource", notification.APIURL)
 
-		if !matchesSubType(notification, sub) {
-			skipped++
-			entry.Info("Skipping subscriber.")
-			continue
+		if notification.IsE2ETest {
+			if _, isStandard := sub.(*StandardSubscriber); isStandard {
+				skipped++
+				entry.Info("Test notification. Skipping standard subscriber.")
+				continue
+			}
+		} else {
+			if !matchesSubType(notification, sub) {
+				skipped++
+				entry.Info("Skipping subscriber.")
+				continue
+			}
 		}
 
 		err := sub.Send(notification)

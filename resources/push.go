@@ -38,7 +38,7 @@ type keyValidator interface {
 }
 
 type notifier interface {
-	Subscribe(address string, subTypes []string, monitoring bool) dispatch.Subscriber
+	Subscribe(address string, subTypes []string, monitoring bool) (dispatch.Subscriber, error)
 	Unsubscribe(subscriber dispatch.Subscriber)
 }
 
@@ -100,7 +100,12 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 	monitorParam := r.URL.Query().Get("monitor")
 	isMonitor, _ := strconv.ParseBool(monitorParam)
 
-	s := h.notif.Subscribe(getClientAddr(r), subscriptionParams, isMonitor)
+	s, err := h.notif.Subscribe(getClientAddr(r), subscriptionParams, isMonitor)
+	if err != nil {
+		h.log.WithError(err).Error("Error creating subscription")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	defer h.notif.Unsubscribe(s)
 
 	ctx, cancel := context.WithCancel(r.Context())

@@ -32,16 +32,18 @@ func (s *Set) Contains(value string) bool {
 type ContentQueueHandler struct {
 	contentURIWhitelist  *regexp.Regexp
 	contentTypeWhitelist *Set
+	e2eTestUUIDs         []string
 	mapper               NotificationMapper
 	dispatcher           notificationDispatcher
 	log                  *logger.UPPLogger
 }
 
 // NewContentQueueHandler returns a new message handler
-func NewContentQueueHandler(contentURIWhitelist *regexp.Regexp, contentTypeWhitelist *Set, mapper NotificationMapper, dispatcher notificationDispatcher, log *logger.UPPLogger) *ContentQueueHandler {
+func NewContentQueueHandler(contentURIWhitelist *regexp.Regexp, contentTypeWhitelist *Set, e2eTestUUIDs []string, mapper NotificationMapper, dispatcher notificationDispatcher, log *logger.UPPLogger) *ContentQueueHandler {
 	return &ContentQueueHandler{
 		contentURIWhitelist:  contentURIWhitelist,
 		contentTypeWhitelist: contentTypeWhitelist,
+		e2eTestUUIDs:         e2eTestUUIDs,
 		mapper:               mapper,
 		dispatcher:           dispatcher,
 		log:                  log,
@@ -65,21 +67,24 @@ func (qHandler *ContentQueueHandler) HandleMessage(queueMsg kafka.FTMessage) err
 		return nil
 	}
 
-	if msg.HasSynthTransactionID() {
-		monitoringLogger.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: Synthetic transaction ID.")
-		return nil
-	}
-
 	strippedDirectivesContentType := stripDirectives(contentType)
-	if strippedDirectivesContentType == "application/json" || strippedDirectivesContentType == "" {
-		if !pubEvent.Matches(qHandler.contentURIWhitelist) {
-			monitoringLogger.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: contentUri is not in the whitelist.")
+	isE2ETest := msg.HasE2ETestTransactionID(qHandler.e2eTestUUIDs)
+	if !isE2ETest {
+		if msg.HasSynthTransactionID() {
+			monitoringLogger.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: Synthetic transaction ID.")
 			return nil
 		}
-	} else {
-		if !qHandler.contentTypeWhitelist.Contains(strippedDirectivesContentType) {
-			monitoringLogger.WithValidFlag(false).Info("Skipping event: contentType is not the whitelist.")
-			return nil
+
+		if strippedDirectivesContentType == "application/json" || strippedDirectivesContentType == "" {
+			if !pubEvent.Matches(qHandler.contentURIWhitelist) {
+				monitoringLogger.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: contentUri is not in the whitelist.")
+				return nil
+			}
+		} else {
+			if !qHandler.contentTypeWhitelist.Contains(strippedDirectivesContentType) {
+				monitoringLogger.WithValidFlag(false).Info("Skipping event: contentType is not the whitelist.")
+				return nil
+			}
 		}
 	}
 
@@ -89,6 +94,7 @@ func (qHandler *ContentQueueHandler) HandleMessage(queueMsg kafka.FTMessage) err
 		monitoringLogger.WithError(err).Warn("Skipping event: Cannot build notification for message.")
 		return err
 	}
+	notification.IsE2ETest = isE2ETest
 
 	qHandler.log.WithField("resource", notification.APIURL).WithField("transaction_id", notification.PublishReference).Info("Valid notification received")
 	qHandler.dispatcher.Send(notification)

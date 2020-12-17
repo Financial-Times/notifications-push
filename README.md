@@ -147,6 +147,7 @@ By opening a HTTP connection with a GET method to the `/content/notifications-pu
 
 The notifications-push stream endpoint allows a `monitor` query parameter. By setting the `monitor` flag as `true`, the push stream returns `publishReference` and `lastModified` attributes in the notification message, which is necessary information for UPP internal monitors such as [PAM](https://github.com/Financial-Times/publish-availability-monitor).
 
+There is a special kind of synthetic e2e test publishes that are used for capability monitoring and notifications for them are send only to monitoring subscribers e.g. PAM. The way these kind of publishes are distinguished from any other is by their transaction id which should contain a content UUID that is contained in a configured allowlist.
 
 To test the stream endpoint you can run the following CURL commands :
 ```
