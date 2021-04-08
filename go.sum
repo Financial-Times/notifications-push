@@ -4,8 +4,8 @@ github.com/Financial-Times/go-fthealth v0.0.0-20171204124831-1b007e2b37b7 h1:dkf
 github.com/Financial-Times/go-fthealth v0.0.0-20171204124831-1b007e2b37b7/go.mod h1:gpAzq6W5rCheYlY32JOIxS/VjVcYHbC2PkMzQngHT9c=
 github.com/Financial-Times/go-logger/v2 v2.0.1 h1:iekEfSsUtlkg+YkXTZo+/fIN2VbZ2/3Hl9yolP3z5X8=
 github.com/Financial-Times/go-logger/v2 v2.0.1/go.mod h1:Jpky5JYSX7xjGUClfA9hEMDmn40tUbfQQITjVIFGQiM=
-github.com/Financial-Times/kafka v0.0.0-20181214115819-fddecb2b8f89 h1:r65DcJRWxqgughzPTvkAitL78M/vfYx6YuXm23/dpcw=
-github.com/Financial-Times/kafka v0.0.0-20181214115819-fddecb2b8f89/go.mod h1:9iEKOqzCx6y18PdEhz4FrHLTMoMXQeN4I9vRCszREdc=
+github.com/Financial-Times/kafka v1.1.0 h1:++ogieBqu1OMKFM2vU6U209FOCtjpZavI6K2bAOp0ko=
+github.com/Financial-Times/kafka v1.1.0/go.mod h1:9iEKOqzCx6y18PdEhz4FrHLTMoMXQeN4I9vRCszREdc=
 github.com/Financial-Times/kafka-client-go v0.0.0-20181214120216-c3a1941e42a4 h1:CegBNpfIGQfUzcDHC6fmAzvhSVCWFMug68eod/8FLQg=
 github.com/Financial-Times/kafka-client-go v0.0.0-20181214120216-c3a1941e42a4/go.mod h1:IRxo6zPqM44uCWpM7YBkm5o9lOxwPgR0/WvCX0KcV/Y=
 github.com/Financial-Times/service-status-go v0.0.0-20160323111542-3f5199736a3d h1:USNBTIof6vWGM49SYrxvC5Y8NqyDL3YuuYmID81ORZQ=
@@ -15,7 +15,6 @@ github.com/Shopify/sarama v1.23.1/go.mod h1:XLH1GYJnLVE0XCr6KdJGVJRTwY30moWNJ4sE
 github.com/Shopify/toxiproxy v2.1.4+incompatible h1:TKdv8HiTLgE5wdJuEML90aBgNWsokNbMijUGhmcoBJc=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/davecgh/go-spew v0.0.0-20170829195320-a47672248388/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
