@@ -29,7 +29,7 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 	var title = ""
 	var contentType = ""
 
-	if event.HasEmptyPayload() {
+	if event.HasEmptyPayload() || event.HasDeleteFlag() {
 		eventType = dispatch.ContentDeleteType
 		contentType = resolveTypeFromMessageHeader(event.ContentTypeHeader)
 	} else {

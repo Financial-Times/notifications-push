@@ -8,6 +8,8 @@ import (
 	"github.com/Financial-Times/kafka-client-go/kafka"
 )
 
+const payloadDeletedFlag = "deleted"
+
 // NotificationQueueMessage is a wrapper for the queue consumer message type
 type NotificationQueueMessage struct {
 	kafka.FTMessage
@@ -88,6 +90,16 @@ type ContentMessage struct {
 // matches a whitelist regexp
 func (e ContentMessage) Matches(whitelist *regexp.Regexp) bool {
 	return whitelist.MatchString(e.ContentURI)
+}
+
+// HasDeleteFlag - checks if payload has delete flag
+func (e ContentMessage) HasDeleteFlag() bool {
+	data, ok := e.Payload.(map[string]interface{})
+	if !ok {
+		return false
+	}
+	deleteFlag, _ := data[payloadDeletedFlag].(bool)
+	return deleteFlag
 }
 
 // HasEmptyPayload is a method that returns true if the ContentMessage has an empty payload
