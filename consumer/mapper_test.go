@@ -1,6 +1,7 @@
 package consumer
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
@@ -34,7 +35,7 @@ func TestMapToUpdateNotification(t *testing.T) {
 	assert.Equal(t, "Article", n.SubscriptionType, "SubscriptionType field should be mapped correctly")
 }
 
-func TestMapToUpdateNotification_ForContentWithVersion3UUID(t *testing.T) {
+func TestMapNotificationWithInvalidPayload(t *testing.T) {
 	t.Parallel()
 
 	payload := struct{ Foo string }{"bar"}
@@ -50,11 +51,9 @@ func TestMapToUpdateNotification_ForContentWithVersion3UUID(t *testing.T) {
 		Resource:   "list",
 	}
 
-	n, err := mapper.MapNotification(event, "tid_test1")
+	_, err := mapper.MapNotification(event, "tid_test1")
 
-	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/UPDATE", n.Type, "It is an UPDATE notification")
-	assert.Nil(t, err, "The mapping should not return an error")
-	assert.Equal(t, "", n.Title, "Empty title should pe mapped correctly")
+	assert.Equal(t, err, fmt.Errorf("invalid payload type: struct { Foo string }"))
 }
 
 func TestMapToDeleteNotification(t *testing.T) {

@@ -106,3 +106,12 @@ func (e ContentMessage) HasEmptyPayload() bool {
 	}
 	return false
 }
+
+func (e ContentMessage) IsDeleteEvent() bool {
+	payload, ok := e.Payload.(map[string]interface{})
+	if !ok {
+		return false
+	}
+	deleted, _ := payload["deleted"].(bool)
+	return deleted
+}

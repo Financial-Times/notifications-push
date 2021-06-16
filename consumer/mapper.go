@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
@@ -26,10 +27,10 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 
 	var eventType string
 	var scoop bool
-	var title = ""
-	var contentType = ""
+	title := ""
+	contentType := ""
 
-	if event.HasEmptyPayload() {
+	if event.HasEmptyPayload() || event.IsDeleteEvent() {
 		eventType = dispatch.ContentDeleteType
 		contentType = resolveTypeFromMessageHeader(event.ContentTypeHeader)
 	} else {
@@ -39,6 +40,8 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 			title = getValueFromPayload("title", notificationPayloadMap)
 			contentType = getValueFromPayload("type", notificationPayloadMap)
 			scoop = getScoopFromPayload(notificationPayloadMap)
+		} else {
+			return dispatch.Notification{}, fmt.Errorf("invalid payload type: %T", event.Payload)
 		}
 	}
 
