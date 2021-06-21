@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/gofrs/uuid"
 )
 
 const notificationBuffer = 16

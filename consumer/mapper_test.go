@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
