@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
@@ -16,6 +17,8 @@ type NotificationMapper struct {
 // UUIDRegexp enables to check if a string matches a UUID
 var UUIDRegexp = regexp.MustCompile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
 
+const payloadDeletedFlag = "deleted"
+
 // MapNotification maps the given event to a new notification.
 func (n NotificationMapper) MapNotification(event ContentMessage, transactionID string) (dispatch.Notification, error) {
 	UUID := UUIDRegexp.FindString(event.ContentURI)
@@ -29,17 +32,21 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 	var title = ""
 	var contentType = ""
 
-	if event.HasEmptyPayload() {
+	notificationPayloadMap, ok := event.Payload.(map[string]interface{})
+	if !ok {
+		return dispatch.Notification{}, fmt.Errorf("invalid payload type: %T", event.Payload)
+	}
+
+	deleteFlag, _ := notificationPayloadMap[payloadDeletedFlag].(bool)
+
+	if deleteFlag {
 		eventType = dispatch.ContentDeleteType
 		contentType = resolveTypeFromMessageHeader(event.ContentTypeHeader)
 	} else {
 		eventType = dispatch.ContentUpdateType
-		notificationPayloadMap, ok := event.Payload.(map[string]interface{})
-		if ok {
-			title = getValueFromPayload("title", notificationPayloadMap)
-			contentType = getValueFromPayload("type", notificationPayloadMap)
-			scoop = getScoopFromPayload(notificationPayloadMap)
-		}
+		title = getValueFromPayload("title", notificationPayloadMap)
+		contentType = getValueFromPayload("type", notificationPayloadMap)
+		scoop = getScoopFromPayload(notificationPayloadMap)
 	}
 
 	return dispatch.Notification{

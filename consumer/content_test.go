@@ -85,7 +85,7 @@ func TestSparkCCTWhitelist(t *testing.T) {
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, NewSet(), nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
-		`{"contentURI": "http://upp-content-validator.svc.ft.com/content/f601289e-93a0-4c08-854e-fef334584079"}`)
+		`{"payload": { }, "contentURI": "http://upp-content-validator.svc.ft.com/content/f601289e-93a0-4c08-854e-fef334584079"}`)
 
 	assert.NoError(t, handler.HandleMessage(msg))
 	dispatcher.AssertExpectations(t)
@@ -188,7 +188,7 @@ func TestAcceptNotificationBasedOnContentType(t *testing.T) {
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/vnd.ft-upp-article+json; version=1.0; charset=utf-8"},
-		`{"ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
+		`{"payload": { }, "ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
 	assert.NoError(t, handler.HandleMessage(msg))
 	dispatcher.AssertExpectations(t)
@@ -212,7 +212,7 @@ func TestAcceptNotificationBasedOnAudioContentType(t *testing.T) {
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/vnd.ft-upp-audio+json"},
-		`{"ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
+		`{"payload": { }, "ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
 	assert.NoError(t, handler.HandleMessage(msg))
 	dispatcher.AssertExpectations(t)
@@ -236,7 +236,7 @@ func TestDiscardNotificationBasedOnContentType(t *testing.T) {
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/vnd.ft-upp-invalid+json"},
-		`{"ContentURI": "http://methode-article-mapper.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
+		`{"payload": { }, "ContentURI": "http://methode-article-mapper.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
 	assert.NoError(t, handler.HandleMessage(msg))
 
@@ -261,7 +261,7 @@ func TestAcceptNotificationBasedOnContentUriWhenContentTypeIsApplicationJson(t *
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/json"},
-		`{"ContentURI": "http://methode-article-mapper.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
+		`{"payload": { }, "ContentURI": "http://methode-article-mapper.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
 	assert.NoError(t, handler.HandleMessage(msg))
 	dispatcher.AssertExpectations(t)
@@ -285,7 +285,7 @@ func TestDiscardNotificationBasedOnContentUriWhenContentTypeIsApplicationJson(t 
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/json"},
-		`{"ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
+		`{"payload": { }, "ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
 	assert.NoError(t, handler.HandleMessage(msg))
 
@@ -310,7 +310,7 @@ func TestAcceptNotificationBasedOnContentUriWhenContentTypeIsMissing(t *testing.
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
-		`{"ContentURI": "http://methode-article-mapper.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
+		`{"payload": { }, "ContentURI": "http://methode-article-mapper.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
 	assert.NoError(t, handler.HandleMessage(msg))
 	dispatcher.AssertExpectations(t)
@@ -333,7 +333,7 @@ func TestDiscardNotificationBasedOnContentUriWhenContentTypeIsMissing(t *testing
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
-		`{"ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
+		`{"payload": { }, "ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
 	assert.NoError(t, handler.HandleMessage(msg))
 
@@ -353,7 +353,7 @@ func TestFailsConversionToNotification(t *testing.T) {
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
-		`{"ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a" + }`)
+		`{"payload": { }, "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a" + }`)
 
 	assert.Error(t, handler.HandleMessage(msg), "expect notification parse error")
 
@@ -374,7 +374,7 @@ func TestHandleMessage(t *testing.T) {
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
-		`{"UUID": "a uuid", "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
+		`{"UUID": "a uuid", "payload": { }, "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
 	assert.NoError(t, handler.HandleMessage(msg))
 
@@ -394,7 +394,7 @@ func TestHandleMessageMappingError(t *testing.T) {
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
-		`{"UUID": "", "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/abc"}`)
+		`{"UUID": "", "payload": { }, "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/abc"}`)
 
 	assert.NotNil(t, handler.HandleMessage(msg), "Expected error to HandleMessage when UUID is empty")
 
@@ -466,7 +466,7 @@ func TestAcceptNotificationBasedOnE2ETransactionID(t *testing.T) {
 
 	msg := kafka.NewFTMessage(
 		map[string]string{"X-Request-Id": "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd"},
-		`{"contentURI": "http://upp-content-validator.svc.ft.com/content/e4d2885f-1140-400b-9407-921e1c7378cd"}`,
+		`{"payload": { }, "contentURI": "http://upp-content-validator.svc.ft.com/content/e4d2885f-1140-400b-9407-921e1c7378cd"}`,
 	)
 
 	assert.NoError(t, handler.HandleMessage(msg))

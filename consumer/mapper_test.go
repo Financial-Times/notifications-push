@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +37,7 @@ func TestMapToUpdateNotification(t *testing.T) {
 func TestMapToUpdateNotification_ForContentWithVersion3UUID(t *testing.T) {
 	t.Parallel()
 
-	payload := struct{ Foo string }{"bar"}
+	payload := map[string]interface{}{}
 
 	event := ContentMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + uuid.NewV3(uuid.UUID{}, "id").String(),
@@ -63,7 +63,9 @@ func TestMapToDeleteNotification(t *testing.T) {
 	event := ContentMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah/" + id.String(),
 		LastModified: "2016-11-02T10:54:22.234Z",
-		Payload:      "",
+		Payload: map[string]interface{}{
+			"deleted": true,
+		},
 	}
 
 	mapper := NotificationMapper{
@@ -73,7 +75,29 @@ func TestMapToDeleteNotification(t *testing.T) {
 
 	n, err := mapper.MapNotification(event, "tid_test1")
 
-	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/DELETE", n.Type, "It is an UPDATE notification")
+	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/DELETE", n.Type, "It is an DELETE notification")
+	assert.Nil(t, err, "The mapping should not return an error")
+}
+
+func TestMapToDeleteNotificationWithDeleteFlag(t *testing.T) {
+	t.Parallel()
+	id, _ := uuid.NewV4()
+	event := ContentMessage{
+		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah/" + id.String(),
+		LastModified: "2016-11-02T10:54:22.234Z",
+		Payload: map[string]interface{}{
+			"deleted": true,
+		},
+	}
+
+	mapper := NotificationMapper{
+		APIBaseURL: "test.api.ft.com",
+		Resource:   "list",
+	}
+
+	n, err := mapper.MapNotification(event, "tid_test1")
+
+	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/DELETE", n.Type, "It is an DELETE notification")
 	assert.Nil(t, err, "The mapping should not return an error")
 }
 
@@ -84,7 +108,7 @@ func TestMapToDeleteNotification_ContentTypeHeader(t *testing.T) {
 		ContentURI:        "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah/" + id.String(),
 		LastModified:      "2016-11-02T10:54:22.234Z",
 		ContentTypeHeader: "application/vnd.ft-upp-article+json",
-		Payload:           "",
+		Payload:           map[string]interface{}{"deleted": true},
 	}
 
 	mapper := NotificationMapper{
@@ -105,7 +129,7 @@ func TestNotificationMappingFailure(t *testing.T) {
 	event := ContentMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah",
 		LastModified: "2016-11-02T10:54:22.234Z",
-		Payload:      "",
+		Payload:      map[string]interface{}{},
 	}
 
 	mapper := NotificationMapper{

@@ -89,20 +89,3 @@ type ContentMessage struct {
 func (e ContentMessage) Matches(whitelist *regexp.Regexp) bool {
 	return whitelist.MatchString(e.ContentURI)
 }
-
-// HasEmptyPayload is a method that returns true if the ContentMessage has an empty payload
-func (e ContentMessage) HasEmptyPayload() bool {
-	switch v := e.Payload.(type) {
-	case nil:
-		return true
-	case string:
-		if len(v) == 0 {
-			return true
-		}
-	case map[string]interface{}:
-		if len(v) == 0 {
-			return true
-		}
-	}
-	return false
-}
