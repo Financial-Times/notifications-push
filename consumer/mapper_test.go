@@ -107,7 +107,7 @@ func TestMapToDeleteNotification_ContentTypeHeader(t *testing.T) {
 	event := ContentMessage{
 		ContentURI:        "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah/" + id.String(),
 		LastModified:      "2016-11-02T10:54:22.234Z",
-		ContentTypeHeader: "application/vnd.ft-upp-article+json",
+		ContentTypeHeader: "application/vnd.ft-upp-article-internal+json",
 		Payload:           map[string]interface{}{"deleted": true},
 	}
 
