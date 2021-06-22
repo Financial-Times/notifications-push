@@ -133,6 +133,7 @@ func main() {
 	})
 
 	log := logger.NewUPPLogger(serviceName, *logLevel)
+	log.Out = os.Stdout
 
 	app.Action = func() {
 		log.WithFields(map[string]interface{}{
