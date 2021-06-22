@@ -74,13 +74,13 @@ func (d *Dispatcher) Subscribers() []Subscriber {
 	return subs
 }
 
-func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool) (Subscriber, error) {
+func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool, isCreateEventSubscription bool) (Subscriber, error) {
 	var s NotificationConsumer
 	var err error
 	if monitoring {
-		s, err = NewMonitorSubscriber(address, subTypes)
+		s, err = NewMonitorSubscriber(address, subTypes, isCreateEventSubscription)
 	} else {
-		s, err = NewStandardSubscriber(address, subTypes)
+		s, err = NewStandardSubscriber(address, subTypes, isCreateEventSubscription)
 	}
 
 	if err != nil {
@@ -161,7 +161,7 @@ func (d *Dispatcher) forwardToSubscribers(notification Notification) {
 				continue
 			}
 		}
-
+		notification = consolidateNotificationType(notification, sub.isSubscribedForCreate())
 		err := sub.Send(notification)
 		if err != nil {
 			failed++

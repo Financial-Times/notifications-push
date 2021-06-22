@@ -57,6 +57,25 @@ var e2eTestNotification = Notification{
 	IsE2ETest:        true,
 }
 
+var createNotification = Notification{
+	APIURL:           "http://api.ft.com/content/e4d2885f-1140-400b-9407-921e1c7378cd",
+	ID:               "http://www.ft.com/thing/e4d2885f-1140-400b-9407-921e1c7378cd",
+	Type:             "http://www.ft.com/thing/ThingChangeType/CREATE",
+	PublishReference: "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
+}
+
+// Subscribers who did not explicitly opt in for Create notifications will actually get Update notification
+var modifiedCreateNotification = Notification{
+	APIURL:           "http://api.ft.com/content/e4d2885f-1140-400b-9407-921e1c7378cd",
+	ID:               "http://www.ft.com/thing/e4d2885f-1140-400b-9407-921e1c7378cd",
+	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
+	PublishReference: "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
+}
+
 var zeroTime = time.Time{}
 
 func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
@@ -66,8 +85,8 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, false)
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -102,9 +121,9 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
-	s, _ := d.Subscribe("192.168.1.3", []string{typeArticle}, false)
-	annSub, _ := d.Subscribe("192.168.1.4", []string{annotationSubType}, false)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, false)
+	s, _ := d.Subscribe("192.168.1.3", []string{typeArticle}, false, false)
+	annSub, _ := d.Subscribe("192.168.1.4", []string{annotationSubType}, false, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -165,8 +184,8 @@ func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testin
 	h := NewHistory(historySize)
 	d := NewDispatcher(time.Millisecond, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, false)
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -187,6 +206,49 @@ func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testin
 	}
 }
 
+func TestCreateNotificationIsProperlyDispatchedToSubscribers(t *testing.T) {
+	t.Parallel()
+
+	l := logger.NewUPPLogger("test", "panic")
+	h := NewHistory(historySize)
+	d := NewDispatcher(time.Millisecond, h, l)
+
+	m1, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, true)
+	s1, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, true)
+	m2, _ := d.Subscribe("192.168.1.4", contentSubscribeTypes, true, false)
+	s2, _ := d.Subscribe("192.168.1.5", contentSubscribeTypes, false, false)
+
+	go d.Start()
+	defer d.Stop()
+
+	notBefore := time.Now()
+	d.Send(createNotification)
+
+	monitorMsg, err := waitForNotification(m1.Notifications(), 10*time.Millisecond)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	verifyNotificationResponse(t, createNotification, notBefore, time.Now(), monitorMsg)
+
+	actualMsg, err := waitForNotification(s1.Notifications(), 10*time.Millisecond)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	verifyNotificationResponse(t, createNotification, notBefore, time.Now(), actualMsg)
+
+	monitorMsg, err = waitForNotification(m2.Notifications(), 10*time.Millisecond)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	verifyNotificationResponse(t, modifiedCreateNotification, notBefore, time.Now(), monitorMsg)
+
+	actualMsg, err = waitForNotification(s2.Notifications(), 10*time.Millisecond)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	verifyNotificationResponse(t, modifiedCreateNotification, notBefore, time.Now(), actualMsg)
+}
+
 func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	t.Parallel()
 
@@ -194,9 +256,9 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, false)
 	m = m.(NotificationConsumer)
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, false)
 	s = s.(NotificationConsumer)
 
 	go d.Start()
@@ -226,7 +288,7 @@ func TestDispatchDelay(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, false)
 
 	go d.Start()
 	defer d.Stop()
@@ -433,6 +495,10 @@ type MockSubscriber struct {
 	// But for empty structs go compiler could decide to allocate memory for a single object
 	// and just reference that memory when creating new objects of the same type.
 	_dummy int //nolint:unused,structcheck
+}
+
+func (_m *MockSubscriber) isSubscribedForCreate() bool {
+	return false
 }
 
 // AcceptedSubType provides a mock function with given fields:

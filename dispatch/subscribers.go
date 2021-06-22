@@ -21,6 +21,7 @@ type Subscriber interface {
 	Address() string
 	Since() time.Time
 	SubTypes() []string
+	isSubscribedForCreate() bool
 }
 
 type NotificationConsumer interface {
@@ -30,15 +31,16 @@ type NotificationConsumer interface {
 
 // StandardSubscriber implements a standard subscriber
 type StandardSubscriber struct {
-	id                  string
-	notificationChannel chan string
-	addr                string
-	sinceTime           time.Time
-	acceptedTypes       []string
+	id                      string
+	notificationChannel     chan string
+	addr                    string
+	sinceTime               time.Time
+	acceptedTypes           []string
+	sendCreateNotifications bool
 }
 
 // NewStandardSubscriber returns a new instance of a standard subscriber
-func NewStandardSubscriber(address string, subTypes []string) (*StandardSubscriber, error) {
+func NewStandardSubscriber(address string, subTypes []string, isCreateEventSubscription bool) (*StandardSubscriber, error) {
 	notificationChannel := make(chan string, notificationBuffer)
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -46,11 +48,12 @@ func NewStandardSubscriber(address string, subTypes []string) (*StandardSubscrib
 	}
 
 	return &StandardSubscriber{
-		id:                  id.String(),
-		notificationChannel: notificationChannel,
-		addr:                address,
-		sinceTime:           time.Now(),
-		acceptedTypes:       subTypes,
+		id:                      id.String(),
+		notificationChannel:     notificationChannel,
+		addr:                    address,
+		sinceTime:               time.Now(),
+		acceptedTypes:           subTypes,
+		sendCreateNotifications: isCreateEventSubscription,
 	}, nil
 }
 
@@ -78,6 +81,11 @@ func (s *StandardSubscriber) Since() time.Time {
 // Notifications returns the channel that can provides serialized notifications send to the subscriber
 func (s *StandardSubscriber) Notifications() <-chan string {
 	return s.notificationChannel
+}
+
+// isSubscribedForCreate returns if the subscriber is subscribed for create events
+func (s *StandardSubscriber) isSubscribedForCreate() bool {
+	return s.sendCreateNotifications
 }
 
 // Send tries to send notification to the subscriber.
@@ -129,11 +137,12 @@ func MarshalNotificationsJSON(n []Notification) ([]byte, error) {
 
 // monitorSubscriber implements a Monitor subscriber
 type MonitorSubscriber struct {
-	id                  string
-	notificationChannel chan string
-	addr                string
-	sinceTime           time.Time
-	acceptedTypes       []string
+	id                      string
+	notificationChannel     chan string
+	addr                    string
+	sinceTime               time.Time
+	acceptedTypes           []string
+	sendCreateNotifications bool
 }
 
 func (m *MonitorSubscriber) ID() string {
@@ -156,6 +165,10 @@ func (m *MonitorSubscriber) SubTypes() []string {
 	return m.acceptedTypes
 }
 
+func (m *MonitorSubscriber) isSubscribedForCreate() bool {
+	return m.sendCreateNotifications
+}
+
 func (m *MonitorSubscriber) Send(n Notification) error {
 	// -- set subscriberId for NPM traceability only for monitor mode subscribers
 	n.SubscriberID = m.ID()
@@ -172,7 +185,7 @@ func (m *MonitorSubscriber) Send(n Notification) error {
 }
 
 // NewMonitorSubscriber returns a new instance of a Monitor subscriber
-func NewMonitorSubscriber(address string, subTypes []string) (*MonitorSubscriber, error) {
+func NewMonitorSubscriber(address string, subTypes []string, isCreateEventSubscription bool) (*MonitorSubscriber, error) {
 	notificationChannel := make(chan string, notificationBuffer)
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -180,11 +193,12 @@ func NewMonitorSubscriber(address string, subTypes []string) (*MonitorSubscriber
 	}
 
 	return &MonitorSubscriber{
-		id:                  id.String(),
-		notificationChannel: notificationChannel,
-		addr:                address,
-		sinceTime:           time.Now(),
-		acceptedTypes:       subTypes,
+		id:                      id.String(),
+		notificationChannel:     notificationChannel,
+		addr:                    address,
+		sinceTime:               time.Now(),
+		acceptedTypes:           subTypes,
+		sendCreateNotifications: isCreateEventSubscription,
 	}, nil
 }
 

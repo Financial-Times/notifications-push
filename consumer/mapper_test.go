@@ -34,6 +34,32 @@ func TestMapToUpdateNotification(t *testing.T) {
 	assert.Equal(t, "Article", n.SubscriptionType, "SubscriptionType field should be mapped correctly")
 }
 
+func TestMapToCreateNotification(t *testing.T) {
+	t.Parallel()
+
+	standout := map[string]interface{}{"scoop": true}
+	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": 1}
+	id, _ := uuid.NewV4()
+	event := ContentMessage{
+		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
+		LastModified: "2016-11-02T10:54:22.234Z",
+		Payload:      payload,
+	}
+
+	mapper := NotificationMapper{
+		APIBaseURL: "test.api.ft.com",
+		Resource:   "list",
+	}
+
+	n, err := mapper.MapNotification(event, "tid_test1")
+
+	assert.Nil(t, err, "The mapping should not return an error")
+	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/CREATE", n.Type, "It is an CREATE notification")
+	assert.Equal(t, "This is a title", n.Title, "Title should pe mapped correctly")
+	assert.Equal(t, true, n.Standout.Scoop, "Scoop field should be mapped correctly")
+	assert.Equal(t, "Article", n.SubscriptionType, "SubscriptionType field should be mapped correctly")
+}
+
 func TestMapToUpdateNotification_ForContentWithVersion3UUID(t *testing.T) {
 	t.Parallel()
 
