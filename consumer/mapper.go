@@ -82,15 +82,15 @@ func (n NotificationMapper) MapMetadataNotification(event AnnotationsMessage, tr
 
 func resolveTypeFromMessageHeader(contentTypeHeader string) string {
 	switch contentTypeHeader {
-	case "application/vnd.ft-upp-article+json":
+	case "application/vnd.ft-upp-article-internal+json":
 		return dispatch.ArticleContentType
 	case "application/vnd.ft-upp-content-package+json":
 		return dispatch.ContentPackageType
 	case "application/vnd.ft-upp-audio+json":
 		return dispatch.AudioContentType
-	case "application/vnd.ft-upp-live-blog-post+json":
+	case "application/vnd.ft-upp-live-blog-post-internal+json":
 		return dispatch.LiveBlogPostType
-	case "application/vnd.ft-upp-live-blog-package+json":
+	case "application/vnd.ft-upp-live-blog-package-internal+json":
 		return dispatch.LiveBlogPackageType
 	default:
 		return ""
