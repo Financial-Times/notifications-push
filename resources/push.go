@@ -31,6 +31,7 @@ var supportedSubscriptionTypes = map[string]bool{
 	strings.ToLower(dispatch.LiveBlogPackageType):    true,
 	strings.ToLower(dispatch.LiveBlogPostType):       true,
 	strings.ToLower(dispatch.ContentPlaceholderType): true,
+	strings.ToLower(dispatch.PageType):               true,
 }
 
 type keyValidator interface {

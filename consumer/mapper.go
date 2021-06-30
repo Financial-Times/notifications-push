@@ -92,6 +92,8 @@ func resolveTypeFromMessageHeader(contentTypeHeader string) string {
 		return dispatch.LiveBlogPostType
 	case "application/vnd.ft-upp-live-blog-package-internal+json":
 		return dispatch.LiveBlogPackageType
+	case "application/vnd.ft-upp-page+json":
+		return dispatch.PageType
 	default:
 		return ""
 	}
