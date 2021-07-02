@@ -11,7 +11,7 @@ type MessageQueueHandler interface {
 }
 
 type notificationDispatcher interface {
-	Send(notification dispatch.Notification)
+	Send(notification dispatch.NotificationModel)
 }
 
 type MessageQueueRouter struct {

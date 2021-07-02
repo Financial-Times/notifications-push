@@ -96,9 +96,8 @@ func (qHandler *ContentQueueHandler) HandleMessage(queueMsg kafka.FTMessage) err
 	}
 	notification.IsE2ETest = isE2ETest
 
-	qHandler.log.
+	monitoringLogger.
 		WithField("resource", notification.APIURL).
-		WithField("transaction_id", notification.PublishReference).
 		WithField("notification_type", notification.Type).
 		Info("Valid notification received")
 	qHandler.dispatcher.Send(notification)

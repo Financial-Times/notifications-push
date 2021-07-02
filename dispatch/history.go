@@ -8,22 +8,22 @@ import (
 
 // History contains the last x notifications pushed out to subscribers.
 type History interface {
-	Push(notification Notification)
-	Notifications() []Notification
+	Push(notification NotificationModel)
+	Notifications() []NotificationModel
 }
 
 type inMemoryHistory struct {
 	size          int
 	mutex         *sync.RWMutex
-	notifications []Notification
+	notifications []NotificationModel
 }
 
 // NewHistory creates a new history type
 func NewHistory(size int) History {
-	return &inMemoryHistory{size, &sync.RWMutex{}, []Notification{}}
+	return &inMemoryHistory{size, &sync.RWMutex{}, []NotificationModel{}}
 }
 
-func (i *inMemoryHistory) Push(n Notification) {
+func (i *inMemoryHistory) Push(n NotificationModel) {
 	i.mutex.Lock()
 	defer i.mutex.Unlock()
 
@@ -36,14 +36,14 @@ func (i *inMemoryHistory) Push(n Notification) {
 	}
 }
 
-func (i *inMemoryHistory) Notifications() []Notification {
+func (i *inMemoryHistory) Notifications() []NotificationModel {
 	i.mutex.RLock()
 	defer i.mutex.RUnlock()
 
 	return i.notifications
 }
 
-type byTimestamp []Notification
+type byTimestamp []NotificationModel
 
 func (notifications byTimestamp) Len() int { return len(notifications) }
 

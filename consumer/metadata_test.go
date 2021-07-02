@@ -18,7 +18,7 @@ func TestMetadata(t *testing.T) {
 
 	tests := map[string]struct {
 		mapper      NotificationMapper
-		sendFunc    func(n dispatch.Notification)
+		sendFunc    func(n dispatch.NotificationModel)
 		whitelist   []string
 		msg         kafka.FTMessage
 		expectError bool
@@ -33,7 +33,7 @@ func TestMetadata(t *testing.T) {
 			expectError: true,
 		},
 		"Test Skipping synthetic messages": {
-			sendFunc: func(n dispatch.Notification) {
+			sendFunc: func(n dispatch.NotificationModel) {
 				t.Fatal("Send should not be called.")
 			},
 			msg: kafka.FTMessage{
@@ -44,7 +44,7 @@ func TestMetadata(t *testing.T) {
 			},
 		},
 		"Test Skipping Messages from Unsupported Origins": {
-			sendFunc: func(n dispatch.Notification) {
+			sendFunc: func(n dispatch.NotificationModel) {
 				t.Fatal("Send should not be called.")
 			},
 			msg: kafka.FTMessage{
@@ -57,7 +57,7 @@ func TestMetadata(t *testing.T) {
 			whitelist: []string{"valid-origins"},
 		},
 		"Test Fail to map message": {
-			sendFunc: func(n dispatch.Notification) {
+			sendFunc: func(n dispatch.NotificationModel) {
 				t.Fatal("Send should not be called.")
 			},
 			msg: kafka.FTMessage{
@@ -75,8 +75,8 @@ func TestMetadata(t *testing.T) {
 				APIBaseURL: "test.api.ft.com",
 				Resource:   "content",
 			},
-			sendFunc: func(n dispatch.Notification) {
-				expected := dispatch.Notification{
+			sendFunc: func(n dispatch.NotificationModel) {
+				expected := dispatch.NotificationModel{
 					Type:             "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE",
 					ID:               "http://www.ft.com/thing/fc1d7a28-9506-323f-9558-11beb985e8f7",
 					APIURL:           "test.api.ft.com/content/fc1d7a28-9506-323f-9558-11beb985e8f7",
@@ -102,9 +102,9 @@ func TestMetadata(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			dispatcher := &mocks.Dispatcher{}
-			dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return().
+			dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return().
 				Run(func(args mock.Arguments) {
-					arg := args.Get(0).(dispatch.Notification)
+					arg := args.Get(0).(dispatch.NotificationModel)
 					test.sendFunc(arg)
 				})
 			handler := NewMetadataQueueHandler(test.whitelist, test.mapper, dispatcher, l)

@@ -80,7 +80,7 @@ func TestSparkCCTWhitelist(t *testing.T) {
 	}
 	l := logger.NewUPPLogger("test", "PANIC")
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, NewSet(), nil, mapper, dispatcher, l)
 
@@ -104,7 +104,7 @@ func TestMonitoringEvents(t *testing.T) {
 	defer h.Reset()
 
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	typeWhitelist := NewSet()
 	typeWhitelist.Add("valid-type")
@@ -183,7 +183,7 @@ func TestAcceptNotificationBasedOnContentType(t *testing.T) {
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
 	l := logger.NewUPPLogger("test", "PANIC")
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
@@ -207,7 +207,7 @@ func TestAcceptNotificationBasedOnAudioContentType(t *testing.T) {
 	contentTypeWhitelist.Add("application/vnd.ft-upp-audio+json")
 
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
@@ -231,7 +231,7 @@ func TestDiscardNotificationBasedOnContentType(t *testing.T) {
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
 
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
@@ -256,7 +256,7 @@ func TestAcceptNotificationBasedOnContentUriWhenContentTypeIsApplicationJson(t *
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
 
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
@@ -280,7 +280,7 @@ func TestDiscardNotificationBasedOnContentUriWhenContentTypeIsApplicationJson(t 
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
 
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
@@ -305,7 +305,7 @@ func TestAcceptNotificationBasedOnContentUriWhenContentTypeIsMissing(t *testing.
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
 
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
@@ -328,7 +328,7 @@ func TestDiscardNotificationBasedOnContentUriWhenContentTypeIsMissing(t *testing
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
 
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	handler := NewContentQueueHandler(sparkIncludedWhiteList, contentTypeWhitelist, nil, mapper, dispatcher, l)
 
@@ -369,7 +369,7 @@ func TestHandleMessage(t *testing.T) {
 	}
 	l := logger.NewUPPLogger("test", "PANIC")
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
 
@@ -460,7 +460,7 @@ func TestAcceptNotificationBasedOnE2ETransactionID(t *testing.T) {
 	e2eTestUUIDs := []string{"e4d2885f-1140-400b-9407-921e1c7378cd"}
 	l := logger.NewUPPLogger("test", "PANIC")
 	dispatcher := &mocks.Dispatcher{}
-	dispatcher.On("Send", mock.AnythingOfType("dispatch.Notification")).Return()
+	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
 	handler := NewContentQueueHandler(nil, nil, e2eTestUUIDs, mapper, dispatcher, l)
 

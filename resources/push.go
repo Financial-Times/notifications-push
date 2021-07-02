@@ -15,25 +15,25 @@ import (
 )
 
 const (
-	HeartbeatMsg            = "[]"
-	apiKeyHeaderField       = "X-Api-Key"
-	apiKeyQueryParam        = "apiKey"
-	apiPolicyField          = "X-API-Policy"
-	ClientAdrKey            = "X-Forwarded-For"
-	defaultSubscriptionType = dispatch.ArticleContentType
+	HeartbeatMsg              = "[]"
+	apiKeyHeaderField         = "X-Api-Key"
+	apiKeyQueryParam          = "apiKey"
+	apiPolicyField            = "X-API-Policy"
+	ClientAdrKey              = "X-Forwarded-For"
+	defaultSubscriptionType   = dispatch.ArticleContentType
+	CreateEventConsideredType = "INTERNAL_UNSTABLE"
 )
 
 var supportedSubscriptionTypes = map[string]bool{
-	strings.ToLower(dispatch.AnnotationsType):           true,
-	strings.ToLower(dispatch.ArticleContentType):        true,
-	strings.ToLower(dispatch.ContentPackageType):        true,
-	strings.ToLower(dispatch.AudioContentType):          true,
-	strings.ToLower(dispatch.AllContentType):            true,
-	strings.ToLower(dispatch.LiveBlogPackageType):       true,
-	strings.ToLower(dispatch.LiveBlogPostType):          true,
-	strings.ToLower(dispatch.ContentPlaceholderType):    true,
-	strings.ToLower(dispatch.PageType):                  true,
-	strings.ToLower(dispatch.CreateEventConsideredType): true,
+	strings.ToLower(dispatch.AnnotationsType):        true,
+	strings.ToLower(dispatch.ArticleContentType):     true,
+	strings.ToLower(dispatch.ContentPackageType):     true,
+	strings.ToLower(dispatch.AudioContentType):       true,
+	strings.ToLower(dispatch.AllContentType):         true,
+	strings.ToLower(dispatch.LiveBlogPackageType):    true,
+	strings.ToLower(dispatch.LiveBlogPostType):       true,
+	strings.ToLower(dispatch.ContentPlaceholderType): true,
+	strings.ToLower(dispatch.PageType):               true,
 }
 
 type keyValidator interface {
@@ -41,7 +41,7 @@ type keyValidator interface {
 }
 
 type notifier interface {
-	Subscribe(address string, subTypes []string, monitoring bool, isCreateEventSubscription bool) (dispatch.Subscriber, error)
+	Subscribe(address string, subTypes []string, monitoring bool, options []dispatch.SubscriptionOption) (dispatch.Subscriber, error)
 	Unsubscribe(subscriber dispatch.Subscriber)
 }
 
@@ -94,9 +94,9 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	isCreateEventsSubscription := false
-	if r.Header.Get(apiPolicyField) == dispatch.CreateEventConsideredType {
-		isCreateEventsSubscription = true
+	subscriptionOptions := []dispatch.SubscriptionOption{}
+	if r.Header.Get(apiPolicyField) == CreateEventConsideredType {
+		subscriptionOptions = append(subscriptionOptions, dispatch.CreateEventOption)
 	}
 
 	subscriptionParams, err := resolveSubType(r, h.contentTypesIncludedInAll)
@@ -108,7 +108,7 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 	monitorParam := r.URL.Query().Get("monitor")
 	isMonitor, _ := strconv.ParseBool(monitorParam)
 
-	s, err := h.notif.Subscribe(getClientAddr(r), subscriptionParams, isMonitor, isCreateEventsSubscription)
+	s, err := h.notif.Subscribe(getClientAddr(r), subscriptionParams, isMonitor, subscriptionOptions)
 	if err != nil {
 		h.log.WithError(err).Error("Error creating subscription")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -194,11 +194,7 @@ func resolveSubType(r *http.Request, contentTypesIncludedInAll []string) ([]stri
 	values := r.URL.Query()
 	subTypes := values["type"]
 	if len(subTypes) == 0 {
-		if len(retVal) == 0 {
-			return []string{defaultSubscriptionType}, nil
-		}
-		retVal = append(retVal, defaultSubscriptionType)
-		return retVal, nil
+		return []string{defaultSubscriptionType}, nil
 	}
 	// subTypes are being send by the client (subscriber), and needs to be matched with such string value
 	for _, subType := range subTypes {

@@ -13,12 +13,12 @@ func TestHistory(t *testing.T) {
 	history := NewHistory(2)
 	lastModified := time.Now()
 
-	history.Push(Notification{
+	history.Push(NotificationModel{
 		ID:           "note1",
 		LastModified: lastModified.Add(-2 * time.Second).Format(time.RFC3339Nano),
 	})
 
-	history.Push(Notification{
+	history.Push(NotificationModel{
 		ID:           "note2",
 		LastModified: lastModified.Add(-1 * time.Second).Format(time.RFC3339Nano),
 	})
@@ -26,7 +26,7 @@ func TestHistory(t *testing.T) {
 	notifications := history.Notifications()
 	assert.Equal(t, 2, len(notifications), "Should be size 2")
 
-	history.Push(Notification{
+	history.Push(NotificationModel{
 		ID:           "note3",
 		LastModified: lastModified.Format(time.RFC3339Nano),
 	})

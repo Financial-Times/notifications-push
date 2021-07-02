@@ -12,7 +12,7 @@ func TestMapToUpdateNotification(t *testing.T) {
 	t.Parallel()
 
 	standout := map[string]interface{}{"scoop": true}
-	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article"}
+	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": "2"}
 	id, _ := uuid.NewV4()
 	event := ContentMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
@@ -38,7 +38,7 @@ func TestMapToCreateNotification(t *testing.T) {
 	t.Parallel()
 
 	standout := map[string]interface{}{"scoop": true}
-	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": 1}
+	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": "1"}
 	id, _ := uuid.NewV4()
 	event := ContentMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
@@ -184,7 +184,7 @@ func TestNotificationMappingMetadata(t *testing.T) {
 	tests := map[string]struct {
 		Event    AnnotationsMessage
 		HasError bool
-		Expected dispatch.Notification
+		Expected dispatch.NotificationModel
 	}{
 		"Success": {
 			Event: AnnotationsMessage{
@@ -192,7 +192,7 @@ func TestNotificationMappingMetadata(t *testing.T) {
 				LastModified: "2019-11-10T14:34:25.209Z",
 				Payload:      &Annotations{ContentID: "d1b430b9-0ce2-4b85-9c7b-5b700e8519fe"},
 			},
-			Expected: dispatch.Notification{
+			Expected: dispatch.NotificationModel{
 				APIURL:           "test.api.ft.com/content/d1b430b9-0ce2-4b85-9c7b-5b700e8519fe",
 				ID:               "http://www.ft.com/thing/d1b430b9-0ce2-4b85-9c7b-5b700e8519fe",
 				Type:             dispatch.AnnotationUpdateType,

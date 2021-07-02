@@ -13,7 +13,12 @@ func History(history dispatch.History, log *logger.UPPLogger) func(w http.Respon
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-type", "application/json; charset=UTF-8")
 
-		historyJSON, err := dispatch.MarshalNotificationsJSON(history.Notifications())
+		var notifications []dispatch.NotificationResponse
+		for _, n := range history.Notifications() {
+			notifications = append(notifications, dispatch.CreateNotificationResponse(n, nil))
+		}
+
+		historyJSON, err := dispatch.MarshalNotificationResponsesJSON(notifications)
 		if err != nil {
 			log.WithError(err).Warn(errMsg)
 			http.Error(w, "", http.StatusInternalServerError)

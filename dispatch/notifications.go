@@ -2,16 +2,15 @@ package dispatch
 
 // subscription types
 const (
-	AnnotationsType           = "Annotations"
-	ArticleContentType        = "Article"
-	ContentPackageType        = "ContentPackage"
-	AudioContentType          = "Audio"
-	LiveBlogPackageType       = "LiveBlogPackage"
-	LiveBlogPostType          = "LiveBlogPost"
-	ContentPlaceholderType    = "Content"
-	PageType                  = "Page"
-	AllContentType            = "All"
-	CreateEventConsideredType = "INTERNAL_UNSTABLE"
+	AnnotationsType        = "Annotations"
+	ArticleContentType     = "Article"
+	ContentPackageType     = "ContentPackage"
+	AudioContentType       = "Audio"
+	LiveBlogPackageType    = "LiveBlogPackage"
+	LiveBlogPostType       = "LiveBlogPost"
+	ContentPlaceholderType = "Content"
+	PageType               = "Page"
+	AllContentType         = "All"
 )
 
 // notification types
@@ -22,8 +21,23 @@ const (
 	AnnotationUpdateType = "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE"
 )
 
-// Notification model
-type Notification struct {
+// NotificationModel model
+type NotificationModel struct {
+	APIURL           string
+	ID               string
+	Type             string
+	SubscriberID     string
+	PublishReference string
+	LastModified     string
+	NotificationDate string
+	Title            string
+	Standout         *Standout
+	SubscriptionType string
+	IsE2ETest        bool
+}
+
+// NotificationResponse view
+type NotificationResponse struct {
 	APIURL           string    `json:"apiUrl"`
 	ID               string    `json:"id"`
 	Type             string    `json:"type"`
@@ -33,22 +47,29 @@ type Notification struct {
 	NotificationDate string    `json:"notificationDate,omitempty"`
 	Title            string    `json:"title,omitempty"`
 	Standout         *Standout `json:"standout,omitempty"`
-	SubscriptionType string    `json:"-"`
-	IsE2ETest        bool      `json:"-"`
 }
 
-// Standout model for a Notification
+// Standout model for a NotificationResponse
 type Standout struct {
 	Scoop bool `json:"scoop"`
 }
 
-func consolidateNotificationType(notification Notification, isCreateAllowed bool) Notification {
+func CreateNotificationResponse(notification NotificationModel, subscriberOptions []SubscriptionOption) NotificationResponse {
 	notificationType := notification.Type
-	if notificationType == ContentCreateType && !isCreateAllowed {
+
+	hasCreateEventOption := false
+	for _, o := range subscriberOptions {
+		if o == CreateEventOption {
+			hasCreateEventOption = true
+			break
+		}
+	}
+
+	if notificationType == ContentCreateType && !hasCreateEventOption {
 		notificationType = ContentUpdateType
 	}
 
-	return Notification{
+	return NotificationResponse{
 		APIURL:           notification.APIURL,
 		ID:               notification.ID,
 		Type:             notificationType,
@@ -58,7 +79,5 @@ func consolidateNotificationType(notification Notification, isCreateAllowed bool
 		NotificationDate: notification.NotificationDate,
 		Title:            notification.Title,
 		Standout:         notification.Standout,
-		SubscriptionType: notification.SubscriptionType,
-		IsE2ETest:        notification.IsE2ETest,
 	}
 }
