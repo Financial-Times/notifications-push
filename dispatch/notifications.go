@@ -9,6 +9,7 @@ const (
 	LiveBlogPackageType    = "LiveBlogPackage"
 	LiveBlogPostType       = "LiveBlogPost"
 	ContentPlaceholderType = "Content"
+	PageType               = "Page"
 	AllContentType         = "All"
 )
 
