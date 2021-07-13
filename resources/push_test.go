@@ -28,48 +28,74 @@ func TestSubscription(t *testing.T) {
 	apiKey := "some-test-api-key"
 
 	tests := map[string]struct {
-		Request        string
-		IsMonitor      bool
-		ExpectedType   []string
-		ExpectedBody   string
-		ExpectedStatus int
-		ExpectStream   bool
+		Request             string
+		IsMonitor           bool
+		ExpectedType        []string
+		ExpectedBody        string
+		ExpectedStatus      int
+		ExpectStream        bool
+		SubscriptionOptions []dispatch.SubscriptionOption
+		RequestHeader       string
 	}{
 		"Test Push Default Subscriber": {
-			ExpectedType:   []string{defaultSubscriptionType},
-			Request:        "/content/notifications-push",
-			ExpectedBody:   "data: []\n\n",
-			ExpectedStatus: http.StatusOK,
-			ExpectStream:   true,
+			ExpectedType:        []string{defaultSubscriptionType},
+			Request:             "/content/notifications-push",
+			ExpectedBody:        "data: []\n\n",
+			ExpectedStatus:      http.StatusOK,
+			ExpectStream:        true,
+			SubscriptionOptions: []dispatch.SubscriptionOption{},
 		},
 		"Test Push All Subscriber": {
-			ExpectedType:   []string{"Article", "ContentPackage", "Audio"},
-			Request:        "/content/notifications-push?type=All",
-			ExpectedBody:   "data: []\n\n",
-			ExpectedStatus: http.StatusOK,
-			ExpectStream:   true,
+			ExpectedType:        []string{"Article", "ContentPackage", "Audio"},
+			Request:             "/content/notifications-push?type=All",
+			ExpectedBody:        "data: []\n\n",
+			ExpectedStatus:      http.StatusOK,
+			ExpectStream:        true,
+			SubscriptionOptions: []dispatch.SubscriptionOption{},
 		},
 		"Test Push all lowercase Subscriber": {
-			ExpectedType:   []string{"Article", "ContentPackage", "Audio"},
-			Request:        "/content/notifications-push?type=all",
-			ExpectedBody:   "data: []\n\n",
-			ExpectedStatus: http.StatusOK,
-			ExpectStream:   true,
+			ExpectedType:        []string{"Article", "ContentPackage", "Audio"},
+			Request:             "/content/notifications-push?type=all",
+			ExpectedBody:        "data: []\n\n",
+			ExpectedStatus:      http.StatusOK,
+			ExpectStream:        true,
+			SubscriptionOptions: []dispatch.SubscriptionOption{},
 		},
 		"Test Push Standard Subscriber": {
-			ExpectedType:   []string{"Audio"},
-			Request:        "/content/notifications-push?type=Audio",
-			ExpectedBody:   "data: []\n\n",
-			ExpectedStatus: http.StatusOK,
-			ExpectStream:   true,
+			ExpectedType:        []string{"Audio"},
+			Request:             "/content/notifications-push?type=Audio",
+			ExpectedBody:        "data: []\n\n",
+			ExpectedStatus:      http.StatusOK,
+			ExpectStream:        true,
+			SubscriptionOptions: []dispatch.SubscriptionOption{},
 		},
 		"Test Push Monitor Subscriber": {
-			ExpectedType:   []string{defaultSubscriptionType},
-			Request:        "/content/notifications-push?monitor=true",
-			IsMonitor:      true,
-			ExpectedBody:   "data: []\n\n",
-			ExpectedStatus: http.StatusOK,
-			ExpectStream:   true,
+			ExpectedType:        []string{defaultSubscriptionType},
+			Request:             "/content/notifications-push?monitor=true",
+			IsMonitor:           true,
+			ExpectedBody:        "data: []\n\n",
+			ExpectedStatus:      http.StatusOK,
+			ExpectStream:        true,
+			SubscriptionOptions: []dispatch.SubscriptionOption{},
+		},
+		"Test require create events Push Standard Subscriber": {
+			ExpectedType:        []string{"Audio"},
+			Request:             "/content/notifications-push?type=Audio",
+			ExpectedBody:        "data: []\n\n",
+			ExpectedStatus:      http.StatusOK,
+			ExpectStream:        true,
+			SubscriptionOptions: []dispatch.SubscriptionOption{dispatch.CreateEventOption},
+			RequestHeader:       CreateEventConsideredType,
+		},
+		"Test require create events Push Monitor Subscriber": {
+			ExpectedType:        []string{defaultSubscriptionType},
+			Request:             "/content/notifications-push?monitor=true",
+			IsMonitor:           true,
+			ExpectedBody:        "data: []\n\n",
+			ExpectedStatus:      http.StatusOK,
+			ExpectStream:        true,
+			SubscriptionOptions: []dispatch.SubscriptionOption{dispatch.CreateEventOption},
+			RequestHeader:       CreateEventConsideredType,
 		},
 		"Test Push Invalid Subscription": {
 			Request:        "/content/notifications-push?type=Invalid",
@@ -93,8 +119,8 @@ func TestSubscription(t *testing.T) {
 			v.On("Validate", mock.Anything, apiKey).Return(nil)
 
 			if test.ExpectStream {
-				sub, _ := dispatch.NewStandardSubscriber(subAddress, test.ExpectedType)
-				d.On("Subscribe", subAddress, test.ExpectedType, test.IsMonitor).Run(func(args mock.Arguments) {
+				sub, _ := dispatch.NewStandardSubscriber(subAddress, test.ExpectedType, test.SubscriptionOptions)
+				d.On("Subscribe", subAddress, test.ExpectedType, test.IsMonitor, test.SubscriptionOptions).Run(func(args mock.Arguments) {
 					go func() {
 						<-time.After(time.Millisecond * 10)
 						cancel()
@@ -110,6 +136,9 @@ func TestSubscription(t *testing.T) {
 			req = req.WithContext(ctx)
 			req.Header.Set(APIKeyHeaderField, apiKey)
 			req.Header.Set(ClientAdrKey, subAddress)
+			if test.RequestHeader != "" {
+				req.Header.Set(apiPolicyField, test.RequestHeader)
+			}
 			handler.HandleSubscription(resp, req)
 
 			if test.ExpectStream {
@@ -148,9 +177,9 @@ func TestPassKeyAsParameter(t *testing.T) {
 	v := &mocks.KeyValidator{}
 	v.On("Validate", mock.Anything, keyAPI).Return(nil)
 
-	sub, _ := dispatch.NewStandardSubscriber(req.RemoteAddr, []string{defaultSubscriptionType})
+	sub, _ := dispatch.NewStandardSubscriber(req.RemoteAddr, []string{defaultSubscriptionType}, []dispatch.SubscriptionOption{})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", req.RemoteAddr, []string{defaultSubscriptionType}, false).Run(func(args mock.Arguments) {
+	d.On("Subscribe", req.RemoteAddr, []string{defaultSubscriptionType}, false, []dispatch.SubscriptionOption{}).Run(func(args mock.Arguments) {
 		go func() {
 			<-time.After(time.Millisecond * 10)
 			cancel()
@@ -221,9 +250,9 @@ func TestHeartbeat(t *testing.T) {
 	v := &mocks.KeyValidator{}
 	v.On("Validate", mock.Anything, keyAPI).Return(nil)
 
-	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType})
+	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType}, []dispatch.SubscriptionOption{})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", subAddress, []string{defaultSubscriptionType}, false).Return(sub)
+	d.On("Subscribe", subAddress, []string{defaultSubscriptionType}, false, []dispatch.SubscriptionOption{}).Return(sub)
 	d.On("Unsubscribe", mock.AnythingOfType("*dispatch.StandardSubscriber")).Return()
 	r := mocks.NewShutdownReg()
 	r.On("RegisterOnShutdown", mock.Anything).Return()
@@ -288,12 +317,12 @@ func TestPushNotificationDelay(t *testing.T) {
 	v := &mocks.KeyValidator{}
 	v.On("Validate", mock.Anything, keyAPI).Return(nil)
 
-	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType})
+	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType}, []dispatch.SubscriptionOption{})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", subAddress, []string{defaultSubscriptionType}, false).Run(func(args mock.Arguments) {
+	d.On("Subscribe", subAddress, []string{defaultSubscriptionType}, false, []dispatch.SubscriptionOption{}).Run(func(args mock.Arguments) {
 		go func() {
 			<-time.After(notificationDelay)
-			err := sub.Send(dispatch.Notification{})
+			err := sub.Send(dispatch.NotificationResponse{})
 			assert.NoError(t, err)
 		}()
 	}).Return(sub)

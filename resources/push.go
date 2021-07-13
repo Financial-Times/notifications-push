@@ -15,11 +15,13 @@ import (
 )
 
 const (
-	HeartbeatMsg            = "[]"
-	apiKeyHeaderField       = "X-Api-Key"
-	apiKeyQueryParam        = "apiKey"
-	ClientAdrKey            = "X-Forwarded-For"
-	defaultSubscriptionType = dispatch.ArticleContentType
+	HeartbeatMsg              = "[]"
+	apiKeyHeaderField         = "X-Api-Key"
+	apiKeyQueryParam          = "apiKey"
+	apiPolicyField            = "X-API-Policy"
+	ClientAdrKey              = "X-Forwarded-For"
+	defaultSubscriptionType   = dispatch.ArticleContentType
+	CreateEventConsideredType = "INTERNAL_UNSTABLE"
 )
 
 var supportedSubscriptionTypes = map[string]bool{
@@ -39,7 +41,7 @@ type keyValidator interface {
 }
 
 type notifier interface {
-	Subscribe(address string, subTypes []string, monitoring bool) (dispatch.Subscriber, error)
+	Subscribe(address string, subTypes []string, monitoring bool, options []dispatch.SubscriptionOption) (dispatch.Subscriber, error)
 	Unsubscribe(subscriber dispatch.Subscriber)
 }
 
@@ -92,6 +94,11 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	subscriptionOptions := []dispatch.SubscriptionOption{}
+	if r.Header.Get(apiPolicyField) == CreateEventConsideredType {
+		subscriptionOptions = append(subscriptionOptions, dispatch.CreateEventOption)
+	}
+
 	subscriptionParams, err := resolveSubType(r, h.contentTypesIncludedInAll)
 	if err != nil {
 		h.log.WithError(err).Error("Invalid content type")
@@ -101,7 +108,7 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 	monitorParam := r.URL.Query().Get("monitor")
 	isMonitor, _ := strconv.ParseBool(monitorParam)
 
-	s, err := h.notif.Subscribe(getClientAddr(r), subscriptionParams, isMonitor)
+	s, err := h.notif.Subscribe(getClientAddr(r), subscriptionParams, isMonitor, subscriptionOptions)
 	if err != nil {
 		h.log.WithError(err).Error("Error creating subscription")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -183,6 +190,7 @@ func getClientAddr(r *http.Request) string {
 
 func resolveSubType(r *http.Request, contentTypesIncludedInAll []string) ([]string, error) {
 	retVal := make([]string, 0)
+
 	values := r.URL.Query()
 	subTypes := values["type"]
 	if len(subTypes) == 0 {

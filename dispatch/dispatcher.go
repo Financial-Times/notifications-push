@@ -19,7 +19,7 @@ const (
 func NewDispatcher(delay time.Duration, history History, log *logger.UPPLogger) *Dispatcher {
 	return &Dispatcher{
 		delay:       delay,
-		inbound:     make(chan Notification),
+		inbound:     make(chan NotificationModel),
 		subscribers: map[NotificationConsumer]struct{}{},
 		lock:        &sync.RWMutex{},
 		history:     history,
@@ -30,7 +30,7 @@ func NewDispatcher(delay time.Duration, history History, log *logger.UPPLogger) 
 
 type Dispatcher struct {
 	delay       time.Duration
-	inbound     chan Notification
+	inbound     chan NotificationModel
 	subscribers map[NotificationConsumer]struct{}
 	lock        *sync.RWMutex
 	history     History
@@ -54,7 +54,7 @@ func (d *Dispatcher) Stop() {
 	d.stopChan <- true
 }
 
-func (d *Dispatcher) Send(n Notification) {
+func (d *Dispatcher) Send(n NotificationModel) {
 	d.log.WithTransactionID(n.PublishReference).Infof("Received notification. Waiting configured delay (%v).", d.delay)
 	go func() {
 		time.Sleep(d.delay)
@@ -74,13 +74,13 @@ func (d *Dispatcher) Subscribers() []Subscriber {
 	return subs
 }
 
-func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool) (Subscriber, error) {
+func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool, options []SubscriptionOption) (Subscriber, error) {
 	var s NotificationConsumer
 	var err error
 	if monitoring {
-		s, err = NewMonitorSubscriber(address, subTypes)
+		s, err = NewMonitorSubscriber(address, subTypes, options)
 	} else {
-		s, err = NewStandardSubscriber(address, subTypes)
+		s, err = NewStandardSubscriber(address, subTypes, options)
 	}
 
 	if err != nil {
@@ -121,7 +121,7 @@ func logWithSubscriber(log *logger.UPPLogger, s Subscriber) *logger.LogEntry {
 	})
 }
 
-func (d *Dispatcher) forwardToSubscribers(notification Notification) {
+func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
@@ -161,8 +161,8 @@ func (d *Dispatcher) forwardToSubscribers(notification Notification) {
 				continue
 			}
 		}
-
-		err := sub.Send(notification)
+		nr := CreateNotificationResponse(notification, sub.Options())
+		err := sub.Send(nr)
 		if err != nil {
 			failed++
 			entry.WithError(err).Warn("Failed forwarding to subscriber.")
@@ -174,7 +174,7 @@ func (d *Dispatcher) forwardToSubscribers(notification Notification) {
 }
 
 // matchesSubType matches subscriber's ContentType with the incoming contentType notification.
-func matchesSubType(n Notification, s Subscriber) bool {
+func matchesSubType(n NotificationModel, s Subscriber) bool {
 	subTypes := make(map[string]bool)
 	for _, subType := range s.SubTypes() {
 		subTypes[strings.ToLower(subType)] = true

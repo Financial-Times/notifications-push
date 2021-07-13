@@ -14,6 +14,12 @@ const notificationBuffer = 16
 
 var ErrSubLagging = errors.New("subscriber lagging behind")
 
+type SubscriptionOption string
+
+const (
+	CreateEventOption SubscriptionOption = "CreateEvent"
+)
+
 // Subscriber represents the interface of a generic subscriber to a push stream
 type Subscriber interface {
 	ID() string
@@ -21,11 +27,12 @@ type Subscriber interface {
 	Address() string
 	Since() time.Time
 	SubTypes() []string
+	Options() []SubscriptionOption
 }
 
 type NotificationConsumer interface {
 	Subscriber
-	Send(n Notification) error
+	Send(n NotificationResponse) error
 }
 
 // StandardSubscriber implements a standard subscriber
@@ -35,10 +42,11 @@ type StandardSubscriber struct {
 	addr                string
 	sinceTime           time.Time
 	acceptedTypes       []string
+	subscriberOptions   []SubscriptionOption
 }
 
 // NewStandardSubscriber returns a new instance of a standard subscriber
-func NewStandardSubscriber(address string, subTypes []string) (*StandardSubscriber, error) {
+func NewStandardSubscriber(address string, subTypes []string, options []SubscriptionOption) (*StandardSubscriber, error) {
 	notificationChannel := make(chan string, notificationBuffer)
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -51,10 +59,11 @@ func NewStandardSubscriber(address string, subTypes []string) (*StandardSubscrib
 		addr:                address,
 		sinceTime:           time.Now(),
 		acceptedTypes:       subTypes,
+		subscriberOptions:   options,
 	}, nil
 }
 
-// Id returns the uniquely generated subscriber identifier
+// ID returns the uniquely generated subscriber identifier
 // Returned value is assigned during the construction phase.
 func (s *StandardSubscriber) ID() string {
 	return s.id
@@ -80,9 +89,14 @@ func (s *StandardSubscriber) Notifications() <-chan string {
 	return s.notificationChannel
 }
 
+// Options returns if the subscriber's options
+func (s *StandardSubscriber) Options() []SubscriptionOption {
+	return s.subscriberOptions
+}
+
 // Send tries to send notification to the subscriber.
 // It removes the monitoring fields from the notification. Serializes it as string and pushes it to the subscriber
-func (s *StandardSubscriber) Send(n Notification) error {
+func (s *StandardSubscriber) Send(n NotificationResponse) error {
 	msg, err := buildStandardNotificationMsg(n)
 	if err != nil {
 		return err
@@ -95,7 +109,7 @@ func (s *StandardSubscriber) Send(n Notification) error {
 	}
 }
 
-func buildStandardNotificationMsg(n Notification) (string, error) {
+func buildStandardNotificationMsg(n NotificationResponse) (string, error) {
 	n.PublishReference = ""
 	n.LastModified = ""
 	n.NotificationDate = ""
@@ -103,8 +117,8 @@ func buildStandardNotificationMsg(n Notification) (string, error) {
 	return buildNotificationMsg(n)
 }
 
-func buildNotificationMsg(n Notification) (string, error) {
-	jsonNotification, err := MarshalNotificationsJSON([]Notification{n})
+func buildNotificationMsg(n NotificationResponse) (string, error) {
+	jsonNotification, err := MarshalNotificationResponsesJSON([]NotificationResponse{n})
 	if err != nil {
 		return "", err
 	}
@@ -112,9 +126,9 @@ func buildNotificationMsg(n Notification) (string, error) {
 	return string(jsonNotification), err
 }
 
-// MarshalNotificationsJSON returns the JSON encoding of n. For notifications, we do not use the standard function json.Marshal()
+// MarshalNotificationResponsesJSON returns the JSON encoding of n. For notification responses, we do not use the standard function json.Marshal()
 // because that will always escape special characters (<,>,&) in unicode format ("\u0026P" and similar)
-func MarshalNotificationsJSON(n []Notification) ([]byte, error) {
+func MarshalNotificationResponsesJSON(n []NotificationResponse) ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)
 	encoder.SetEscapeHTML(false)
@@ -127,13 +141,14 @@ func MarshalNotificationsJSON(n []Notification) ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
-// monitorSubscriber implements a Monitor subscriber
+// MonitorSubscriber implements a Monitor subscriber
 type MonitorSubscriber struct {
 	id                  string
 	notificationChannel chan string
 	addr                string
 	sinceTime           time.Time
 	acceptedTypes       []string
+	subscriberOptions   []SubscriptionOption
 }
 
 func (m *MonitorSubscriber) ID() string {
@@ -156,7 +171,12 @@ func (m *MonitorSubscriber) SubTypes() []string {
 	return m.acceptedTypes
 }
 
-func (m *MonitorSubscriber) Send(n Notification) error {
+// Options returns if the subscriber's options
+func (m *MonitorSubscriber) Options() []SubscriptionOption {
+	return m.subscriberOptions
+}
+
+func (m *MonitorSubscriber) Send(n NotificationResponse) error {
 	// -- set subscriberId for NPM traceability only for monitor mode subscribers
 	n.SubscriberID = m.ID()
 	msg, err := buildMonitorNotificationMsg(n)
@@ -172,7 +192,7 @@ func (m *MonitorSubscriber) Send(n Notification) error {
 }
 
 // NewMonitorSubscriber returns a new instance of a Monitor subscriber
-func NewMonitorSubscriber(address string, subTypes []string) (*MonitorSubscriber, error) {
+func NewMonitorSubscriber(address string, subTypes []string, options []SubscriptionOption) (*MonitorSubscriber, error) {
 	notificationChannel := make(chan string, notificationBuffer)
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -185,10 +205,11 @@ func NewMonitorSubscriber(address string, subTypes []string) (*MonitorSubscriber
 		addr:                address,
 		sinceTime:           time.Now(),
 		acceptedTypes:       subTypes,
+		subscriberOptions:   options,
 	}, nil
 }
 
-func buildMonitorNotificationMsg(n Notification) (string, error) {
+func buildMonitorNotificationMsg(n NotificationResponse) (string, error) {
 	return buildNotificationMsg(n)
 }
 

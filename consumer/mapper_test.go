@@ -12,7 +12,7 @@ func TestMapToUpdateNotification(t *testing.T) {
 	t.Parallel()
 
 	standout := map[string]interface{}{"scoop": true}
-	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article"}
+	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": "2"}
 	id, _ := uuid.NewV4()
 	event := ContentMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
@@ -29,6 +29,32 @@ func TestMapToUpdateNotification(t *testing.T) {
 
 	assert.Nil(t, err, "The mapping should not return an error")
 	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/UPDATE", n.Type, "It is an UPDATE notification")
+	assert.Equal(t, "This is a title", n.Title, "Title should pe mapped correctly")
+	assert.Equal(t, true, n.Standout.Scoop, "Scoop field should be mapped correctly")
+	assert.Equal(t, "Article", n.SubscriptionType, "SubscriptionType field should be mapped correctly")
+}
+
+func TestMapToCreateNotification(t *testing.T) {
+	t.Parallel()
+
+	standout := map[string]interface{}{"scoop": true}
+	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": "1"}
+	id, _ := uuid.NewV4()
+	event := ContentMessage{
+		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
+		LastModified: "2016-11-02T10:54:22.234Z",
+		Payload:      payload,
+	}
+
+	mapper := NotificationMapper{
+		APIBaseURL: "test.api.ft.com",
+		Resource:   "list",
+	}
+
+	n, err := mapper.MapNotification(event, "tid_test1")
+
+	assert.Nil(t, err, "The mapping should not return an error")
+	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/CREATE", n.Type, "It is an CREATE notification")
 	assert.Equal(t, "This is a title", n.Title, "Title should pe mapped correctly")
 	assert.Equal(t, true, n.Standout.Scoop, "Scoop field should be mapped correctly")
 	assert.Equal(t, "Article", n.SubscriptionType, "SubscriptionType field should be mapped correctly")
@@ -158,7 +184,7 @@ func TestNotificationMappingMetadata(t *testing.T) {
 	tests := map[string]struct {
 		Event    AnnotationsMessage
 		HasError bool
-		Expected dispatch.Notification
+		Expected dispatch.NotificationModel
 	}{
 		"Success": {
 			Event: AnnotationsMessage{
@@ -166,7 +192,7 @@ func TestNotificationMappingMetadata(t *testing.T) {
 				LastModified: "2019-11-10T14:34:25.209Z",
 				Payload:      &Annotations{ContentID: "d1b430b9-0ce2-4b85-9c7b-5b700e8519fe"},
 			},
-			Expected: dispatch.Notification{
+			Expected: dispatch.NotificationModel{
 				APIURL:           "test.api.ft.com/content/d1b430b9-0ce2-4b85-9c7b-5b700e8519fe",
 				ID:               "http://www.ft.com/thing/d1b430b9-0ce2-4b85-9c7b-5b700e8519fe",
 				Type:             dispatch.AnnotationUpdateType,

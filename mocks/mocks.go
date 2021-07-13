@@ -37,7 +37,7 @@ func (m *Dispatcher) Stop() {
 	m.Called()
 }
 
-func (m *Dispatcher) Send(notification dispatch.Notification) {
+func (m *Dispatcher) Send(notification dispatch.NotificationModel) {
 	m.Called(notification)
 }
 
@@ -46,8 +46,8 @@ func (m *Dispatcher) Subscribers() []dispatch.Subscriber {
 	return args.Get(0).([]dispatch.Subscriber)
 }
 
-func (m *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool) (dispatch.Subscriber, error) {
-	args := m.Called(address, subTypes, monitoring)
+func (m *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool, options []dispatch.SubscriptionOption) (dispatch.Subscriber, error) {
+	args := m.Called(address, subTypes, monitoring, options)
 	return args.Get(0).(dispatch.Subscriber), nil
 }
 func (m *Dispatcher) Unsubscribe(s dispatch.Subscriber) {

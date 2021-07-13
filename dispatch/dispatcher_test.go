@@ -23,7 +23,7 @@ var contentSubscribeTypes = []string{"Article", "ContentPackage", "Audio"}
 var delay = 2 * time.Second
 var historySize = 10
 
-var n1 = Notification{
+var n1 = NotificationModel{
 	APIURL:           "http://api.ft.com/content/7998974a-1e97-11e6-b286-cddde55ca122",
 	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
 	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
@@ -32,7 +32,7 @@ var n1 = Notification{
 	SubscriptionType: "ContentPackage",
 }
 
-var n2 = Notification{
+var n2 = NotificationModel{
 	APIURL:           "http://api.ft.com/content/7998974a-1e97-11e6-b286-cddde55ca122",
 	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
 	Type:             "http://www.ft.com/thing/ThingChangeType/DELETE",
@@ -40,7 +40,7 @@ var n2 = Notification{
 	LastModified:     "2016-11-02T10:55:24.244Z",
 }
 
-var annNotif = Notification{
+var annNotif = NotificationModel{
 	APIURL:           "http://api.ft.com/content/7998974a-1e97-11e6-b286-cddde55ca122",
 	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
 	Type:             "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE",
@@ -48,13 +48,32 @@ var annNotif = Notification{
 	SubscriptionType: "Annotations",
 }
 
-var e2eTestNotification = Notification{
+var e2eTestNotification = NotificationModel{
 	APIURL:           "http://api.ft.com/content/e4d2885f-1140-400b-9407-921e1c7378cd",
 	ID:               "http://www.ft.com/thing/e4d2885f-1140-400b-9407-921e1c7378cd",
 	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
 	PublishReference: "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd",
 	LastModified:     "2016-11-02T10:54:22.234Z",
 	IsE2ETest:        true,
+}
+
+var createNotification = NotificationModel{
+	APIURL:           "http://api.ft.com/content/e4d2885f-1140-400b-9407-921e1c7378cd",
+	ID:               "http://www.ft.com/thing/e4d2885f-1140-400b-9407-921e1c7378cd",
+	Type:             "http://www.ft.com/thing/ThingChangeType/CREATE",
+	PublishReference: "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
+}
+
+// Subscribers who did not explicitly opt in for Create notifications will actually get Update notification
+var modifiedCreateNotification = NotificationModel{
+	APIURL:           "http://api.ft.com/content/e4d2885f-1140-400b-9407-921e1c7378cd",
+	ID:               "http://www.ft.com/thing/e4d2885f-1140-400b-9407-921e1c7378cd",
+	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
+	PublishReference: "SYNTHETIC-REQ-MONe4d2885f-1140-400b-9407-921e1c7378cd",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
 }
 
 var zeroTime = time.Time{}
@@ -66,8 +85,8 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, []SubscriptionOption{})
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, []SubscriptionOption{})
 
 	go d.Start()
 	defer d.Stop()
@@ -102,9 +121,9 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
-	s, _ := d.Subscribe("192.168.1.3", []string{typeArticle}, false)
-	annSub, _ := d.Subscribe("192.168.1.4", []string{annotationSubType}, false)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, []SubscriptionOption{})
+	s, _ := d.Subscribe("192.168.1.3", []string{typeArticle}, false, []SubscriptionOption{})
+	annSub, _ := d.Subscribe("192.168.1.4", []string{annotationSubType}, false, []SubscriptionOption{})
 
 	go d.Start()
 	defer d.Stop()
@@ -165,8 +184,8 @@ func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testin
 	h := NewHistory(historySize)
 	d := NewDispatcher(time.Millisecond, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, []SubscriptionOption{})
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, []SubscriptionOption{})
 
 	go d.Start()
 	defer d.Stop()
@@ -187,6 +206,49 @@ func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testin
 	}
 }
 
+func TestCreateNotificationIsProperlyDispatchedToSubscribers(t *testing.T) {
+	t.Parallel()
+
+	l := logger.NewUPPLogger("test", "panic")
+	h := NewHistory(historySize)
+	d := NewDispatcher(time.Millisecond, h, l)
+
+	m1, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, []SubscriptionOption{CreateEventOption})
+	s1, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, []SubscriptionOption{CreateEventOption})
+	m2, _ := d.Subscribe("192.168.1.4", contentSubscribeTypes, true, []SubscriptionOption{})
+	s2, _ := d.Subscribe("192.168.1.5", contentSubscribeTypes, false, []SubscriptionOption{})
+
+	go d.Start()
+	defer d.Stop()
+
+	notBefore := time.Now()
+	d.Send(createNotification)
+
+	monitorMsg, err := waitForNotification(m1.Notifications(), 10*time.Millisecond)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	verifyNotificationResponse(t, createNotification, notBefore, time.Now(), monitorMsg)
+
+	actualMsg, err := waitForNotification(s1.Notifications(), 10*time.Millisecond)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	verifyNotificationResponse(t, createNotification, notBefore, time.Now(), actualMsg)
+
+	monitorMsg, err = waitForNotification(m2.Notifications(), 10*time.Millisecond)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	verifyNotificationResponse(t, modifiedCreateNotification, notBefore, time.Now(), monitorMsg)
+
+	actualMsg, err = waitForNotification(s2.Notifications(), 10*time.Millisecond)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	verifyNotificationResponse(t, modifiedCreateNotification, notBefore, time.Now(), actualMsg)
+}
+
 func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	t.Parallel()
 
@@ -194,9 +256,9 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true)
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, []SubscriptionOption{})
 	m = m.(NotificationConsumer)
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, []SubscriptionOption{})
 	s = s.(NotificationConsumer)
 
 	go d.Start()
@@ -226,7 +288,7 @@ func TestDispatchDelay(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false)
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, []SubscriptionOption{})
 
 	go d.Start()
 	defer d.Stop()
@@ -262,9 +324,9 @@ func TestDispatchedNotificationsInHistory(t *testing.T) {
 	time.Sleep(time.Duration(delay.Seconds()+1) * time.Second)
 
 	notAfter := time.Now()
-	verifyNotification(t, annNotif, notBefore, notAfter, h.Notifications()[2])
-	verifyNotification(t, n1, notBefore, notAfter, h.Notifications()[1])
-	verifyNotification(t, n2, notBefore, notAfter, h.Notifications()[0])
+	verifyNotificationModel(t, annNotif, notBefore, notAfter, h.Notifications()[2])
+	verifyNotificationModel(t, n1, notBefore, notAfter, h.Notifications()[1])
+	verifyNotificationModel(t, n2, notBefore, notAfter, h.Notifications()[0])
 	assert.Len(t, h.Notifications(), 3, "History contains 3 notifications")
 
 	for i := 0; i < historySize; i++ {
@@ -319,8 +381,8 @@ func TestInternalFailToSendNotifications(t *testing.T) {
 	assert.Equal(t, 1, logOccurrence)
 }
 
-func verifyNotificationResponse(t *testing.T, expected Notification, notBefore time.Time, notAfter time.Time, actualMsg string) {
-	actualNotifications := []Notification{}
+func verifyNotificationResponse(t *testing.T, expected NotificationModel, notBefore time.Time, notAfter time.Time, actualMsg string) {
+	actualNotifications := []NotificationResponse{}
 	_ = json.Unmarshal([]byte(actualMsg), &actualNotifications)
 	require.True(t, len(actualNotifications) > 0)
 	actual := actualNotifications[0]
@@ -328,7 +390,22 @@ func verifyNotificationResponse(t *testing.T, expected Notification, notBefore t
 	verifyNotification(t, expected, notBefore, notAfter, actual)
 }
 
-func verifyNotification(t *testing.T, expected Notification, notBefore time.Time, notAfter time.Time, actual Notification) {
+func verifyNotification(t *testing.T, expected NotificationModel, notBefore time.Time, notAfter time.Time, actual NotificationResponse) {
+	assert.Equal(t, expected.ID, actual.ID, "ID")
+	assert.Equal(t, expected.Type, actual.Type, "Type")
+	assert.Equal(t, expected.APIURL, actual.APIURL, "APIURL")
+
+	if actual.LastModified != "" {
+		assert.Equal(t, expected.LastModified, actual.LastModified, "LastModified")
+		assert.Equal(t, expected.PublishReference, actual.PublishReference, "PublishReference")
+
+		actualDate, _ := time.Parse(RFC3339Millis, actual.NotificationDate)
+		assert.False(t, actualDate.Before(notBefore), "notificationDate is too early")
+		assert.False(t, actualDate.After(notAfter), "notificationDate is too late")
+	}
+}
+
+func verifyNotificationModel(t *testing.T, expected NotificationModel, notBefore time.Time, notAfter time.Time, actual NotificationModel) {
 	assert.Equal(t, expected.ID, actual.ID, "ID")
 	assert.Equal(t, expected.Type, actual.Type, "Type")
 	assert.Equal(t, expected.APIURL, actual.APIURL, "APIURL")
@@ -346,13 +423,13 @@ func verifyNotification(t *testing.T, expected Notification, notBefore time.Time
 func TestMatchesSubType(t *testing.T) {
 	tests := []struct {
 		name string
-		n    Notification
+		n    NotificationModel
 		s    *StandardSubscriber
 		res  bool
 	}{
 		{
 			name: "test that notification type matches if subscriber has it as subscription type",
-			n: Notification{
+			n: NotificationModel{
 				SubscriptionType: AudioContentType,
 				Type:             AudioContentType,
 			},
@@ -363,7 +440,7 @@ func TestMatchesSubType(t *testing.T) {
 		},
 		{
 			name: "test that notification type does not match if subscriber does not have it as subscription type",
-			n: Notification{
+			n: NotificationModel{
 				SubscriptionType: AudioContentType,
 				Type:             AudioContentType,
 			},
@@ -374,7 +451,7 @@ func TestMatchesSubType(t *testing.T) {
 		},
 		{
 			name: "test that if notification is of type DELETE and the content type can be resolved - we should match it only if the subscriber has been subscribed for this type",
-			n: Notification{
+			n: NotificationModel{
 				SubscriptionType: AudioContentType,
 				Type:             ContentDeleteType,
 			},
@@ -385,7 +462,7 @@ func TestMatchesSubType(t *testing.T) {
 		},
 		{
 			name: "test if subscriber is subscribed only for annotations and notification is of type DELETE and its content type cannot be resolved - we should NOT match it",
-			n: Notification{
+			n: NotificationModel{
 				SubscriptionType: "",
 				Type:             ContentDeleteType,
 			},
@@ -396,7 +473,7 @@ func TestMatchesSubType(t *testing.T) {
 		},
 		{
 			name: "test if subscriber is not subscribed for annotations and notification is of type DELETE and its content type cannot be resolved - we should match it",
-			n: Notification{
+			n: NotificationModel{
 				SubscriptionType: "",
 				Type:             ContentDeleteType,
 			},
@@ -407,7 +484,7 @@ func TestMatchesSubType(t *testing.T) {
 		},
 		{
 			name: "test if subscriber is subscribed for annotations and another content type AND notification is of type DELETE and its content type cannot be resolved - we should match it",
-			n: Notification{
+			n: NotificationModel{
 				SubscriptionType: "",
 				Type:             ContentDeleteType,
 			},
@@ -435,6 +512,10 @@ type MockSubscriber struct {
 	_dummy int //nolint:unused,structcheck
 }
 
+func (_m *MockSubscriber) Options() []SubscriptionOption {
+	return []SubscriptionOption{}
+}
+
 // AcceptedSubType provides a mock function with given fields:
 func (_m *MockSubscriber) SubTypes() []string {
 	return []string{"ContentPackage"}
@@ -446,7 +527,7 @@ func (_m *MockSubscriber) Address() string {
 }
 
 // send provides a mock function with given fields: n
-func (_m *MockSubscriber) Send(n Notification) error {
+func (_m *MockSubscriber) Send(n NotificationResponse) error {
 	return errors.New("error")
 }
 

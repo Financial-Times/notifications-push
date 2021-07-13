@@ -17,14 +17,17 @@ type NotificationMapper struct {
 // UUIDRegexp enables to check if a string matches a UUID
 var UUIDRegexp = regexp.MustCompile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
 
-const payloadDeletedFlag = "deleted"
+const (
+	payloadDeletedKey      = "deleted"
+	payloadPublishCountKey = "publishCount"
+)
 
 // MapNotification maps the given event to a new notification.
-func (n NotificationMapper) MapNotification(event ContentMessage, transactionID string) (dispatch.Notification, error) {
+func (n NotificationMapper) MapNotification(event ContentMessage, transactionID string) (dispatch.NotificationModel, error) {
 	UUID := UUIDRegexp.FindString(event.ContentURI)
 	if UUID == "" {
 		// nolint:golint
-		return dispatch.Notification{}, errors.New("ContentURI does not contain a UUID")
+		return dispatch.NotificationModel{}, errors.New("ContentURI does not contain a UUID")
 	}
 
 	var eventType string
@@ -34,22 +37,27 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 
 	notificationPayloadMap, ok := event.Payload.(map[string]interface{})
 	if !ok {
-		return dispatch.Notification{}, fmt.Errorf("invalid payload type: %T", event.Payload)
+		return dispatch.NotificationModel{}, fmt.Errorf("invalid payload type: %T", event.Payload)
 	}
 
-	deleteFlag, _ := notificationPayloadMap[payloadDeletedFlag].(bool)
+	deleteFlag, _ := notificationPayloadMap[payloadDeletedKey].(bool)
 
 	if deleteFlag {
 		eventType = dispatch.ContentDeleteType
 		contentType = resolveTypeFromMessageHeader(event.ContentTypeHeader)
 	} else {
 		eventType = dispatch.ContentUpdateType
+		publishCountStr := fmt.Sprintf("%v", notificationPayloadMap[payloadPublishCountKey])
+		if publishCountStr == "1" {
+			eventType = dispatch.ContentCreateType
+		}
+
 		title = getValueFromPayload("title", notificationPayloadMap)
 		contentType = getValueFromPayload("type", notificationPayloadMap)
 		scoop = getScoopFromPayload(notificationPayloadMap)
 	}
 
-	return dispatch.Notification{
+	return dispatch.NotificationModel{
 		Type:             eventType,
 		ID:               "http://www.ft.com/thing/" + UUID,
 		APIURL:           n.APIBaseURL + "/" + n.Resource + "/" + UUID,
@@ -61,16 +69,16 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 	}, nil
 }
 
-func (n NotificationMapper) MapMetadataNotification(event AnnotationsMessage, transactionID string) (dispatch.Notification, error) {
+func (n NotificationMapper) MapMetadataNotification(event AnnotationsMessage, transactionID string) (dispatch.NotificationModel, error) {
 	UUID := UUIDRegexp.FindString(event.ContentURI)
 	if UUID == "" {
-		return dispatch.Notification{}, errors.New("contentURI does not contain a UUID")
+		return dispatch.NotificationModel{}, errors.New("contentURI does not contain a UUID")
 	}
 	if event.Payload == nil {
-		return dispatch.Notification{}, errors.New("payload missing")
+		return dispatch.NotificationModel{}, errors.New("payload missing")
 	}
 
-	return dispatch.Notification{
+	return dispatch.NotificationModel{
 		Type:             dispatch.AnnotationUpdateType,
 		ID:               "http://www.ft.com/thing/" + UUID,
 		APIURL:           n.APIBaseURL + "/" + n.Resource + "/" + UUID,
