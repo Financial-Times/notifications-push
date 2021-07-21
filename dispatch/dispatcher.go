@@ -126,22 +126,8 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 	defer d.lock.RUnlock()
 
 	var sent, failed, skipped int
-	defer func() {
-		entry := d.log.
-			WithTransactionID(notification.PublishReference).
-			WithFields(map[string]interface{}{
-				"resource": notification.APIURL,
-				"sent":     sent,
-				"failed":   failed,
-				"skipped":  skipped,
-			})
-		if len(d.subscribers) == 0 || sent > 0 || len(d.subscribers) == skipped {
-			entry.WithMonitoringEvent("NotificationsPush", notification.PublishReference, notification.SubscriptionType).
-				Info("Processed subscribers.")
-		} else {
-			entry.Error("Processed subscribers. Failed to send notifications")
-		}
-	}()
+
+	d.log.WithTransactionID(notification.PublishReference).Info("Starting subscribers processing.")
 
 	for sub := range d.subscribers {
 		entry := logWithSubscriber(d.log, sub).
@@ -170,6 +156,22 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 			sent++
 			entry.Info("Forwarding to subscriber.")
 		}
+	}
+
+	entry := d.log.
+		WithTransactionID(notification.PublishReference).
+		WithFields(map[string]interface{}{
+			"resource": notification.APIURL,
+			"sent":     sent,
+			"failed":   failed,
+			"skipped":  skipped,
+		})
+
+	if len(d.subscribers) == 0 || sent > 0 || len(d.subscribers) == skipped {
+		entry.WithMonitoringEvent("NotificationsPush", notification.PublishReference, notification.SubscriptionType).
+			Info("Processed subscribers.")
+	} else {
+		entry.Error("Processed subscribers. Failed to send notifications")
 	}
 }
 
