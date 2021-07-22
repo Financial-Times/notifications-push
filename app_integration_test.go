@@ -69,10 +69,11 @@ func TestPushNotifications(t *testing.T) {
 
 	// handlers vars
 	var (
-		apiGatewayURL    = "/api-gateway"
-		apiGatewayGTGURL = "/api-gateway/__gtg"
-		heartbeat        = time.Second * 1
-		resource         = "content"
+		apiGatewayValidateURL = "/api-gateway/validate"
+		apiGatewayPoliciesURL = "/api-gateway/policies"
+		apiGatewayGTGURL      = "/api-gateway/__gtg"
+		heartbeat             = time.Second * 1
+		resource              = "content"
 	)
 	// dispatch vars
 	var (
@@ -109,14 +110,19 @@ func TestPushNotifications(t *testing.T) {
 	// handler
 	hc := resources.NewHealthCheck(queue, apiGatewayGTGURL, nil)
 
-	keyValidator := resources.NewKeyValidator(server.URL+apiGatewayURL, http.DefaultClient, l)
-	s := resources.NewSubHandler(d, keyValidator, reg, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
+	keyProcessor := resources.NewKeyProcessor(server.URL+apiGatewayValidateURL, server.URL+apiGatewayPoliciesURL, http.DefaultClient, l)
+	s := resources.NewSubHandler(d, keyProcessor, reg, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
 
 	initRouter(router, s, resource, d, h, hc, l)
 
 	// key validation
-	router.HandleFunc(apiGatewayURL, func(resp http.ResponseWriter, req *http.Request) {
+	router.HandleFunc(apiGatewayValidateURL, func(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusOK)
+	}).Methods("GET")
+
+	// key policies
+	router.HandleFunc(apiGatewayPoliciesURL, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("{'x-policy':''"))
 	}).Methods("GET")
 
 	// context that controls the live of all subscribers

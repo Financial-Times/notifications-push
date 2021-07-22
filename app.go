@@ -57,6 +57,12 @@ func main() {
 		Desc:   "The API Gateway ApiKey validation endpoint",
 		EnvVar: "API_KEY_VALIDATION_ENDPOINT",
 	})
+	apiKeyPoliciesEndpoint := app.String(cli.StringOpt{
+		Name:   "api_key_policies_endpoint",
+		Value:  "t800/policy",
+		Desc:   "The API Gateway ApiKey policies endpoint",
+		EnvVar: "API_KEY_POLICIES_ENDPOINT",
+	})
 	apiGatewayHealthcheckEndpoint := app.String(cli.StringOpt{
 		Name:   "api_healthcheck_endpoint",
 		Value:  "/t800-healthcheck",
@@ -207,8 +213,15 @@ func main() {
 			log.WithError(err).Fatal("cannot parse api_key_validation_endpoint")
 		}
 		keyValidateURL = baseURL.ResolveReference(keyValidateURL)
-		keyValidator := resources.NewKeyValidator(keyValidateURL.String(), httpClient, log)
-		subHandler := resources.NewSubHandler(dispatcher, keyValidator, srv, heartbeatPeriod, log, *allowedAllContentType)
+
+		keyPoliciesURL, err := url.Parse(*apiKeyPoliciesEndpoint)
+		if err != nil {
+			log.WithError(err).Fatal("cannot parse api_key_policies_endpoint")
+		}
+		keyPoliciesURL = baseURL.ResolveReference(keyPoliciesURL)
+
+		keyProcessor := resources.NewKeyProcessor(keyValidateURL.String(), keyPoliciesURL.String(), httpClient, log)
+		subHandler := resources.NewSubHandler(dispatcher, keyProcessor, srv, heartbeatPeriod, log, *allowedAllContentType)
 		if err != nil {
 			log.WithError(err).Fatal("Could not create request handler")
 		}
