@@ -12,17 +12,27 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type KeyValidator struct {
+type KeyProcessor struct {
 	mock.Mock
 }
 
-func (m *KeyValidator) Validate(ctx context.Context, key string) error {
+func (m *KeyProcessor) Validate(ctx context.Context, key string) error {
 	args := m.Called(ctx, key)
 
 	if args.Get(0) != nil {
 		return args.Get(0).(error)
 	}
 	return nil
+}
+
+func (m *KeyProcessor) GetPolicies(ctx context.Context, key string) ([]string, error) {
+	args := m.Called(ctx, key)
+
+	if args.Get(1) != nil {
+		return nil, args.Get(1).(error)
+	}
+
+	return args.Get(0).([]string), nil
 }
 
 type Dispatcher struct {
@@ -64,6 +74,15 @@ func ClientWithResponseCode(responseCode int) *http.Client {
 	return &http.Client{
 		Transport: &transport{
 			ResponseStatusCode: responseCode,
+		},
+	}
+}
+
+func ClientWithResponseBody(responseCode int, responseBody string) *http.Client {
+	return &http.Client{
+		Transport: &transport{
+			ResponseStatusCode: responseCode,
+			ResponseBody:       responseBody,
 		},
 	}
 }

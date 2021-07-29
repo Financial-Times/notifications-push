@@ -15,13 +15,12 @@ import (
 )
 
 const (
-	HeartbeatMsg              = "[]"
-	apiKeyHeaderField         = "X-Api-Key"
-	apiKeyQueryParam          = "apiKey"
-	apiPolicyField            = "X-API-Policy"
-	ClientAdrKey              = "X-Forwarded-For"
-	defaultSubscriptionType   = dispatch.ArticleContentType
-	CreateEventConsideredType = "INTERNAL_UNSTABLE"
+	HeartbeatMsg                 = "[]"
+	apiKeyHeaderField            = "X-Api-Key"
+	apiKeyQueryParam             = "apiKey"
+	ClientAdrKey                 = "X-Forwarded-For"
+	defaultSubscriptionType      = dispatch.ArticleContentType
+	advancedNotificationsXPolicy = "ADVANCED_NOTIFICATIONS"
 )
 
 var supportedSubscriptionTypes = map[string]bool{
@@ -36,8 +35,9 @@ var supportedSubscriptionTypes = map[string]bool{
 	strings.ToLower(dispatch.PageType):               true,
 }
 
-type keyValidator interface {
+type keyProcessor interface {
 	Validate(ctx context.Context, key string) error
+	GetPolicies(ctx context.Context, key string) ([]string, error)
 }
 
 type notifier interface {
@@ -52,7 +52,7 @@ type onShutdown interface {
 // SubHandler manages subscription requests
 type SubHandler struct {
 	notif                     notifier
-	validator                 keyValidator
+	keyProcessor              keyProcessor
 	shutdown                  onShutdown
 	heartbeatPeriod           time.Duration
 	log                       *logger.UPPLogger
@@ -60,14 +60,14 @@ type SubHandler struct {
 }
 
 func NewSubHandler(n notifier,
-	validator keyValidator,
+	keyProcessor keyProcessor,
 	shutdown onShutdown,
 	heartbeatPeriod time.Duration,
 	log *logger.UPPLogger,
 	contentTypesIncludedInAll []string) *SubHandler {
 	return &SubHandler{
 		notif:                     n,
-		validator:                 validator,
+		keyProcessor:              keyProcessor,
 		shutdown:                  shutdown,
 		heartbeatPeriod:           heartbeatPeriod,
 		log:                       log,
@@ -83,7 +83,7 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Expires", "0")
 
 	apiKey := getAPIKey(r)
-	err := h.validator.Validate(r.Context(), apiKey)
+	err := h.keyProcessor.Validate(r.Context(), apiKey)
 	if err != nil {
 		keyErr := &KeyErr{}
 		if !errors.As(err, &keyErr) {
@@ -94,9 +94,35 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	policies, err := h.keyProcessor.GetPolicies(r.Context(), apiKey)
+	if err != nil {
+		logEntry := h.log.WithError(err)
+
+		keyErr := &KeyErr{}
+		if errors.As(err, &keyErr) {
+			if keyErr.KeySuffix != "" {
+				logEntry = logEntry.WithField("apiKeyLastChars", keyErr.KeySuffix)
+			}
+			if keyErr.Description != "" {
+				logEntry = logEntry.WithField("description", keyErr.Description)
+			}
+
+			http.Error(w, keyErr.Msg, keyErr.Status)
+		} else {
+			http.Error(w, "Extracting API key policies failed", http.StatusInternalServerError)
+		}
+
+		logEntry.Error("Extracting API key x-policies failed")
+		return
+	}
+
 	subscriptionOptions := []dispatch.SubscriptionOption{}
-	if r.Header.Get(apiPolicyField) == CreateEventConsideredType {
-		subscriptionOptions = append(subscriptionOptions, dispatch.CreateEventOption)
+
+	for _, p := range policies {
+		if p == advancedNotificationsXPolicy {
+			subscriptionOptions = append(subscriptionOptions, dispatch.CreateEventOption)
+			break
+		}
 	}
 
 	subscriptionParams, err := resolveSubType(r, h.contentTypesIncludedInAll)
