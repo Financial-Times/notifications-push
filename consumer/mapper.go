@@ -30,10 +30,13 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 		return dispatch.NotificationModel{}, errors.New("ContentURI does not contain a UUID")
 	}
 
-	var eventType string
-	var scoop bool
-	var title = ""
-	var contentType = ""
+	var (
+		eventType   string
+		scoop       bool
+		title       string
+		contentType string
+		resource    string
+	)
 
 	notificationPayloadMap, ok := event.Payload.(map[string]interface{})
 	if !ok {
@@ -57,10 +60,15 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 		scoop = getScoopFromPayload(notificationPayloadMap)
 	}
 
+	resource = n.Resource
+	if contentType == dispatch.PageType {
+		resource = "pages"
+	}
+
 	return dispatch.NotificationModel{
 		Type:             eventType,
 		ID:               "http://www.ft.com/thing/" + UUID,
-		APIURL:           n.APIBaseURL + "/" + n.Resource + "/" + UUID,
+		APIURL:           n.APIBaseURL + "/" + resource + "/" + UUID,
 		PublishReference: transactionID,
 		LastModified:     event.LastModified,
 		Title:            title,
