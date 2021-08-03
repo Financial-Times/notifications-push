@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
-	uuid "github.com/gofrs/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -125,6 +125,33 @@ func TestMapToDeleteNotification_ContentTypeHeader(t *testing.T) {
 	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/DELETE", n.Type, "It should be a DELETE notification")
 	assert.Equal(t, "Article", n.SubscriptionType, "SubscriptionType should be mapped based on the message header")
 	assert.Nil(t, err, "The mapping should not return an error")
+}
+
+func TestNotificationMapper_MapNotification_Page(t *testing.T) {
+	t.Parallel()
+
+	id, _ := uuid.NewV4()
+	event := ContentMessage{
+		ContentURI: "http://upp-notifications-creator.svc.ft.com/content/" + id.String(),
+		Payload: map[string]interface{}{
+			"title": "Page title",
+			"type":  "Page",
+		},
+	}
+
+	mapper := NotificationMapper{
+		APIBaseURL: "test.api.ft.com",
+		Resource:   "content",
+	}
+
+	notification, err := mapper.MapNotification(event, "tid_test1")
+
+	assert.Nil(t, err, "The mapping should not return an error")
+	assert.Equal(t, "test.api.ft.com/pages/"+id.String(), notification.APIURL)
+	assert.Equal(t, "http://www.ft.com/thing/"+id.String(), notification.ID)
+	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/UPDATE", notification.Type)
+	assert.Equal(t, "Page title", notification.Title)
+	assert.Equal(t, "Page", notification.SubscriptionType)
 }
 
 func TestNotificationMappingFailure(t *testing.T) {

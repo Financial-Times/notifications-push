@@ -75,10 +75,14 @@ The following subscription types could be also specified for which the client wo
 * `Audio`
 * `LiveBlogPackage`
 * `LiveBlogPost`
-* `All`- all content changes (Article, ContentPackage, Audio, Content), but not annotation, LiveBlogPackage and LiveBlogPost changes.
+* `Page`  
+* `All`- all content changes (Article, ContentPackage, Audio, Content), but not Annotation, LiveBlogPackage, LiveBlogPost and Page changes.
 * `Annotations` - notifications for manual annotation changes
 
 If not specified, by default `Article` is used. If an invalid type is requested an HTTP 400 Bad Request is returned.
+
+If a policy called `ADVANCED_NOTIFICATIONS` is attached to the API key, then the subscriber will be able to
+distinguish between content creation and updates for the Article, LiveBlogPackage, LiveBlogPost and Content types.
 
 E.g.
 ```curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push?type=Article```
