@@ -14,15 +14,15 @@ import (
 const APIKeyHeaderField = "X-Api-Key"
 const suffixLen = 10
 
-type KeyProcessor struct {
+type keyProcessor struct {
 	validationURL string
 	policiesURL   string
 	client        *http.Client
 	log           *logger.UPPLogger
 }
 
-func NewKeyProcessor(validationURL, policiesURL string, client *http.Client, log *logger.UPPLogger) *KeyProcessor {
-	return &KeyProcessor{
+func NewKeyProcessor(validationURL, policiesURL string, client *http.Client, log *logger.UPPLogger) KeyProcessor {
+	return &keyProcessor{
 		validationURL: validationURL,
 		policiesURL:   policiesURL,
 		client:        client,
@@ -59,15 +59,14 @@ func NewKeyErrWithDescription(msg string, status int, key string, description st
 	}
 }
 
-func (p *KeyProcessor) Validate(ctx context.Context, key string) error {
+func (p *keyProcessor) Validate(ctx context.Context, key string) error {
 	if key == "" {
 		return NewKeyErr("Empty api key", http.StatusUnauthorized, "")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", p.validationURL, nil)
 	if err != nil {
-		p.log.WithField("url", p.validationURL).WithError(err).Error("Invalid URL for api key validation")
-		return NewKeyErr("Invalid URL", http.StatusInternalServerError, "")
+		return NewKeyErrWithDescription("Invalid validation URL", http.StatusInternalServerError, "", err.Error())
 	}
 
 	req.Header.Set(APIKeyHeaderField, key)
@@ -77,62 +76,57 @@ func (p *KeyProcessor) Validate(ctx context.Context, key string) error {
 	if len(key) > suffixLen {
 		keySuffix = key[len(key)-suffixLen:]
 	}
-	p.log.WithField("url", req.URL.String()).WithField("apiKeyLastChars", keySuffix).Info("Calling the API Gateway to validate api key")
+	p.log.
+		WithField("url", req.URL.String()).
+		WithField("apiKeyLastChars", keySuffix).
+		Info("Calling the API Gateway to validate api key")
 
 	resp, err := p.client.Do(req) //nolint:bodyclose
 	if err != nil {
-		p.log.WithField("url", req.URL.String()).WithField("apiKeyLastChars", keySuffix).WithError(err).Error("Cannot send request to the API Gateway")
-		return NewKeyErr("Request to validate api key failed", http.StatusInternalServerError, keySuffix)
+		return NewKeyErrWithDescription("Request to validate api key failed", http.StatusInternalServerError, keySuffix, err.Error())
 	}
 	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
-	if resp.StatusCode != http.StatusOK {
-		return p.logFailedRequest(resp, keySuffix)
+	var errMessage, errDescription string
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		_, _ = io.Copy(io.Discard, resp.Body)
+		return nil
+	case http.StatusUnauthorized:
+		errMessage = "Invalid api key"
+	case http.StatusTooManyRequests:
+		errMessage = "Rate limit exceeded"
+	case http.StatusForbidden:
+		errMessage = "Operation forbidden"
+	default:
+		errMessage = "Request to validate api key returned an unexpected response"
 	}
 
-	return nil
-}
-
-func (p *KeyProcessor) logFailedRequest(resp *http.Response, keySuffix string) *KeyErr {
 	msg := struct {
 		Error string `json:"error"`
 	}{}
-	responseBody := ""
+
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		p.log.WithField("apiKeyLastChars", keySuffix).WithError(err).Warnf("Getting API Gateway response body failed")
+		errDescription = err.Error()
 	} else {
 		err = json.Unmarshal(data, &msg)
 		if err != nil {
-			p.log.WithField("apiKeyLastChars", keySuffix).Warnf("Decoding API Gateway response body as json failed: %v", err)
-			responseBody = string(data[:])
+			errDescription = string(data)
+		} else {
+			errDescription = msg.Error
 		}
 	}
-	errMsg := ""
-	switch resp.StatusCode {
-	case http.StatusUnauthorized:
-		p.log.WithField("apiKeyLastChars", keySuffix).Errorf("Invalid api key: %s", responseBody)
-		errMsg = "Invalid api key"
-	case http.StatusTooManyRequests:
-		p.log.WithField("apiKeyLastChars", keySuffix).Errorf("API key rate limit exceeded: %s", responseBody)
-		errMsg = "Rate limit exceeded"
-	case http.StatusForbidden:
-		p.log.WithField("apiKeyLastChars", keySuffix).Errorf("Operation forbidden: %s", responseBody)
-		errMsg = "Operation forbidden"
-	default:
-		p.log.WithField("apiKeyLastChars", keySuffix).Errorf("Received unexpected status code from the API Gateway: %d, error message: %v", resp.StatusCode, responseBody)
-		errMsg = "Request to validate api key returned an unexpected response"
-	}
 
-	return NewKeyErr(errMsg, resp.StatusCode, keySuffix)
+	return NewKeyErrWithDescription(errMessage, resp.StatusCode, keySuffix, errDescription)
 }
 
 var xPoliciesPattern = regexp.MustCompile(`['"]x-policy['"]\s*:\s*['"](.*)?['"]`)
 
-func (p *KeyProcessor) GetPolicies(ctx context.Context, key string) ([]string, error) {
+func (p *keyProcessor) GetPolicies(ctx context.Context, key string) ([]string, error) {
 	if key == "" {
 		// Sanity check. Policies shouldn't be requested without API key validation.
 		return nil, NewKeyErr("Empty api key", http.StatusUnauthorized, "")

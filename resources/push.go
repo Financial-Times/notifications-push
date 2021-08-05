@@ -35,7 +35,7 @@ var supportedSubscriptionTypes = map[string]bool{
 	strings.ToLower(dispatch.PageType):               true,
 }
 
-type keyProcessor interface {
+type KeyProcessor interface {
 	Validate(ctx context.Context, key string) error
 	GetPolicies(ctx context.Context, key string) ([]string, error)
 }
@@ -52,7 +52,7 @@ type onShutdown interface {
 // SubHandler manages subscription requests
 type SubHandler struct {
 	notif                     notifier
-	keyProcessor              keyProcessor
+	keyProcessor              KeyProcessor
 	shutdown                  onShutdown
 	heartbeatPeriod           time.Duration
 	log                       *logger.UPPLogger
@@ -60,7 +60,7 @@ type SubHandler struct {
 }
 
 func NewSubHandler(n notifier,
-	keyProcessor keyProcessor,
+	keyProcessor KeyProcessor,
 	shutdown onShutdown,
 	heartbeatPeriod time.Duration,
 	log *logger.UPPLogger,
@@ -85,12 +85,23 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 	apiKey := getAPIKey(r)
 	err := h.keyProcessor.Validate(r.Context(), apiKey)
 	if err != nil {
+		logEntry := h.log.WithError(err)
+
 		keyErr := &KeyErr{}
-		if !errors.As(err, &keyErr) {
+		if errors.As(err, &keyErr) {
+			if keyErr.KeySuffix != "" {
+				logEntry = logEntry.WithField("apiKeyLastChars", keyErr.KeySuffix)
+			}
+			if keyErr.Description != "" {
+				logEntry = logEntry.WithField("description", keyErr.Description)
+			}
+
+			http.Error(w, keyErr.Msg, keyErr.Status)
+		} else {
 			http.Error(w, "Cannot stream.", http.StatusInternalServerError)
-			return
 		}
-		http.Error(w, keyErr.Msg, keyErr.Status)
+
+		logEntry.Error("Validating API key failed")
 		return
 	}
 

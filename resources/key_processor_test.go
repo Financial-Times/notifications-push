@@ -70,7 +70,7 @@ func TestIsValidApiInvalidValidationGatewayURL(t *testing.T) {
 	assert.Error(t, err, "Validate should fail for invalid key")
 	keyErr := &resources.KeyErr{}
 	assert.True(t, errors.As(err, &keyErr), "Validate should return KeyErr error")
-	assert.Equal(t, "Invalid URL", keyErr.Msg)
+	assert.Equal(t, "Invalid validation URL", keyErr.Msg)
 	assert.Equal(t, http.StatusInternalServerError, keyErr.Status)
 }
 

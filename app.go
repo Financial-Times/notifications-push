@@ -225,8 +225,9 @@ func main() {
 		if err != nil {
 			log.WithError(err).Fatal("Could not create request handler")
 		}
+		historyHandler := resources.NewHistoryHandler(history, keyProcessor, log)
 
-		initRouter(router, subHandler, *resource, dispatcher, history, hc, log)
+		initRouter(router, subHandler, *resource, dispatcher, historyHandler, hc, log)
 
 		shutdown := startService(srv, dispatcher, kafkaConsumer, queueHandler, log)
 

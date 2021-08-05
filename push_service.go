@@ -52,7 +52,7 @@ func initRouter(r *mux.Router,
 	s *resources.SubHandler,
 	resource string,
 	d *dispatch.Dispatcher,
-	h dispatch.History,
+	h *resources.HistoryHandler,
 	hc *resources.HealthCheck,
 	log *logger.UPPLogger) {
 	r.HandleFunc("/"+resource+"/notifications-push", s.HandleSubscription).Methods("GET")
@@ -63,7 +63,7 @@ func initRouter(r *mux.Router,
 	r.HandleFunc(httphandlers.PingPath, httphandlers.PingHandler)
 
 	r.HandleFunc("/__stats", resources.Stats(d, log)).Methods("GET")
-	r.HandleFunc("/__history", resources.History(h, log)).Methods("GET")
+	r.HandleFunc("/__history", h.History).Methods("GET")
 }
 
 type supervisedConsumer struct {
