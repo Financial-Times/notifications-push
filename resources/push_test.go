@@ -140,7 +140,7 @@ func TestSubscription(t *testing.T) {
 			resp := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, test.Request, nil)
 			req = req.WithContext(ctx)
-			req.Header.Set(APIKeyHeaderField, apiKey)
+			req.Header.Set(apiKeyHeaderField, apiKey)
 			req.Header.Set(ClientAdrKey, subAddress)
 			handler.HandleSubscription(resp, req)
 
@@ -228,7 +228,7 @@ func TestInvalidKey(t *testing.T) {
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/content/notifications-push", nil)
-	req.Header.Set(APIKeyHeaderField, keyAPI)
+	req.Header.Set(apiKeyHeaderField, keyAPI)
 
 	handler.HandleSubscription(resp, req)
 
@@ -267,7 +267,7 @@ func TestHeartbeat(t *testing.T) {
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)
-	req.Header.Set(APIKeyHeaderField, keyAPI)
+	req.Header.Set(apiKeyHeaderField, keyAPI)
 	req.Header.Set(ClientAdrKey, subAddress)
 
 	pipe := newPipedResponse()
@@ -341,7 +341,7 @@ func TestPushNotificationDelay(t *testing.T) {
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)
-	req.Header.Set(APIKeyHeaderField, keyAPI)
+	req.Header.Set(apiKeyHeaderField, keyAPI)
 	req.Header.Set(ClientAdrKey, subAddress)
 
 	pipe := newPipedResponse()

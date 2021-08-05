@@ -24,10 +24,6 @@ func NewHistoryHandler(history dispatch.History, keyProcessor KeyProcessor, log 
 
 // History returns history data.
 func (h *HistoryHandler) History(w http.ResponseWriter, r *http.Request) {
-	errMsg := "Serving /__history request"
-
-	w.Header().Set("Content-type", "application/json; charset=UTF-8")
-
 	var subscriptionOptions []dispatch.SubscriptionOption
 
 	// API calls without an API key are supported however if such is present we want
@@ -51,7 +47,7 @@ func (h *HistoryHandler) History(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Validating API key failed", http.StatusInternalServerError)
 			}
 
-			logEntry.Error("Validating API key failed")
+			logEntry.Warn("Validating API key failed")
 			return
 		}
 
@@ -73,7 +69,7 @@ func (h *HistoryHandler) History(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Extracting API key policies failed", http.StatusInternalServerError)
 			}
 
-			logEntry.Error("Extracting API key x-policies failed")
+			logEntry.Warn("Extracting API key x-policies failed")
 			return
 		}
 
@@ -89,6 +85,10 @@ func (h *HistoryHandler) History(w http.ResponseWriter, r *http.Request) {
 	for _, n := range h.history.Notifications() {
 		notifications = append(notifications, dispatch.CreateNotificationResponse(n, subscriptionOptions))
 	}
+
+	errMsg := "Serving /__history request"
+
+	w.Header().Set("Content-type", "application/json; charset=UTF-8")
 
 	historyJSON, err := dispatch.MarshalNotificationResponsesJSON(notifications)
 	if err != nil {

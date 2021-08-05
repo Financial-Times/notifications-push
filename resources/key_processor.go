@@ -11,7 +11,6 @@ import (
 	"github.com/Financial-Times/go-logger/v2"
 )
 
-const APIKeyHeaderField = "X-Api-Key"
 const suffixLen = 10
 
 type keyProcessor struct {
@@ -69,7 +68,7 @@ func (p *keyProcessor) Validate(ctx context.Context, key string) error {
 		return NewKeyErrWithDescription("Invalid validation URL", http.StatusInternalServerError, "", err.Error())
 	}
 
-	req.Header.Set(APIKeyHeaderField, key)
+	req.Header.Set(apiKeyHeaderField, key)
 
 	//if the api key has more than five characters we want to log the last five
 	keySuffix := ""
@@ -137,7 +136,7 @@ func (p *keyProcessor) GetPolicies(ctx context.Context, key string) ([]string, e
 		return nil, NewKeyErrWithDescription("Invalid policies URL", http.StatusInternalServerError, "", err.Error())
 	}
 
-	req.Header.Set(APIKeyHeaderField, key)
+	req.Header.Set(apiKeyHeaderField, key)
 
 	// Use the last characters of the key for logging purposes.
 	var keySuffix string
