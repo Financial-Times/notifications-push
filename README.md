@@ -167,7 +167,13 @@ The reason for this is because Vulcan does not support long polling of HTTP requ
 The API Gateway does not support long polling of HTTP requests, so the requests come through Fastly. Everytime a client tries to connect to Notifications Push, the service performs a call to the API Gateway in order to validate the API key from the client.
 
 ### Notification history
-A HTTP GET to the `/__history` endpoint will return the history of the last notifications consumed from the Kakfa queue.
+An HTTP GET to the `/__history` endpoint will return the history of the last notifications consumed from the Kafka queue.
+In order to access this endpoint port-forwarding must be used:
+
+```shell
+kubectl port-forward <pod-name> 8080:8080
+```
+
 The expected payload should look like the following one:
 
 ```
@@ -197,7 +203,13 @@ The expected payload should look like the following one:
 ```
 
 ### Stats
-A HTTP GET to the `/__stats` endpoint will return the stats about the current subscribers that are consuming the notifications push stream
+An HTTP GET to the `/__stats` endpoint will return the stats about the current subscribers that are consuming the notifications push stream.
+In order to access this endpoint port-forwarding must be used:
+
+```shell
+kubectl port-forward <pod-name> 8080:8080
+```
+
 The expected payload should look like the following one:
 ```
 {
