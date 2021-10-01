@@ -38,7 +38,7 @@ func TestSubscription(t *testing.T) {
 		APIKeyPolicies      []string
 	}{
 		"Test Push Default Subscriber": {
-			ExpectedType:        []string{defaultSubscriptionType},
+			ExpectedType:        []string{"Article"},
 			Request:             "/content/notifications-push",
 			ExpectedBody:        "data: []\n\n",
 			ExpectedStatus:      http.StatusOK,
@@ -74,7 +74,7 @@ func TestSubscription(t *testing.T) {
 			APIKeyPolicies:      []string{},
 		},
 		"Test Push Monitor Subscriber": {
-			ExpectedType:        []string{defaultSubscriptionType},
+			ExpectedType:        []string{"Article"},
 			Request:             "/content/notifications-push?monitor=true",
 			IsMonitor:           true,
 			ExpectedBody:        "data: []\n\n",
@@ -93,7 +93,7 @@ func TestSubscription(t *testing.T) {
 			APIKeyPolicies:      []string{advancedNotificationsXPolicy},
 		},
 		"Test require create events Push Monitor Subscriber": {
-			ExpectedType:        []string{defaultSubscriptionType},
+			ExpectedType:        []string{"Article"},
 			Request:             "/content/notifications-push?monitor=true",
 			IsMonitor:           true,
 			ExpectedBody:        "data: []\n\n",
@@ -118,7 +118,7 @@ func TestSubscription(t *testing.T) {
 			r.On("RegisterOnShutdown", mock.Anything).Return()
 			defer r.Shutdown()
 			handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-				[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
+				[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
 
 			ctx, cancel := context.WithCancel(context.Background())
 
@@ -182,9 +182,9 @@ func TestPassKeyAsParameter(t *testing.T) {
 	p.On("Validate", mock.Anything, keyAPI).Return(nil)
 	p.On("GetPolicies", mock.Anything, keyAPI).Return([]string{}, nil)
 
-	sub, _ := dispatch.NewStandardSubscriber(req.RemoteAddr, []string{defaultSubscriptionType}, []dispatch.SubscriptionOption{})
+	sub, _ := dispatch.NewStandardSubscriber(req.RemoteAddr, []string{"Article"}, []dispatch.SubscriptionOption{})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", req.RemoteAddr, []string{defaultSubscriptionType}, false, []dispatch.SubscriptionOption{}).Run(func(args mock.Arguments) {
+	d.On("Subscribe", req.RemoteAddr, []string{"Article"}, false, []dispatch.SubscriptionOption{}).Run(func(args mock.Arguments) {
 		go func() {
 			<-time.After(time.Millisecond * 10)
 			cancel()
@@ -196,7 +196,7 @@ func TestPassKeyAsParameter(t *testing.T) {
 	defer r.Shutdown()
 
 	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
 
 	handler.HandleSubscription(resp, req)
 
@@ -227,7 +227,7 @@ func TestInvalidKey(t *testing.T) {
 	r := mocks.NewShutdownReg()
 
 	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/content/notifications-push", nil)
@@ -258,16 +258,16 @@ func TestHeartbeat(t *testing.T) {
 	p.On("Validate", mock.Anything, keyAPI).Return(nil)
 	p.On("GetPolicies", mock.Anything, keyAPI).Return([]string{}, nil)
 
-	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType}, []dispatch.SubscriptionOption{})
+	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{"Article"}, []dispatch.SubscriptionOption{})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", subAddress, []string{defaultSubscriptionType}, false, []dispatch.SubscriptionOption{}).Return(sub)
+	d.On("Subscribe", subAddress, []string{"Article"}, false, []dispatch.SubscriptionOption{}).Return(sub)
 	d.On("Unsubscribe", mock.AnythingOfType("*dispatch.StandardSubscriber")).Return()
 	r := mocks.NewShutdownReg()
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
 	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)
@@ -327,9 +327,9 @@ func TestPushNotificationDelay(t *testing.T) {
 	p.On("Validate", mock.Anything, keyAPI).Return(nil)
 	p.On("GetPolicies", mock.Anything, keyAPI).Return([]string{}, nil)
 
-	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{defaultSubscriptionType}, []dispatch.SubscriptionOption{})
+	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{"Article"}, []dispatch.SubscriptionOption{})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", subAddress, []string{defaultSubscriptionType}, false, []dispatch.SubscriptionOption{}).Run(func(args mock.Arguments) {
+	d.On("Subscribe", subAddress, []string{"Article"}, false, []dispatch.SubscriptionOption{}).Run(func(args mock.Arguments) {
 		go func() {
 			<-time.After(notificationDelay)
 			err := sub.Send(dispatch.NotificationResponse{})
@@ -342,7 +342,7 @@ func TestPushNotificationDelay(t *testing.T) {
 	defer r.Shutdown()
 
 	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)

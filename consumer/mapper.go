@@ -65,6 +65,11 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 		resource = "pages"
 	}
 
+	var standout *dispatch.Standout
+	if contentType != dispatch.ListType {
+		standout = &dispatch.Standout{Scoop: scoop}
+	}
+
 	return dispatch.NotificationModel{
 		Type:             eventType,
 		ID:               "http://www.ft.com/thing/" + UUID,
@@ -72,7 +77,7 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 		PublishReference: transactionID,
 		LastModified:     event.LastModified,
 		Title:            title,
-		Standout:         &dispatch.Standout{Scoop: scoop},
+		Standout:         standout,
 		SubscriptionType: contentType,
 	}, nil
 }
@@ -110,6 +115,8 @@ func resolveTypeFromMessageHeader(contentTypeHeader string) string {
 		return dispatch.LiveBlogPackageType
 	case "application/vnd.ft-upp-page+json":
 		return dispatch.PageType
+	case "application/vnd.ft-upp-list+json":
+		return dispatch.ListType
 	default:
 		return ""
 	}

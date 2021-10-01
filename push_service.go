@@ -139,9 +139,12 @@ func createMessageHandler(config msgHandlerCfg, dispatcher *dispatch.Dispatcher,
 	}
 
 	contentHandler := queueConsumer.NewContentQueueHandler(whitelistR, ctWhitelist, config.E2ETestUUIDs, mapper, dispatcher, log)
-	metadataHandler := queueConsumer.NewMetadataQueueHandler(config.MetadataHeaders, mapper, dispatcher, log)
-	handler := queueConsumer.NewMessageQueueHandler(contentHandler, metadataHandler)
-	return handler, nil
+
+	var metadataHandler *queueConsumer.MetadataQueueHandler
+	if len(config.MetadataHeaders) > 0 {
+		metadataHandler = queueConsumer.NewMetadataQueueHandler(config.MetadataHeaders, mapper, dispatcher, log)
+	}
+	return queueConsumer.NewMessageQueueHandler(contentHandler, metadataHandler), nil
 }
 
 func requestStatusCode(ctx context.Context, url string) (int, error) {
