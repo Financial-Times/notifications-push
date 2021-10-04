@@ -33,6 +33,7 @@ var supportedSubscriptionTypes = map[string]bool{
 	strings.ToLower(dispatch.LiveBlogPostType):       true,
 	strings.ToLower(dispatch.ContentPlaceholderType): true,
 	strings.ToLower(dispatch.PageType):               true,
+	strings.ToLower(dispatch.ListsType):              true,
 }
 
 type keyProcessor interface {
