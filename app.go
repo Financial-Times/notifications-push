@@ -131,6 +131,13 @@ func main() {
 		EnvVar: "ALLOWED_ALL_CONTENT_TYPE",
 	})
 
+	supportedSubscriptionType := app.Strings(cli.StringsOpt{
+		Name:   "supported_subscription_type",
+		Value:  []string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"},
+		Desc:   `Comma-separated list of supported subscription types`,
+		EnvVar: "SUPPORTED_SUBSCRIPTION_TYPE",
+	})
+
 	e2eTestUUIDs := app.Strings(cli.StringsOpt{
 		Name:   "e2e_test_ids",
 		Value:  []string{},
@@ -221,7 +228,8 @@ func main() {
 		keyPoliciesURL = baseURL.ResolveReference(keyPoliciesURL)
 
 		keyProcessor := resources.NewKeyProcessor(keyValidateURL.String(), keyPoliciesURL.String(), httpClient, log)
-		subHandler := resources.NewSubHandler(dispatcher, keyProcessor, srv, heartbeatPeriod, log, *allowedAllContentType)
+		subHandler := resources.NewSubHandler(dispatcher, keyProcessor, srv, heartbeatPeriod,
+			log, *allowedAllContentType, *supportedSubscriptionType)
 		if err != nil {
 			log.WithError(err).Fatal("Could not create request handler")
 		}

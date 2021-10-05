@@ -117,7 +117,8 @@ func TestSubscription(t *testing.T) {
 			r := mocks.NewShutdownReg()
 			r.On("RegisterOnShutdown", mock.Anything).Return()
 			defer r.Shutdown()
-			handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
+			handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
+				[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
 
 			ctx, cancel := context.WithCancel(context.Background())
 
@@ -194,7 +195,8 @@ func TestPassKeyAsParameter(t *testing.T) {
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
+	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
 
 	handler.HandleSubscription(resp, req)
 
@@ -224,7 +226,8 @@ func TestInvalidKey(t *testing.T) {
 	d := &mocks.Dispatcher{}
 	r := mocks.NewShutdownReg()
 
-	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
+	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/content/notifications-push", nil)
@@ -263,7 +266,8 @@ func TestHeartbeat(t *testing.T) {
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
+	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)
@@ -337,7 +341,8 @@ func TestPushNotificationDelay(t *testing.T) {
 	r.On("RegisterOnShutdown", mock.Anything).Return()
 	defer r.Shutdown()
 
-	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
+	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)
