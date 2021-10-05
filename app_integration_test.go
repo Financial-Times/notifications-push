@@ -111,7 +111,8 @@ func TestPushNotifications(t *testing.T) {
 	hc := resources.NewHealthCheck(queue, apiGatewayGTGURL, nil)
 
 	keyProcessor := resources.NewKeyProcessor(server.URL+apiGatewayValidateURL, server.URL+apiGatewayPoliciesURL, http.DefaultClient, l)
-	s := resources.NewSubHandler(d, keyProcessor, reg, heartbeat, l, []string{"Article", "ContentPackage", "Audio"})
+	s := resources.NewSubHandler(d, keyProcessor, reg, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"})
 
 	initRouter(router, s, resource, d, h, hc, l)
 

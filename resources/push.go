@@ -23,18 +23,6 @@ const (
 	advancedNotificationsXPolicy = "ADVANCED_NOTIFICATIONS"
 )
 
-var supportedSubscriptionTypes = map[string]bool{
-	strings.ToLower(dispatch.AnnotationsType):        true,
-	strings.ToLower(dispatch.ArticleContentType):     true,
-	strings.ToLower(dispatch.ContentPackageType):     true,
-	strings.ToLower(dispatch.AudioContentType):       true,
-	strings.ToLower(dispatch.AllContentType):         true,
-	strings.ToLower(dispatch.LiveBlogPackageType):    true,
-	strings.ToLower(dispatch.LiveBlogPostType):       true,
-	strings.ToLower(dispatch.ContentPlaceholderType): true,
-	strings.ToLower(dispatch.PageType):               true,
-}
-
 type keyProcessor interface {
 	Validate(ctx context.Context, key string) error
 	GetPolicies(ctx context.Context, key string) ([]string, error)
@@ -57,6 +45,7 @@ type SubHandler struct {
 	heartbeatPeriod           time.Duration
 	log                       *logger.UPPLogger
 	contentTypesIncludedInAll []string
+	contentTypesSupported     []string
 }
 
 func NewSubHandler(n notifier,
@@ -64,7 +53,9 @@ func NewSubHandler(n notifier,
 	shutdown onShutdown,
 	heartbeatPeriod time.Duration,
 	log *logger.UPPLogger,
-	contentTypesIncludedInAll []string) *SubHandler {
+	contentTypesIncludedInAll []string,
+	contentTypesSupported []string,
+) *SubHandler {
 	return &SubHandler{
 		notif:                     n,
 		keyProcessor:              keyProcessor,
@@ -72,6 +63,7 @@ func NewSubHandler(n notifier,
 		heartbeatPeriod:           heartbeatPeriod,
 		log:                       log,
 		contentTypesIncludedInAll: contentTypesIncludedInAll,
+		contentTypesSupported:     contentTypesSupported,
 	}
 }
 
@@ -125,7 +117,7 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	subscriptionParams, err := resolveSubType(r, h.contentTypesIncludedInAll)
+	subscriptionParams, err := resolveSubType(r, h.contentTypesIncludedInAll, h.contentTypesSupported)
 	if err != nil {
 		h.log.WithError(err).Error("Invalid content type")
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -214,7 +206,7 @@ func getClientAddr(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-func resolveSubType(r *http.Request, contentTypesIncludedInAll []string) ([]string, error) {
+func resolveSubType(r *http.Request, contentTypesIncludedInAll []string, contentTypeSupported []string) ([]string, error) {
 	retVal := make([]string, 0)
 
 	values := r.URL.Query()
@@ -228,8 +220,11 @@ func resolveSubType(r *http.Request, contentTypesIncludedInAll []string) ([]stri
 			retVal = append(retVal, contentTypesIncludedInAll...)
 			continue
 		}
-		if supportedSubscriptionTypes[strings.ToLower(subType)] {
-			retVal = append(retVal, subType)
+		for _, supportedType := range contentTypeSupported {
+			if subType == supportedType {
+				retVal = append(retVal, subType)
+				break
+			}
 		}
 	}
 
