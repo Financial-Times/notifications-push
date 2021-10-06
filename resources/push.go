@@ -221,7 +221,7 @@ func resolveSubType(r *http.Request, contentTypesIncludedInAll []string, content
 			continue
 		}
 		for _, supportedType := range contentTypeSupported {
-			if subType == supportedType {
+			if strings.EqualFold(subType, supportedType) {
 				retVal = append(retVal, subType)
 				break
 			}
