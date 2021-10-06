@@ -41,7 +41,8 @@ export NOTIFICATIONS_RESOURCE=content \
     && export API_BASE_URL="http://api.ft.com" \
     && export CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
     && export CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
-    && export ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio"
+    && export ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
+    && export SUPPORTED_SUBSCRIPTION_TYPE="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content,Page"
     && ./notifications-push
 ```
 
@@ -57,8 +58,9 @@ export NOTIFICATIONS_RESOURCE=content \
     --api_base_url="http://api.ft.com" \
     --api_key_validation_endpoint="t800/a" \
     --content_type_whitelist="application/vnd.ft-upp-article+json" --content_type_whitelist="application/vnd.ft-upp-content-package+json" \
-    --content_uri_whitelist="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$"
-    --allowed_all_contentType="Article,ContentPackage,Audio"
+    --content_uri_whitelist="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
+    --allowed_all_contentType="Article,ContentPackage,Audio" \
+    --supported_subscription_type="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content,Page"
 ```
 
 NB: for the complete list of options run `./notifications-push -h`
@@ -245,6 +247,7 @@ How to Build & Run with Docker
         --env CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
         --env CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
         --env ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
+        --env SUPPORTED_SUBSCRIPTION_TYPE="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content,Page" \
         coco/notifications-push
 ```
 
