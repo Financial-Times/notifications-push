@@ -32,6 +32,7 @@ kubectl port-forward kafka-0 9092
 
 * Start the service using environment variables:
 
+  For content push notifications:
 ```
 export NOTIFICATIONS_RESOURCE=content \
     && export KAFKA_ADDRS=localhost:2181 \
@@ -43,6 +44,19 @@ export NOTIFICATIONS_RESOURCE=content \
     && export CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
     && export ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
     && export SUPPORTED_SUBSCRIPTION_TYPE="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content,Page"
+    && export DEFAULT_SUBSCRIPTION_TYPE="Article"
+    && ./notifications-push
+``` 
+or for list push notifications:   
+```
+export NOTIFICATIONS_RESOURCE=lists \
+    && export KAFKA_ADDRS=localhost:2181 \
+    && export GROUP_ID=notifications-push-yourtest \
+    && export TOPIC=PostPublicationEvents \
+    && export NOTIFICATIONS_DELAY=10 \
+    && export API_BASE_URL="http://api.ft.com" \
+    && export CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-list+json" \
+    && export DEFAULT_SUBSCRIPTION_TYPE="List"
     && ./notifications-push
 ```
 
@@ -61,12 +75,14 @@ export NOTIFICATIONS_RESOURCE=content \
     --content_uri_whitelist="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
     --allowed_all_contentType="Article,ContentPackage,Audio" \
     --supported_subscription_type="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content,Page"
+    --default_subscription_type="Article"
 ```
 
 NB: for the complete list of options run `./notifications-push -h`
 
 HTTP endpoints
 ----------
+### For content:  
 ```curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push```
 
 The following subscription types could be also specified for which the client would like to receive notifications by setting a "type" parameter on the request:
@@ -91,6 +107,13 @@ E.g.
 
 You can be subscribed for multiple types:
 ```curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push?type=All&type=LiveBlogPost&type=LiveBlogPackage```
+
+### For lists:   
+
+```curl -i --header "x-api-key: «api_key»" https://api.ft.com/lists/notifications-push```
+
+The lists endpoint only supports push notifications of type `List`, so no `?type=` parameter is supported.
+Lists also do not have metadata, and the lists deployment doesn't support `Annotations` or other metadata subscription types.  
 
 ### Filter DELETE messages by type
 When a content has been deleted (`http://www.ft.com/thing/ThingChangeType/DELETE`), the kafka payload is empty and we cannot extract the content type from the message. In this case, there are 2 possible behaviours:
@@ -248,6 +271,7 @@ How to Build & Run with Docker
         --env CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
         --env ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
         --env SUPPORTED_SUBSCRIPTION_TYPE="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content,Page" \
+        --env DEFAULT_SUBSCRIPTION_TYPE="Article" \
         coco/notifications-push
 ```
 
