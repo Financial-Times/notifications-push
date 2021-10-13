@@ -36,6 +36,7 @@ func TestSubscription(t *testing.T) {
 		ExpectStream        bool
 		SubscriptionOptions []dispatch.SubscriptionOption
 		APIKeyPolicies      []string
+		isListHandler       bool
 	}{
 		"Test Push Default Subscriber": {
 			ExpectedType:        []string{"Article"},
@@ -107,6 +108,22 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "specified type (Invalid) is unsupported\n",
 			ExpectedStatus: http.StatusBadRequest,
 		},
+		"Test push subscriber for lists": {
+			isListHandler:       true,
+			ExpectedType:        []string{"List"},
+			Request:             "/lists/notifications-push",
+			ExpectedBody:        "data: []\n\n",
+			ExpectedStatus:      http.StatusOK,
+			ExpectStream:        true,
+			SubscriptionOptions: []dispatch.SubscriptionOption{},
+			APIKeyPolicies:      []string{},
+		},
+		"Test Type is not allowed for Lists push": {
+			isListHandler:  true,
+			Request:        "/lists/notifications-push?type=Article",
+			ExpectedBody:   "specified type (Article) is unsupported\n",
+			ExpectedStatus: http.StatusBadRequest,
+		},
 	}
 
 	for name, test := range tests {
@@ -119,6 +136,8 @@ func TestSubscription(t *testing.T) {
 			defer r.Shutdown()
 			handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
 				[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
+
+			listHandler := NewSubHandler(d, p, r, heartbeat, l, []string{}, []string{}, "List")
 
 			ctx, cancel := context.WithCancel(context.Background())
 
@@ -143,7 +162,12 @@ func TestSubscription(t *testing.T) {
 			req = req.WithContext(ctx)
 			req.Header.Set(APIKeyHeaderField, apiKey)
 			req.Header.Set(ClientAdrKey, subAddress)
-			handler.HandleSubscription(resp, req)
+
+			if test.isListHandler {
+				listHandler.HandleSubscription(resp, req)
+			} else {
+				handler.HandleSubscription(resp, req)
+			}
 
 			if test.ExpectStream {
 				assertHeaders(t, resp.Header())
