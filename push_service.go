@@ -84,7 +84,7 @@ func (s *supervisedConsumer) ConnectivityCheck() error {
 	return s.c.ConnectivityCheck()
 }
 
-func createSupervisedConsumer(log *logger.UPPLogger, address string, groupID string, topics []string) (*supervisedConsumer, error) {
+func createSupervisedConsumer(log *logger.UPPLogger, address string, groupID string, topics []string, serviceName string) (*supervisedConsumer, error) {
 	errCh := make(chan error, 2)
 	var fatalErrs = []error{kazoo.ErrPartitionNotClaimed, zk.ErrNoServer}
 	fatalErrHandler := func(err error, serviceName string) {

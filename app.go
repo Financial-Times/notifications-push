@@ -19,11 +19,14 @@ import (
 
 const (
 	heartbeatPeriod = 30 * time.Second
-	serviceName     = "notifications-push"
 	appDescription  = "Proactively notifies subscribers about new publishes/modifications."
 )
 
 func main() {
+	serviceName := os.Getenv("APP_NAME")
+	if serviceName == "" {
+		serviceName = "notifications-push"
+	}
 	app := cli.App(serviceName, appDescription)
 	resource := app.String(cli.StringOpt{
 		Name:   "notifications_resource",
@@ -173,6 +176,7 @@ func main() {
 			*consumerAddrs,
 			*consumerGroupID,
 			kafkaTopics,
+			serviceName,
 		)
 
 		if err != nil {
