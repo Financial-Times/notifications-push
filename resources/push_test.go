@@ -37,6 +37,7 @@ func TestSubscription(t *testing.T) {
 		SubscriptionOptions []dispatch.SubscriptionOption
 		APIKeyPolicies      []string
 		isListHandler       bool
+		isPagesHandler      bool
 	}{
 		"Test Push Default Subscriber": {
 			ExpectedType:        []string{"Article"},
@@ -124,6 +125,16 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "specified type (Article) is unsupported\n",
 			ExpectedStatus: http.StatusBadRequest,
 		},
+		"Test push subscriber for pages": {
+			isPagesHandler:      true,
+			ExpectedType:        []string{"Page"},
+			Request:             "/pages/notifications-push",
+			ExpectedBody:        "data: []\n\n",
+			ExpectedStatus:      http.StatusOK,
+			ExpectStream:        true,
+			SubscriptionOptions: []dispatch.SubscriptionOption{},
+			APIKeyPolicies:      []string{},
+		},
 	}
 
 	for name, test := range tests {
@@ -135,9 +146,10 @@ func TestSubscription(t *testing.T) {
 			r.On("RegisterOnShutdown", mock.Anything).Return()
 			defer r.Shutdown()
 			handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-				[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
+				[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content"}, "Article")
 
 			listHandler := NewSubHandler(d, p, r, heartbeat, l, []string{}, []string{}, "List")
+			pageHandler := NewSubHandler(d, p, r, heartbeat, l, []string{}, []string{}, "Page")
 
 			ctx, cancel := context.WithCancel(context.Background())
 
@@ -165,6 +177,8 @@ func TestSubscription(t *testing.T) {
 
 			if test.isListHandler {
 				listHandler.HandleSubscription(resp, req)
+			} else if test.isPagesHandler {
+				pageHandler.HandleSubscription(resp, req)
 			} else {
 				handler.HandleSubscription(resp, req)
 			}
@@ -220,7 +234,7 @@ func TestPassKeyAsParameter(t *testing.T) {
 	defer r.Shutdown()
 
 	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content"}, "Article")
 
 	handler.HandleSubscription(resp, req)
 
@@ -251,7 +265,7 @@ func TestInvalidKey(t *testing.T) {
 	r := mocks.NewShutdownReg()
 
 	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content"}, "Article")
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/content/notifications-push", nil)
@@ -291,7 +305,7 @@ func TestHeartbeat(t *testing.T) {
 	defer r.Shutdown()
 
 	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content"}, "Article")
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)
@@ -366,7 +380,7 @@ func TestPushNotificationDelay(t *testing.T) {
 	defer r.Shutdown()
 
 	handler := NewSubHandler(d, p, r, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"}, "Article")
+		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content"}, "Article")
 
 	req, _ := http.NewRequest(http.MethodGet, "/content/notifications-push", nil)
 	req = req.WithContext(ctx)
