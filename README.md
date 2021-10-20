@@ -60,6 +60,19 @@ export NOTIFICATIONS_RESOURCE=lists \
     && ./notifications-push
 ```
 
+or for pages push notifications: 
+```
+export NOTIFICATIONS_RESOURCE=pages \
+    && export KAFKA_ADDRS=localhost:2181 \
+    && export GROUP_ID=notifications-push-yourtest \
+    && export TOPIC=PostPublicationEvents \
+    && export NOTIFICATIONS_DELAY=10 \
+    && export API_BASE_URL="http://api.ft.com" \
+    && export CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-page+json" \
+    && export DEFAULT_SUBSCRIPTION_TYPE="Page"
+    && ./notifications-push
+```
+
 * or via command-line parameters:
 
 ```
@@ -85,6 +98,8 @@ HTTP endpoints
 ### For content:  
 ```curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push```
 
+API Keys that allow subscription to content push notifications are `Push API - Content` and `Push API - Internal`.
+
 The following subscription types could be also specified for which the client would like to receive notifications by setting a "type" parameter on the request:
 
 * `Article`
@@ -93,7 +108,6 @@ The following subscription types could be also specified for which the client wo
 * `Audio`
 * `LiveBlogPackage`
 * `LiveBlogPost`
-* `Page`  
 * `All`- all content changes (Article, ContentPackage, Audio, Content), but not Annotation, LiveBlogPackage, LiveBlogPost and Page changes.
 * `Annotations` - notifications for manual annotation changes
 
@@ -109,11 +123,18 @@ You can be subscribed for multiple types:
 ```curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push?type=All&type=LiveBlogPost&type=LiveBlogPackage```
 
 ### For lists:   
+API Key that allows subscription to list push notifications is `Push API - Internal`.
 
 ```curl -i --header "x-api-key: «api_key»" https://api.ft.com/lists/notifications-push```
 
-The lists endpoint only supports push notifications of type `List`, so no `?type=` parameter is supported.
-Lists also do not have metadata, and the lists deployment doesn't support `Annotations` or other metadata subscription types.  
+### For pages:
+API Key that allows subscription to page push notifications is `Push API - Internal`.
+
+```curl -i --header "x-api-key: «api_key»" https://api.ft.com/pages/notifications-push```
+
+#### Note: 
+The lists and pages endpoints only support push notifications of their type (`List` and `Page` respectively), so no `?type=` parameter is supported.
+Lists and pages also do not have metadata, and they don't support `Annotations` or other metadata subscription types.
 
 ### Filter DELETE messages by type
 When a content has been deleted (`http://www.ft.com/thing/ThingChangeType/DELETE`), the kafka payload is empty and we cannot extract the content type from the message. In this case, there are 2 possible behaviours:
