@@ -22,13 +22,15 @@ type HealthCheck struct {
 	consumer             KafkaConsumer
 	StatusFunc           RequestStatusFn
 	apiGatewayGTGAddress string
+	serviceName          string
 }
 
-func NewHealthCheck(kafkaConsumer KafkaConsumer, apiGatewayGTGAddress string, statusFunc RequestStatusFn) *HealthCheck {
+func NewHealthCheck(kafkaConsumer KafkaConsumer, apiGatewayGTGAddress string, statusFunc RequestStatusFn, serviceName string) *HealthCheck {
 	return &HealthCheck{
 		consumer:             kafkaConsumer,
 		apiGatewayGTGAddress: apiGatewayGTGAddress,
 		StatusFunc:           statusFunc,
+		serviceName:          serviceName,
 	}
 }
 
@@ -40,7 +42,7 @@ func (h *HealthCheck) Health() func(w http.ResponseWriter, r *http.Request) {
 	hc := fthealth.TimedHealthCheck{
 		HealthCheck: fthealth.HealthCheck{
 			SystemCode:  "upp-notifications-push",
-			Name:        "Notifications Push",
+			Name:        h.serviceName,
 			Description: "Checks if all the dependent services are reachable and healthy.",
 			Checks:      checks,
 		},

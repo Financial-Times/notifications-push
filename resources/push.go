@@ -19,7 +19,6 @@ const (
 	apiKeyHeaderField            = "X-Api-Key"
 	apiKeyQueryParam             = "apiKey"
 	ClientAdrKey                 = "X-Forwarded-For"
-	defaultSubscriptionType      = dispatch.ArticleContentType
 	advancedNotificationsXPolicy = "ADVANCED_NOTIFICATIONS"
 )
 
@@ -46,6 +45,7 @@ type SubHandler struct {
 	log                       *logger.UPPLogger
 	contentTypesIncludedInAll []string
 	contentTypesSupported     []string
+	defaultSubscriptionType   string
 }
 
 func NewSubHandler(n notifier,
@@ -55,6 +55,7 @@ func NewSubHandler(n notifier,
 	log *logger.UPPLogger,
 	contentTypesIncludedInAll []string,
 	contentTypesSupported []string,
+	defaultSubscriptionType string,
 ) *SubHandler {
 	return &SubHandler{
 		notif:                     n,
@@ -64,6 +65,7 @@ func NewSubHandler(n notifier,
 		log:                       log,
 		contentTypesIncludedInAll: contentTypesIncludedInAll,
 		contentTypesSupported:     contentTypesSupported,
+		defaultSubscriptionType:   defaultSubscriptionType,
 	}
 }
 
@@ -117,7 +119,7 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	subscriptionParams, err := resolveSubType(r, h.contentTypesIncludedInAll, h.contentTypesSupported)
+	subscriptionParams, err := resolveSubType(r, h.contentTypesIncludedInAll, h.contentTypesSupported, h.defaultSubscriptionType)
 	if err != nil {
 		h.log.WithError(err).Error("Invalid content type")
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -206,7 +208,7 @@ func getClientAddr(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-func resolveSubType(r *http.Request, contentTypesIncludedInAll []string, contentTypeSupported []string) ([]string, error) {
+func resolveSubType(r *http.Request, contentTypesIncludedInAll []string, contentTypeSupported []string, defaultSubscriptionType string) ([]string, error) {
 	retVal := make([]string, 0)
 
 	values := r.URL.Query()

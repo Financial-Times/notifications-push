@@ -1,0 +1,14 @@
+# Values used for the deployed application.
+replicaCount: 2
+service:
+  name: list-notifications-push
+env:
+  TOPIC: "PublicationNotificationEvents"
+  CONSUMER_BACKOFF: "2"
+  NOTIFICATIONS_RESOURCE: "lists"
+  CONTENT_TYPE_WHITELIST: "application/vnd.ft-upp-list+json"
+
+  # We don't want to match any content URIs for this deployment.
+  CONTENT_URI_WHITELIST: "$."
+  PUSH_PORT: "8599"
+  DEFAULT_SUBSCRIPTION_TYPE: "List"

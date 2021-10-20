@@ -14,3 +14,4 @@ env:
   SUPPORTED_SUBSCRIPTION_TYPE: "Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content,Page"
   PUSH_PORT: "8599"
   E2E_TEST_IDS: "427f2a19-2ae7-47c1-b580-c225fa0a0199"
+  DEFAULT_SUBSCRIPTION_TYPE: "Article"

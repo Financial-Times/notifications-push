@@ -11,6 +11,7 @@ const (
 	ContentPlaceholderType = "Content"
 	PageType               = "Page"
 	AllContentType         = "All"
+	ListType               = "List"
 )
 
 // notification types

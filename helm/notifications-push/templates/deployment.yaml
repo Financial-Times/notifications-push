@@ -33,6 +33,8 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
+        - name: APP_NAME
+          value: {{ .Values.service.name }}
         - name: KAFKA_ADDRS
           valueFrom:
             configMapKeyRef:
@@ -68,7 +70,9 @@ spec:
         - name: ALLOWED_ALL_CONTENT_TYPE
           value: {{ .Values.env.ALLOWED_ALL_CONTENT_TYPE }}
         - name: SUPPORTED_SUBSCRIPTION_TYPE
-          value: {{ .Values.env.SUPPORTED_SUBSCRIPTION_TYPE }}          
+          value: {{ .Values.env.SUPPORTED_SUBSCRIPTION_TYPE }}
+        - name: DEFAULT_SUBSCRIPTION_TYPE
+          value: {{ .Values.env.DEFAULT_SUBSCRIPTION_TYPE }}
         - name: WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS
           value: {{ .Values.env.WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS }}
         - name: E2E_TEST_IDS

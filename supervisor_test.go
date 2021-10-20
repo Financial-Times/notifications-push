@@ -56,7 +56,7 @@ func TestSupervise(t *testing.T) {
 			atomic.AddInt32(&handlerCalls, 1)
 		}
 
-		supervisor := newServiceSupervisor(serviceName, errCh, fatalErrs, fatalErrHandler)
+		supervisor := newServiceSupervisor("notifications-push", errCh, fatalErrs, fatalErrHandler)
 		go supervisor.Supervise()
 		for _, err := range tc.inputErrs {
 			errCh <- err

@@ -84,7 +84,7 @@ func (s *supervisedConsumer) ConnectivityCheck() error {
 	return s.c.ConnectivityCheck()
 }
 
-func createSupervisedConsumer(log *logger.UPPLogger, address string, groupID string, topics []string) (*supervisedConsumer, error) {
+func createSupervisedConsumer(log *logger.UPPLogger, address string, groupID string, topics []string, serviceName string) (*supervisedConsumer, error) {
 	errCh := make(chan error, 2)
 	var fatalErrs = []error{kazoo.ErrPartitionNotClaimed, zk.ErrNoServer}
 	fatalErrHandler := func(err error, serviceName string) {
@@ -139,9 +139,12 @@ func createMessageHandler(config msgHandlerCfg, dispatcher *dispatch.Dispatcher,
 	}
 
 	contentHandler := queueConsumer.NewContentQueueHandler(whitelistR, ctWhitelist, config.E2ETestUUIDs, mapper, dispatcher, log)
-	metadataHandler := queueConsumer.NewMetadataQueueHandler(config.MetadataHeaders, mapper, dispatcher, log)
-	handler := queueConsumer.NewMessageQueueHandler(contentHandler, metadataHandler)
-	return handler, nil
+
+	var metadataHandler *queueConsumer.MetadataQueueHandler
+	if len(config.MetadataHeaders) > 0 {
+		metadataHandler = queueConsumer.NewMetadataQueueHandler(config.MetadataHeaders, mapper, dispatcher, log)
+	}
+	return queueConsumer.NewMessageQueueHandler(contentHandler, metadataHandler), nil
 }
 
 func requestStatusCode(ctx context.Context, url string) (int, error) {

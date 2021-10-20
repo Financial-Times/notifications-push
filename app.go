@@ -19,11 +19,14 @@ import (
 
 const (
 	heartbeatPeriod = 30 * time.Second
-	serviceName     = "notifications-push"
 	appDescription  = "Proactively notifies subscribers about new publishes/modifications."
 )
 
 func main() {
+	serviceName := os.Getenv("APP_NAME")
+	if serviceName == "" {
+		serviceName = "notifications-push"
+	}
 	app := cli.App(serviceName, appDescription)
 	resource := app.String(cli.StringOpt{
 		Name:   "notifications_resource",
@@ -101,6 +104,7 @@ func main() {
 	})
 	contentURIWhitelist := app.String(cli.StringOpt{
 		Name:   "content_uri_whitelist",
+		Value:  "",
 		Desc:   `The contentURI whitelist for incoming notifications - i.e. ^http://.*-transformer-(pr|iw)-uk-.*\.svc\.ft\.com(:\d{2,5})?/content/[\w-]+.*$`,
 		EnvVar: "CONTENT_URI_WHITELIST",
 	})
@@ -112,7 +116,7 @@ func main() {
 	})
 	whitelistedMetadataOriginSystemHeaders := app.Strings(cli.StringsOpt{
 		Name:   "whitelistedMetadataOriginSystemHeaders",
-		Value:  []string{"http://cmdb.ft.com/systems/pac", "http://cmdb.ft.com/systems/methode-web-pub", "http://cmdb.ft.com/systems/next-video-editor"},
+		Value:  []string{},
 		Desc:   "Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue.",
 		EnvVar: "WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS",
 	})
@@ -126,16 +130,23 @@ func main() {
 
 	allowedAllContentType := app.Strings(cli.StringsOpt{
 		Name:   "allowed_all_contentType",
-		Value:  []string{"Article", "ContentPackage", "Audio", "Content"},
+		Value:  []string{},
 		Desc:   `Comma-separated list of ContentTypes that compose ALL (contentType) - i.e. Article,`,
 		EnvVar: "ALLOWED_ALL_CONTENT_TYPE",
 	})
 
 	supportedSubscriptionType := app.Strings(cli.StringsOpt{
 		Name:   "supported_subscription_type",
-		Value:  []string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content", "Page"},
+		Value:  []string{},
 		Desc:   `Comma-separated list of supported subscription types`,
 		EnvVar: "SUPPORTED_SUBSCRIPTION_TYPE",
+	})
+
+	defaultSubscriptionType := app.String(cli.StringOpt{
+		Name:   "default_subscription_type",
+		Value:  "Article",
+		Desc:   `The default subscription type to serve when no arguments are passed.`,
+		EnvVar: "DEFAULT_SUBSCRIPTION_TYPE",
 	})
 
 	e2eTestUUIDs := app.Strings(cli.StringsOpt{
@@ -156,13 +167,18 @@ func main() {
 			"E2E_TEST_IDS":   *e2eTestUUIDs,
 		}).Infof("[Startup] notifications-push is starting ")
 
+		kafkaTopics := []string{*contentTopic}
+		if *metadataTopic != "" {
+			kafkaTopics = append(kafkaTopics, *metadataTopic)
+		}
+
 		kafkaConsumer, err := createSupervisedConsumer(log,
 			*consumerAddrs,
 			*consumerGroupID,
-			[]string{
-				*contentTopic,
-				*metadataTopic,
-			})
+			kafkaTopics,
+			serviceName,
+		)
+
 		if err != nil {
 			log.WithError(err).Fatal("could not start kafka consumer")
 		}
@@ -197,7 +213,7 @@ func main() {
 		}
 
 		healthCheckEndpoint = baseURL.ResolveReference(healthCheckEndpoint)
-		hc := resources.NewHealthCheck(kafkaConsumer, healthCheckEndpoint.String(), requestStatusCode)
+		hc := resources.NewHealthCheck(kafkaConsumer, healthCheckEndpoint.String(), requestStatusCode, serviceName)
 
 		dispatcher, history := createDispatcher(*delay, *historySize, log)
 
@@ -229,7 +245,7 @@ func main() {
 
 		keyProcessor := resources.NewKeyProcessor(keyValidateURL.String(), keyPoliciesURL.String(), httpClient, log)
 		subHandler := resources.NewSubHandler(dispatcher, keyProcessor, srv, heartbeatPeriod,
-			log, *allowedAllContentType, *supportedSubscriptionType)
+			log, *allowedAllContentType, *supportedSubscriptionType, *defaultSubscriptionType)
 		if err != nil {
 			log.WithError(err).Fatal("Could not create request handler")
 		}
