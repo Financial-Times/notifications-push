@@ -77,6 +77,10 @@ spec:
           value: {{ .Values.env.WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS }}
         - name: E2E_TEST_IDS
           value: {{ .Values.env.E2E_TEST_IDS }}
+        - name: API_KEY_POLICIES_ENDPOINT
+          value: {{ .Values.env.API_KEY_POLICIES_ENDPOINT }}
+        - name: API_KEY_VALIDATION_ENDPOINT
+          value: {{ .Values.env.API_KEY_VALIDATION_ENDPOINT }}
         ports:
         - containerPort: 8080
         livenessProbe:
