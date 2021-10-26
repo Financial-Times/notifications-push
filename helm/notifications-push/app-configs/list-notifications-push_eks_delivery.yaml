@@ -7,6 +7,8 @@ env:
   CONSUMER_BACKOFF: "2"
   NOTIFICATIONS_RESOURCE: "lists"
   CONTENT_TYPE_WHITELIST: "application/vnd.ft-upp-list+json"
+  API_KEY_VALIDATION_ENDPOINT: "push-api-internal/t800/a"
+  API_KEY_POLICIES_ENDPOINT: "push-api-internal/t800/policy"
 
   # We don't want to match any content URIs for this deployment.
   CONTENT_URI_WHITELIST: "$."
