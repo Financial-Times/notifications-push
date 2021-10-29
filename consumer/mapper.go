@@ -66,7 +66,7 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 	}
 
 	var standout *dispatch.Standout
-	if contentType != dispatch.ListType {
+	if contentType != dispatch.ListType && contentType != dispatch.PageType {
 		standout = &dispatch.Standout{Scoop: scoop}
 	}
 

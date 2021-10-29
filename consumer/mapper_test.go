@@ -142,7 +142,7 @@ func TestNotificationMapper_MapNotification_Page(t *testing.T) {
 
 	mapper := NotificationMapper{
 		APIBaseURL: "test.api.ft.com",
-		Resource:   "content",
+		Resource:   "pages",
 	}
 
 	notification, err := mapper.MapNotification(event, "tid_test1")
@@ -267,7 +267,7 @@ func TestNotificationMappingEmptyStandoutForLists(t *testing.T) {
 	t.Parallel()
 
 	var standout *dispatch.Standout
-	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "List", "publishCount": "2"}
+	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "List"}
 	id, _ := uuid.NewV4()
 	event := ContentMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
@@ -289,5 +289,34 @@ func TestNotificationMappingEmptyStandoutForLists(t *testing.T) {
 	assert.Equal(t, "This is a title", n.Title, "Title should be mapped correctly")
 	assert.Nil(t, n.Standout, "Scoop field should be mapped correctly")
 	assert.Equal(t, "List", n.SubscriptionType, "SubscriptionType field should be mapped correctly")
+	assert.Equal(t, mappedAPIURL, n.APIURL, "API URL field should be mapped correctly")
+}
+
+func TestNotificationMappingEmptyStandoutForPages(t *testing.T) {
+	t.Parallel()
+
+	var standout *dispatch.Standout
+	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Page"}
+	id, _ := uuid.NewV4()
+	event := ContentMessage{
+		ContentURI:   "http://upp-notifications-creator.svc.ft.com/content/e" + id.String(),
+		LastModified: "2016-11-02T10:54:22.234Z",
+		Payload:      payload,
+	}
+
+	mapper := NotificationMapper{
+		APIBaseURL: "test.api.ft.com",
+		Resource:   "pages",
+	}
+
+	n, err := mapper.MapNotification(event, "tid_test1")
+
+	mappedAPIURL := fmt.Sprintf("test.api.ft.com/pages/%s", id.String())
+
+	assert.Nil(t, err, "The mapping should not return an error")
+	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/UPDATE", n.Type, "It is an UPDATE notification")
+	assert.Equal(t, "This is a title", n.Title, "Title should be mapped correctly")
+	assert.Nil(t, n.Standout, "Scoop field should be mapped correctly")
+	assert.Equal(t, "Page", n.SubscriptionType, "SubscriptionType field should be mapped correctly")
 	assert.Equal(t, mappedAPIURL, n.APIURL, "API URL field should be mapped correctly")
 }
