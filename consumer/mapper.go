@@ -35,7 +35,6 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 		scoop       bool
 		title       string
 		contentType string
-		resource    string
 	)
 
 	notificationPayloadMap, ok := event.Payload.(map[string]interface{})
@@ -60,11 +59,6 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 		scoop = getScoopFromPayload(notificationPayloadMap)
 	}
 
-	resource = n.Resource
-	if contentType == dispatch.PageType {
-		resource = "pages"
-	}
-
 	var standout *dispatch.Standout
 	if contentType != dispatch.ListType && contentType != dispatch.PageType {
 		standout = &dispatch.Standout{Scoop: scoop}
@@ -73,7 +67,7 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 	return dispatch.NotificationModel{
 		Type:             eventType,
 		ID:               "http://www.ft.com/thing/" + UUID,
-		APIURL:           n.APIBaseURL + "/" + resource + "/" + UUID,
+		APIURL:           n.APIBaseURL + "/" + n.Resource + "/" + UUID,
 		PublishReference: transactionID,
 		LastModified:     event.LastModified,
 		Title:            title,

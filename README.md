@@ -43,7 +43,7 @@ export NOTIFICATIONS_RESOURCE=content \
     && export CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
     && export CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
     && export ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
-    && export SUPPORTED_SUBSCRIPTION_TYPE="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content,Page"
+    && export SUPPORTED_SUBSCRIPTION_TYPE="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content"
     && export DEFAULT_SUBSCRIPTION_TYPE="Article"
     && ./notifications-push
 ``` 
@@ -87,7 +87,7 @@ export NOTIFICATIONS_RESOURCE=pages \
     --content_type_whitelist="application/vnd.ft-upp-article+json" --content_type_whitelist="application/vnd.ft-upp-content-package+json" \
     --content_uri_whitelist="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
     --allowed_all_contentType="Article,ContentPackage,Audio" \
-    --supported_subscription_type="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content,Page"
+    --supported_subscription_type="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content"
     --default_subscription_type="Article"
 ```
 
@@ -108,7 +108,7 @@ The following subscription types could be also specified for which the client wo
 * `Audio`
 * `LiveBlogPackage`
 * `LiveBlogPost`
-* `All`- all content changes (Article, ContentPackage, Audio, Content), but not Annotation, LiveBlogPackage, LiveBlogPost and Page changes.
+* `All`- all content changes (Article, ContentPackage, Audio, Content), but not Annotation, LiveBlogPackage and LiveBlogPost changes.
 * `Annotations` - notifications for manual annotation changes
 
 If not specified, by default `Article` is used. If an invalid type is requested an HTTP 400 Bad Request is returned.
@@ -291,7 +291,7 @@ How to Build & Run with Docker
         --env CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
         --env CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
         --env ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
-        --env SUPPORTED_SUBSCRIPTION_TYPE="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content,Page" \
+        --env SUPPORTED_SUBSCRIPTION_TYPE="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content" \
         --env DEFAULT_SUBSCRIPTION_TYPE="Article" \
         coco/notifications-push
 ```
