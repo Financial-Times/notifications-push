@@ -1,12 +1,12 @@
 # Values used for the deployed application.
 replicaCount: 2
 service:
-  name: notifications-push
+  name: temp-notifications-push
 env:
-  TOPIC: "PublicationNotificationEvents"
+  TOPIC: "TemporaryNotificationEvents"
   METADATA_TOPIC: "PostConceptAnnotations"
   CONSUMER_BACKOFF: "2"
-  NOTIFICATIONS_RESOURCE: "content"
+  NOTIFICATIONS_RESOURCE: "temp-content"
   CONTENT_URI_WHITELIST: "^http://(methode|wordpress-article|content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder|)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$"
   CONTENT_TYPE_WHITELIST: "application/vnd.ft-upp-article-internal+json,application/vnd.ft-upp-content-package+json,application/vnd.ft-upp-audio+json,application/vnd.ft-upp-live-blog-post-internal+json,application/vnd.ft-upp-live-blog-package-internal+json"
   WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS: "http://cmdb.ft.com/systems/pac, http://cmdb.ft.com/systems/methode-web-pub, http://cmdb.ft.com/systems/next-video-editor"

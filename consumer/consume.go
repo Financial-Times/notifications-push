@@ -1,13 +1,17 @@
 package consumer
 
 import (
-	"github.com/Financial-Times/kafka-client-go/kafka"
+	kafkav1 "github.com/Financial-Times/kafka-client-go/kafka"
+	kafkav2 "github.com/Financial-Times/kafka-client-go/v2"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 )
 
-// MessageQueueHandler is a generic interface for implementation of components to handle messages form the kafka queue.
-type MessageQueueHandler interface {
-	HandleMessage(queueMsg kafka.FTMessage) error
+type ContentQueueProcessor interface {
+	HandleMessage(queueMsg kafkav2.FTMessage)
+}
+
+type MetadataQueueProcessor interface {
+	HandleMessage(queueMsg kafkav1.FTMessage) error
 }
 
 type notificationDispatcher interface {
@@ -15,22 +19,26 @@ type notificationDispatcher interface {
 }
 
 type MessageQueueRouter struct {
-	contentHandler  MessageQueueHandler
-	metadataHandler MessageQueueHandler
+	contentHandler  ContentQueueProcessor
+	metadataHandler MetadataQueueProcessor
 }
 
-func NewMessageQueueHandler(contentHandler, metadataHandler MessageQueueHandler) *MessageQueueRouter {
+func NewMessageQueueHandler(contentHandler ContentQueueProcessor, metadataHandler MetadataQueueProcessor) *MessageQueueRouter {
 	return &MessageQueueRouter{
 		contentHandler:  contentHandler,
 		metadataHandler: metadataHandler,
 	}
 }
 
-func (h *MessageQueueRouter) HandleMessage(queueMsg kafka.FTMessage) error {
+func (h *MessageQueueRouter) HandleContentMessage(queueMsg kafkav2.FTMessage) {
+	h.contentHandler.HandleMessage(queueMsg)
+}
+
+func (h *MessageQueueRouter) HandleMetadataMessage(queueMsg kafkav1.FTMessage) error {
 	if h.metadataHandler != nil && isAnnotationMessage(queueMsg.Headers) {
 		return h.metadataHandler.HandleMessage(queueMsg)
 	}
-	return h.contentHandler.HandleMessage(queueMsg)
+	return nil
 }
 
 func isAnnotationMessage(msgHeaders map[string]string) bool {

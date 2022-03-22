@@ -35,7 +35,12 @@ spec:
         env:
         - name: APP_NAME
           value: {{ .Values.service.name }}
-        - name: KAFKA_ADDRS
+        - name: CONTENT_KAFKA_ADDRS
+          valueFrom:
+            configMapKeyRef:
+              name: global-config
+              key: msk.kafka.broker.url
+        - name: METADATA_KAFKA_ADDRS
           valueFrom:
             configMapKeyRef:
               name: global-config

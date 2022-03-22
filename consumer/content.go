@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/kafka-client-go/kafka"
+	"github.com/Financial-Times/kafka-client-go/v2"
 )
 
 var exists = struct{}{}
@@ -50,21 +50,34 @@ func NewContentQueueHandler(contentURIWhitelist *regexp.Regexp, contentTypeWhite
 	}
 }
 
-func (qHandler *ContentQueueHandler) HandleMessage(queueMsg kafka.FTMessage) error {
-	msg := NotificationQueueMessage{queueMsg}
+type ContentServiceMessage struct {
+	msg kafka.FTMessage
+}
+
+func (sm *ContentServiceMessage) GetBody() string {
+	return sm.msg.Body
+}
+
+func (sm *ContentServiceMessage) GetHeaders() map[string]string {
+	return sm.msg.Headers
+}
+
+func (qHandler *ContentQueueHandler) HandleMessage(queueMsg kafka.FTMessage) {
+	msg := NotificationQueueMessage{&ContentServiceMessage{queueMsg}}
 	tid := msg.TransactionID()
 	pubEvent, err := msg.AsContent()
-	contentType := msg.Headers["Content-Type"]
+	contentType := msg.GetHeaders()["Content-Type"]
 
 	monitoringLogger := qHandler.log.WithMonitoringEvent("NotificationsPush", tid, contentType)
+	monitoringLogger.Info("Handling content message..")
 	if err != nil {
-		monitoringLogger.WithField("message_body", msg.Body).WithError(err).Warn("Skipping event.")
-		return err
+		monitoringLogger.WithField("message_body", msg.GetBody()).WithError(err).Warn("Skipping event.")
+		return
 	}
 
 	if msg.HasCarouselTransactionID() {
 		monitoringLogger.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: Carousel publish event.")
-		return nil
+		return
 	}
 
 	strippedDirectivesContentType := stripDirectives(contentType)
@@ -72,18 +85,18 @@ func (qHandler *ContentQueueHandler) HandleMessage(queueMsg kafka.FTMessage) err
 	if !isE2ETest {
 		if msg.HasSynthTransactionID() {
 			monitoringLogger.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: Synthetic transaction ID.")
-			return nil
+			return
 		}
 
 		if strippedDirectivesContentType == "application/json" || strippedDirectivesContentType == "" {
 			if !pubEvent.Matches(qHandler.contentURIWhitelist) {
 				monitoringLogger.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: contentUri is not in the whitelist.")
-				return nil
+				return
 			}
 		} else {
 			if !qHandler.contentTypeWhitelist.Contains(strippedDirectivesContentType) {
 				monitoringLogger.WithValidFlag(false).Info("Skipping event: contentType is not the whitelist.")
-				return nil
+				return
 			}
 		}
 	}
@@ -92,7 +105,7 @@ func (qHandler *ContentQueueHandler) HandleMessage(queueMsg kafka.FTMessage) err
 	notification, err := qHandler.mapper.MapNotification(pubEvent, msg.TransactionID())
 	if err != nil {
 		monitoringLogger.WithError(err).Warn("Skipping event: Cannot build notification for message.")
-		return err
+		return
 	}
 	notification.IsE2ETest = isE2ETest
 
@@ -102,7 +115,7 @@ func (qHandler *ContentQueueHandler) HandleMessage(queueMsg kafka.FTMessage) err
 		Info("Valid notification received")
 	qHandler.dispatcher.Send(notification)
 
-	return nil
+	return
 }
 
 func stripDirectives(contentType string) string {

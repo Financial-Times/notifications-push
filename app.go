@@ -35,11 +35,18 @@ func main() {
 		EnvVar: "NOTIFICATIONS_RESOURCE",
 	})
 
-	consumerAddrs := app.String(cli.StringOpt{
-		Name:   "consumer_addr",
+	contentConsumerAddr := app.String(cli.StringOpt{
+		Name:   "content_consumer_addr",
 		Value:  "",
 		Desc:   "Comma separated kafka hosts for message consuming.",
-		EnvVar: "KAFKA_ADDRS",
+		EnvVar: "CONTENT_KAFKA_ADDRS",
+	})
+
+	metadataConsumerAddr := app.String(cli.StringOpt{
+		Name:   "metadata_consumer_addr",
+		Value:  "",
+		Desc:   "Comma separated kafka hosts for message consuming.",
+		EnvVar: "METADATA_KAFKA_ADDRS",
 	})
 
 	consumerGroupID := app.String(cli.StringOpt{
@@ -160,11 +167,12 @@ func main() {
 
 	app.Action = func() {
 		log.WithFields(map[string]interface{}{
-			"CONTENT_TOPIC":  *contentTopic,
-			"METADATA_TOPIC": *metadataTopic,
-			"GROUP_ID":       *consumerGroupID,
-			"KAFKA_ADDRS":    *consumerAddrs,
-			"E2E_TEST_IDS":   *e2eTestUUIDs,
+			"CONTENT_TOPIC":        *contentTopic,
+			"METADATA_TOPIC":       *metadataTopic,
+			"GROUP_ID":             *consumerGroupID,
+			"CONTENT_KAFKA_ADDRS":  *contentConsumerAddr,
+			"METADATA_KAFKA_ADDRS": *metadataConsumerAddr,
+			"E2E_TEST_IDS":         *e2eTestUUIDs,
 		}).Infof("[Startup] notifications-push is starting ")
 
 		kafkaTopics := []string{*contentTopic}
@@ -173,9 +181,11 @@ func main() {
 		}
 
 		kafkaConsumer, err := createSupervisedConsumer(log,
-			*consumerAddrs,
+			*contentConsumerAddr,
+			*contentTopic,
+			*metadataConsumerAddr,
+			*metadataTopic,
 			*consumerGroupID,
-			kafkaTopics,
 			serviceName,
 		)
 
@@ -252,7 +262,7 @@ func main() {
 
 		initRouter(router, subHandler, *resource, dispatcher, history, hc, log)
 
-		shutdown := startService(srv, dispatcher, kafkaConsumer, queueHandler, log)
+		shutdown := startService(srv, dispatcher, kafkaConsumer, *queueHandler, log)
 
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)

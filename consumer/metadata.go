@@ -2,7 +2,7 @@ package consumer
 
 import (
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/kafka-client-go/kafka"
+	kafkav1 "github.com/Financial-Times/kafka-client-go/kafka"
 )
 
 type MetadataQueueHandler struct {
@@ -21,14 +21,27 @@ func NewMetadataQueueHandler(originWhitelist []string, mapper NotificationMapper
 	}
 }
 
-func (h *MetadataQueueHandler) HandleMessage(queueMsg kafka.FTMessage) error {
-	msg := NotificationQueueMessage{queueMsg}
+type MetadataServiceMessage struct {
+	msg kafkav1.FTMessage
+}
+
+func (sm *MetadataServiceMessage) GetBody() string {
+	return sm.msg.Body
+}
+
+func (sm *MetadataServiceMessage) GetHeaders() map[string]string {
+	return sm.msg.Headers
+}
+
+func (h *MetadataQueueHandler) HandleMessage(queueMsg kafkav1.FTMessage) error {
+	msg := NotificationQueueMessage{&MetadataServiceMessage{queueMsg}}
 	tid := msg.TransactionID()
 	entry := h.log.WithTransactionID(tid)
+	entry.Info("Handling metadata message..")
 
 	event, err := msg.AsMetadata()
 	if err != nil {
-		entry.WithField("message_body", msg.Body).WithError(err).Warn("Skipping annotation event.")
+		entry.WithField("message_body", msg.GetBody()).WithError(err).Warn("Skipping annotation event.")
 		return err
 	}
 
@@ -44,7 +57,7 @@ func (h *MetadataQueueHandler) HandleMessage(queueMsg kafka.FTMessage) error {
 
 	notification, err := h.mapper.MapMetadataNotification(event, msg.TransactionID())
 	if err != nil {
-		entry.WithField("message_body", msg.Body).WithError(err).Warn("Could not map event to Annotations message")
+		entry.WithField("message_body", msg.GetBody()).WithError(err).Warn("Could not map event to Annotations message")
 		return err
 	}
 	entry.WithField("resource", notification.APIURL).Info("Valid annotation notification received")

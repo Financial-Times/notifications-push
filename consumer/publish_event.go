@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"regexp"
 	"strings"
-
-	"github.com/Financial-Times/kafka-client-go/kafka"
 )
 
 // NotificationQueueMessage is a wrapper for the queue consumer message type
 type NotificationQueueMessage struct {
-	kafka.FTMessage
+	queueMessage
+}
+
+type queueMessage interface {
+	GetHeaders() map[string]string
+	GetBody() string
 }
 
 // HasSynthTransactionID checks if the message is synthetic
@@ -40,23 +43,23 @@ var carouselTransactionIDRegExp = regexp.MustCompile(`^.+_carousel_[\d]{10}.*$`)
 
 // TransactionID returns the message TID
 func (msg NotificationQueueMessage) TransactionID() string {
-	return msg.Headers["X-Request-Id"]
+	return msg.GetHeaders()["X-Request-Id"]
 }
 
 func (msg NotificationQueueMessage) OriginID() string {
-	return msg.Headers["Origin-System-Id"]
+	return msg.GetHeaders()["Origin-System-Id"]
 }
 
 // AsContent converts the message to a CmsPublicationEvent
 func (msg NotificationQueueMessage) AsContent() (event ContentMessage, err error) {
-	err = json.Unmarshal([]byte(msg.Body), &event)
+	err = json.Unmarshal([]byte(msg.GetBody()), &event)
 	return event, err
 }
 
 // AsMetadata converts message to ConceptAnnotations Event
 func (msg NotificationQueueMessage) AsMetadata() (AnnotationsMessage, error) {
 	var event AnnotationsMessage
-	err := json.Unmarshal([]byte(msg.Body), &event)
+	err := json.Unmarshal([]byte(msg.GetBody()), &event)
 	return event, err
 }
 

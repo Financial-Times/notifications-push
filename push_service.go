@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/Shopify/sarama"
 	"io/ioutil"
 	stdlog "log"
 	"net/http"
@@ -11,7 +12,8 @@ import (
 	"time"
 
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/kafka-client-go/kafka"
+	kafkav1 "github.com/Financial-Times/kafka-client-go/kafka"
+	kafkav2 "github.com/Financial-Times/kafka-client-go/v2"
 	queueConsumer "github.com/Financial-Times/notifications-push/v5/consumer"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/Financial-Times/notifications-push/v5/resources"
@@ -26,10 +28,11 @@ type notificationSystem interface {
 	Stop()
 }
 
-func startService(srv *http.Server, n notificationSystem, consumer kafka.Consumer, msgHandler queueConsumer.MessageQueueHandler, log *logger.UPPLogger) func(time.Duration) {
+func startService(srv *http.Server, n notificationSystem, consumer *supervisedConsumer, msgHandler queueConsumer.MessageQueueRouter, log *logger.UPPLogger) func(time.Duration) {
 	go n.Start()
 
-	consumer.StartListening(msgHandler.HandleMessage)
+	consumer.StartListeningContent(msgHandler.HandleContentMessage)
+	consumer.StartListeningMetadata(msgHandler.HandleMetadataMessage)
 
 	go func() {
 		err := srv.ListenAndServe()
@@ -67,24 +70,41 @@ func initRouter(r *mux.Router,
 }
 
 type supervisedConsumer struct {
-	c     kafka.Consumer
-	errCh chan error
+	contentConsumer  *kafkav2.Consumer
+	metadataConsumer kafkav1.Consumer
+	errCh            chan error
 }
 
-func (s *supervisedConsumer) StartListening(messageHandler func(message kafka.FTMessage) error) {
-	s.c.StartListening(messageHandler)
+func (s *supervisedConsumer) StartListeningContent(messageHandler func(message kafkav2.FTMessage)) {
+	s.contentConsumer.StartListening(messageHandler)
+}
+
+func (s *supervisedConsumer) StartListeningMetadata(messageHandler func(message kafkav1.FTMessage) error) {
+	if s.metadataConsumer != nil {
+		s.metadataConsumer.StartListening(messageHandler)
+	}
 }
 
 func (s *supervisedConsumer) Shutdown() {
 	close(s.errCh)
-	s.c.Shutdown()
+	s.contentConsumer.Close()
+	if s.metadataConsumer != nil {
+		s.metadataConsumer.Shutdown()
+	}
 }
 
 func (s *supervisedConsumer) ConnectivityCheck() error {
-	return s.c.ConnectivityCheck()
+	err := s.contentConsumer.ConnectivityCheck()
+	if err != nil {
+		return err
+	}
+	if s.metadataConsumer != nil {
+		return s.metadataConsumer.ConnectivityCheck()
+	}
+	return nil
 }
 
-func createSupervisedConsumer(log *logger.UPPLogger, address string, groupID string, topics []string, serviceName string) (*supervisedConsumer, error) {
+func createSupervisedConsumer(log *logger.UPPLogger, contentAddress, contentTopic, metadataAddress, metadataTppic string, groupID string, serviceName string) (*supervisedConsumer, error) {
 	errCh := make(chan error, 2)
 	var fatalErrs = []error{kazoo.ErrPartitionNotClaimed, zk.ErrNoServer}
 	fatalErrHandler := func(err error, serviceName string) {
@@ -94,19 +114,38 @@ func createSupervisedConsumer(log *logger.UPPLogger, address string, groupID str
 	supervisor := newServiceSupervisor(serviceName, errCh, fatalErrs, fatalErrHandler)
 	go supervisor.Supervise()
 
-	consumerConfig := kafka.DefaultConsumerConfig()
-	consumerConfig.Zookeeper.Logger = stdlog.New(ioutil.Discard, "", 0)
-	c, err := kafka.NewConsumer(kafka.Config{
-		ZookeeperConnectionString: address,
-		ConsumerGroup:             groupID,
-		Topics:                    topics,
-		ConsumerGroupConfig:       consumerConfig,
-		Err:                       errCh,
-	})
-	if err != nil {
-		return nil, err
+	options := kafkav2.DefaultConsumerOptions()
+	options.Version = sarama.V0_10_2_0
+	contentConsumer := kafkav2.NewConsumer(
+		kafkav2.ConsumerConfig{
+			BrokersConnectionString: contentAddress,
+			ConsumerGroup:           groupID,
+			Topics:                  []string{contentTopic},
+			Options:                options,
+		},
+		log,
+		time.Minute,
+	)
+
+	var metaConsumer kafkav1.Consumer
+	if metadataTppic != "" {
+		var err error
+		consumerConfig := kafkav1.DefaultConsumerConfig()
+		consumerConfig.Version = sarama.V0_10_2_0
+		consumerConfig.Zookeeper.Logger = stdlog.New(ioutil.Discard, "", 0)
+		metaConsumer, err = kafkav1.NewConsumer(kafkav1.Config{
+			ZookeeperConnectionString: metadataAddress,
+			ConsumerGroup:             groupID,
+			Topics:                    []string{metadataTppic},
+			ConsumerGroupConfig:       kafkav1.DefaultConsumerConfig(),
+			Err:                       errCh,
+			Logger:                    log,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
-	return &supervisedConsumer{c: c, errCh: errCh}, nil
+	return &supervisedConsumer{contentConsumer: contentConsumer, metadataConsumer: metaConsumer, errCh: errCh}, nil
 }
 
 func createDispatcher(cacheDelay int, historySize int, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History) {
