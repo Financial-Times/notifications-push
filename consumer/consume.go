@@ -1,13 +1,13 @@
 package consumer
 
 import (
-	"github.com/Financial-Times/kafka-client-go/kafka"
+	"github.com/Financial-Times/kafka-client-go/v3"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 )
 
 // MessageQueueHandler is a generic interface for implementation of components to handle messages form the kafka queue.
 type MessageQueueHandler interface {
-	HandleMessage(queueMsg kafka.FTMessage) error
+	HandleMessage(queueMsg kafka.FTMessage)
 }
 
 type notificationDispatcher interface {
@@ -26,11 +26,12 @@ func NewMessageQueueHandler(contentHandler, metadataHandler MessageQueueHandler)
 	}
 }
 
-func (h *MessageQueueRouter) HandleMessage(queueMsg kafka.FTMessage) error {
+func (h *MessageQueueRouter) HandleMessage(queueMsg kafka.FTMessage) {
 	if h.metadataHandler != nil && isAnnotationMessage(queueMsg.Headers) {
-		return h.metadataHandler.HandleMessage(queueMsg)
+		h.metadataHandler.HandleMessage(queueMsg)
+		return
 	}
-	return h.contentHandler.HandleMessage(queueMsg)
+	h.contentHandler.HandleMessage(queueMsg)
 }
 
 func isAnnotationMessage(msgHeaders map[string]string) bool {

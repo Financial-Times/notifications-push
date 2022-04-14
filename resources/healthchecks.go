@@ -14,18 +14,19 @@ const panicGuideURL = "https://runbooks.in.ft.com/upp-notifications-push"
 
 type RequestStatusFn func(ctx context.Context, url string) (int, error)
 
-type KafkaConsumer interface {
+type kafkaConsumer interface {
 	ConnectivityCheck() error
+	MonitorCheck() error
 }
 
 type HealthCheck struct {
-	consumer             KafkaConsumer
+	consumer             kafkaConsumer
 	StatusFunc           RequestStatusFn
 	apiGatewayGTGAddress string
 	serviceName          string
 }
 
-func NewHealthCheck(kafkaConsumer KafkaConsumer, apiGatewayGTGAddress string, statusFunc RequestStatusFn, serviceName string) *HealthCheck {
+func NewHealthCheck(kafkaConsumer kafkaConsumer, apiGatewayGTGAddress string, statusFunc RequestStatusFn, serviceName string) *HealthCheck {
 	return &HealthCheck{
 		consumer:             kafkaConsumer,
 		apiGatewayGTGAddress: apiGatewayGTGAddress,
@@ -36,7 +37,8 @@ func NewHealthCheck(kafkaConsumer KafkaConsumer, apiGatewayGTGAddress string, st
 
 func (h *HealthCheck) Health() func(w http.ResponseWriter, r *http.Request) {
 	var checks []fthealth.Check
-	checks = append(checks, h.queueCheck())
+	checks = append(checks, h.kafkaConnectivityCheck())
+	checks = append(checks, h.kafkaLagCheck())
 	checks = append(checks, h.apiGatewayCheck())
 
 	hc := fthealth.TimedHealthCheck{
@@ -51,21 +53,32 @@ func (h *HealthCheck) Health() func(w http.ResponseWriter, r *http.Request) {
 	return fthealth.Handler(hc)
 }
 
-// Check is the the NotificationsPushHealthcheck method that checks if the kafka queue is available
-func (h *HealthCheck) queueCheck() fthealth.Check {
+func (h *HealthCheck) kafkaLagCheck() fthealth.Check {
 	return fthealth.Check{
-		ID:               "message-queue-reachable",
-		Name:             "MessageQueueReachable",
+		ID:               "kafka-lagcheck",
+		Name:             "KafkaLagcheck",
+		Severity:         3,
+		BusinessImpact:   "Notifications about newly modified/published content will be delayed.",
+		TechnicalSummary: "Kafka is lagging",
+		PanicGuide:       panicGuideURL,
+		Checker:          h.checkKafkaConsumerLag,
+	}
+}
+
+func (h *HealthCheck) kafkaConnectivityCheck() fthealth.Check {
+	return fthealth.Check{
+		ID:               "kafka-reachable",
+		Name:             "KafkaReachable",
 		Severity:         1,
 		BusinessImpact:   "Notifications about newly modified/published content will not reach this app, nor will they reach its clients.",
-		TechnicalSummary: "Message queue is not reachable/healthy",
+		TechnicalSummary: "Kafka is not reachable/healthy",
 		PanicGuide:       panicGuideURL,
-		Checker:          h.checkAggregateMessageQueueReachable,
+		Checker:          h.checkKafkaConsumerReachable,
 	}
 }
 
 func (h *HealthCheck) GTG() gtg.Status {
-	if _, err := h.checkAggregateMessageQueueReachable(); err != nil {
+	if _, err := h.checkKafkaConsumerReachable(); err != nil {
 		return gtg.Status{GoodToGo: false, Message: err.Error()}
 	}
 
@@ -76,14 +89,20 @@ func (h *HealthCheck) GTG() gtg.Status {
 	return gtg.Status{GoodToGo: true}
 }
 
-func (h *HealthCheck) checkAggregateMessageQueueReachable() (string, error) {
-	// ISSUE: consumer's helthcheck always returns true
+func (h *HealthCheck) checkKafkaConsumerReachable() (string, error) {
 	err := h.consumer.ConnectivityCheck()
 	if err == nil {
 		return "Connectivity to kafka is OK.", nil
 	}
+	return "Error connecting to kafka", err
+}
 
-	return "Error connecting to kafka", errors.New("error connecting to kafka queue")
+func (h *HealthCheck) checkKafkaConsumerLag() (string, error) {
+	err := h.consumer.MonitorCheck()
+	if err == nil {
+		return "Kafka consumer is not lagging", nil
+	}
+	return "Kafka consumer is lagging behind", err
 }
 
 // checks if apiGateway service is available

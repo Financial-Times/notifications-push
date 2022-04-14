@@ -35,11 +35,13 @@ spec:
         env:
         - name: APP_NAME
           value: {{ .Values.service.name }}
-        - name: KAFKA_ADDRS
+        - name: KAFKA_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: global-config
-              key: zookeeper.url
+              key: msk.kafka.broker.url
+        - name: KAFKA_LAG_TOLERANCE
+          value: "120"
         - name: API_BASE_URL
           valueFrom:
             configMapKeyRef:
@@ -96,4 +98,3 @@ spec:
           timeoutSeconds: 5
         resources:
 {{ toYaml .Values.resources | indent 12 }}
-
