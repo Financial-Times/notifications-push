@@ -3,6 +3,7 @@ package resources
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -94,7 +95,7 @@ func (h *HealthCheck) checkKafkaConsumerReachable() (string, error) {
 	if err == nil {
 		return "Connectivity to kafka is OK.", nil
 	}
-	return "Error connecting to kafka", err
+	return "", err
 }
 
 func (h *HealthCheck) checkKafkaConsumerLag() (string, error) {
@@ -102,7 +103,7 @@ func (h *HealthCheck) checkKafkaConsumerLag() (string, error) {
 	if err == nil {
 		return "Kafka consumer is not lagging", nil
 	}
-	return "Kafka consumer is lagging behind", err
+	return "", err
 }
 
 // checks if apiGateway service is available
@@ -131,5 +132,5 @@ func (h *HealthCheck) checkAPIGatewayService() (string, error) {
 		return "ApiGateway service is working", nil
 	}
 
-	return "", errors.New("unable to verify ApiGateway service is working")
+	return "", fmt.Errorf("unable to verify ApiGateway service is working")
 }

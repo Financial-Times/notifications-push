@@ -48,10 +48,7 @@ spec:
               name: global-config
               key: api.host.with.protocol
         - name: GROUP_ID
-          # set this as the pod name so it's unique per instance
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
+          value: {{ .Values.env.GROUP_ID }}
         - name: TOPIC
           value: {{ .Values.env.TOPIC }}
         - name: METADATA_TOPIC
@@ -61,8 +58,6 @@ spec:
             configMapKeyRef:
               name: global-config
               key: cache-max-age
-        - name: CONSUMER_BACKOFF
-          value: "{{ .Values.env.CONSUMER_BACKOFF }}"
         - name: NOTIFICATIONS_RESOURCE
           value: {{ .Values.env.NOTIFICATIONS_RESOURCE }}
         - name: CONTENT_URI_WHITELIST

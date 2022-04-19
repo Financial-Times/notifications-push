@@ -25,7 +25,7 @@ type notificationSystem interface {
 func startService(srv *http.Server, n notificationSystem, consumer *kafka.Consumer, msgHandler queueConsumer.MessageQueueHandler, log *logger.UPPLogger) func(time.Duration) {
 	go n.Start()
 
-	consumer.Start(msgHandler.HandleMessage)
+	go consumer.Start(msgHandler.HandleMessage)
 
 	go func() {
 		err := srv.ListenAndServe()

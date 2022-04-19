@@ -5,7 +5,7 @@ service:
 env:
   TOPIC: "PublicationNotificationEvents"
   METADATA_TOPIC: "PostConceptAnnotations"
-  CONSUMER_BACKOFF: "2"
+  GROUP_ID: "notifications-push"
   NOTIFICATIONS_RESOURCE: "content"
   CONTENT_URI_WHITELIST: "^http://(methode|wordpress-article|content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder|)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$"
   CONTENT_TYPE_WHITELIST: "application/vnd.ft-upp-article-internal+json,application/vnd.ft-upp-content-package+json,application/vnd.ft-upp-audio+json,application/vnd.ft-upp-live-blog-post-internal+json,application/vnd.ft-upp-live-blog-package-internal+json"
