@@ -2,7 +2,6 @@ package resources
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -121,7 +120,7 @@ func (h *HealthCheck) apiGatewayCheck() fthealth.Check {
 
 func (h *HealthCheck) checkAPIGatewayService() (string, error) {
 	if h.StatusFunc == nil {
-		return "", errors.New("no status func")
+		return "", fmt.Errorf("no status func")
 	}
 	statusCode, err := h.StatusFunc(context.Background(), h.apiGatewayGTGAddress)
 	if err != nil {

@@ -3,6 +3,7 @@ package resources_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -29,7 +30,7 @@ func TestIsValidApiKeySuccessful(t *testing.T) {
 func TestIsValidApiKeyError(t *testing.T) {
 	t.Parallel()
 
-	client := mocks.ClientWithError(errors.New("client error"))
+	client := mocks.ClientWithError(fmt.Errorf("client error"))
 
 	l := logger.NewUPPLogger("TEST", "PANIC")
 	p := resources.NewKeyProcessor(apiGatewayURL, apiGatewayURL, client, l)
@@ -45,7 +46,7 @@ func TestIsValidApiKeyError(t *testing.T) {
 func TestIsValidApiKeyEmptyKey(t *testing.T) {
 	t.Parallel()
 
-	client := mocks.ClientWithError(errors.New("client error"))
+	client := mocks.ClientWithError(fmt.Errorf("client error"))
 
 	l := logger.NewUPPLogger("TEST", "PANIC")
 	p := resources.NewKeyProcessor(apiGatewayURL, apiGatewayURL, client, l)
@@ -61,7 +62,7 @@ func TestIsValidApiKeyEmptyKey(t *testing.T) {
 func TestIsValidApiInvalidValidationGatewayURL(t *testing.T) {
 	t.Parallel()
 
-	client := mocks.ClientWithError(errors.New("client error"))
+	client := mocks.ClientWithError(fmt.Errorf("client error"))
 
 	l := logger.NewUPPLogger("TEST", "PANIC")
 	p := resources.NewKeyProcessor(":"+apiGatewayURL, apiGatewayURL, client, l)
@@ -184,7 +185,7 @@ func TestKeyProcessor_GetPolicies(t *testing.T) {
 		},
 		{
 			name:          "HTTP Client Error",
-			httpClient:    mocks.ClientWithError(errors.New("client error")),
+			httpClient:    mocks.ClientWithError(fmt.Errorf("client error")),
 			validationURL: apiGatewayURL,
 			policiesURL:   apiGatewayURL,
 			apiKey:        apiKey,

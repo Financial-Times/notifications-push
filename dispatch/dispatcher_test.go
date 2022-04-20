@@ -2,7 +2,7 @@ package dispatch
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -528,7 +528,7 @@ func (_m *MockSubscriber) Address() string {
 
 // send provides a mock function with given fields: n
 func (_m *MockSubscriber) Send(n NotificationResponse) error {
-	return errors.New("error")
+	return fmt.Errorf("error")
 }
 
 // Id provides a mock function with given fields:
@@ -559,7 +559,7 @@ func waitForNotification(notificationsCh <-chan string, timeout time.Duration) (
 		case n := <-notificationsCh:
 			return n, nil
 		case <-timer.C:
-			return "", errors.New("test timed out waiting for notification")
+			return "", fmt.Errorf("test timed out waiting for notification")
 		}
 	}
 }
