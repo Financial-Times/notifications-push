@@ -2,7 +2,7 @@ package mocks
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -113,13 +113,21 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 type KafkaConsumer struct {
 	ConnectivityCheckF func() error
+	MonitorCheckF      func() error
 }
 
 func (c *KafkaConsumer) ConnectivityCheck() error {
 	if c.ConnectivityCheckF != nil {
 		return c.ConnectivityCheckF()
 	}
-	return errors.New("not implemented")
+	return fmt.Errorf("KafkaConsumer.ConnectivityCheck() not implemented")
+}
+
+func (c *KafkaConsumer) MonitorCheck() error {
+	if c.MonitorCheckF != nil {
+		return c.MonitorCheckF()
+	}
+	return fmt.Errorf("KafkaConsumer.MonitorCheck() not implemented")
 }
 
 type ShutdownReg struct {

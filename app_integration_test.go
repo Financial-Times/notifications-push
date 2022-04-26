@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package main
@@ -5,17 +6,15 @@ package main
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"testing"
 	"time"
 
-	"errors"
-
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/kafka-client-go/kafka"
+	"github.com/Financial-Times/kafka-client-go/v3"
 	"github.com/Financial-Times/notifications-push/v5/consumer"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/Financial-Times/notifications-push/v5/mocks"
@@ -65,8 +64,6 @@ func TestPushNotifications(t *testing.T) {
 	t.Parallel()
 
 	l := logger.NewUPPLogger("TEST", "info")
-	l.Out = ioutil.Discard
-
 	// handlers vars
 	var (
 		apiGatewayValidateURL = "/api-gateway/validate"
@@ -98,9 +95,6 @@ func TestPushNotifications(t *testing.T) {
 	// dispatcher
 	d, h := startDispatcher(delay, historySize, l)
 	defer d.Stop()
-
-	// consumer
-	msgQueue := createMsgQueue(t, uriWhitelist, typeWhitelist, originWhitelist, resource, "test-api", d, l)
 
 	// server
 	router := mux.NewRouter()
@@ -145,13 +139,19 @@ func TestPushNotifications(t *testing.T) {
 			invalidContentTypeMsg,
 			annotationMsg,
 		}
+		var buff bytes.Buffer
+		logger := logger.NewUnstructuredLogger()
+		logger.SetOutput(&buff)
+		queue := createMsgQueue(t, uriWhitelist, typeWhitelist, originWhitelist, resource, "test-api", d, logger)
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-time.After(sendDelay):
 				for _, msg := range msgs {
-					if !assert.NoError(t, msgQueue.HandleMessage(msg)) {
+					queue.HandleMessage(msg)
+					buffMessage := buff.String()
+					if !assert.NotContains(t, buffMessage, "error") {
 						return
 					}
 				}
@@ -190,7 +190,7 @@ func testHealthcheckEndpoints(ctx context.Context, t *testing.T, serverURL strin
 				return http.StatusOK, nil
 			},
 			kafkaFunc: func() error {
-				return errors.New("sample error")
+				return fmt.Errorf("error connecting to kafka queue")
 			},
 			expectedStatus: http.StatusServiceUnavailable,
 			expectedBody:   "error connecting to kafka queue",
@@ -198,7 +198,7 @@ func testHealthcheckEndpoints(ctx context.Context, t *testing.T, serverURL strin
 		"gtg endpoint ApiGateway failure": {
 			url: "/__gtg",
 			clientFunc: func(ctx context.Context, url string) (int, error) {
-				return http.StatusServiceUnavailable, errors.New("gateway failed")
+				return http.StatusServiceUnavailable, fmt.Errorf("gateway failed")
 			},
 			kafkaFunc: func() error {
 				return nil

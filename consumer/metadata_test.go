@@ -1,10 +1,11 @@
 package consumer
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/kafka-client-go/kafka"
+	"github.com/Financial-Times/kafka-client-go/v3"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/Financial-Times/notifications-push/v5/mocks"
 	"github.com/stretchr/testify/assert"
@@ -13,8 +14,6 @@ import (
 
 func TestMetadata(t *testing.T) {
 	t.Parallel()
-
-	l := logger.NewUPPLogger("test", "panic")
 
 	tests := map[string]struct {
 		mapper      NotificationMapper
@@ -107,16 +106,19 @@ func TestMetadata(t *testing.T) {
 					arg := args.Get(0).(dispatch.NotificationModel)
 					test.sendFunc(arg)
 				})
+
+			var buf bytes.Buffer
+			l := logger.NewUnstructuredLogger()
+			l.SetOutput(&buf)
+
 			handler := NewMetadataQueueHandler(test.whitelist, test.mapper, dispatcher, l)
-			err := handler.HandleMessage(test.msg)
+			handler.HandleMessage(test.msg)
+
+			buffMessage := buf.String()
 			if test.expectError {
-				if err == nil {
-					t.Fatal("expected error, but got non")
-				}
+				assert.Containsf(t, buffMessage, "error", "expected error, but got non")
 			} else {
-				if err != nil {
-					t.Fatalf("received unexpected error %v", err)
-				}
+				assert.NotContainsf(t, buffMessage, "error", "received unexpected error")
 			}
 		})
 	}

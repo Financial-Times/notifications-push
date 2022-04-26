@@ -1,7 +1,6 @@
 package consumer
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 
@@ -27,7 +26,7 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 	UUID := UUIDRegexp.FindString(event.ContentURI)
 	if UUID == "" {
 		// nolint:golint
-		return dispatch.NotificationModel{}, errors.New("ContentURI does not contain a UUID")
+		return dispatch.NotificationModel{}, fmt.Errorf("ContentURI does not contain a UUID")
 	}
 
 	var (
@@ -79,10 +78,10 @@ func (n NotificationMapper) MapNotification(event ContentMessage, transactionID 
 func (n NotificationMapper) MapMetadataNotification(event AnnotationsMessage, transactionID string) (dispatch.NotificationModel, error) {
 	UUID := UUIDRegexp.FindString(event.ContentURI)
 	if UUID == "" {
-		return dispatch.NotificationModel{}, errors.New("contentURI does not contain a UUID")
+		return dispatch.NotificationModel{}, fmt.Errorf("contentURI does not contain a UUID")
 	}
 	if event.Payload == nil {
-		return dispatch.NotificationModel{}, errors.New("payload missing")
+		return dispatch.NotificationModel{}, fmt.Errorf("payload missing")
 	}
 
 	return dispatch.NotificationModel{

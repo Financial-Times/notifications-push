@@ -35,11 +35,18 @@ func main() {
 		EnvVar: "NOTIFICATIONS_RESOURCE",
 	})
 
-	consumerAddrs := app.String(cli.StringOpt{
+	consumerAddress := app.String(cli.StringOpt{
 		Name:   "consumer_addr",
 		Value:  "",
 		Desc:   "Comma separated kafka hosts for message consuming.",
-		EnvVar: "KAFKA_ADDRS",
+		EnvVar: "KAFKA_ADDRESS",
+	})
+
+	consumerLagTolerance := app.Int(cli.IntOpt{
+		Name:   "consumer_lag_tolerance",
+		Value:  120,
+		Desc:   "Kafka lag tolerance",
+		EnvVar: "KAFKA_LAG_TOLERANCE",
 	})
 
 	consumerGroupID := app.String(cli.StringOpt{
@@ -163,7 +170,8 @@ func main() {
 			"CONTENT_TOPIC":  *contentTopic,
 			"METADATA_TOPIC": *metadataTopic,
 			"GROUP_ID":       *consumerGroupID,
-			"KAFKA_ADDRS":    *consumerAddrs,
+			"KAFKA_ADDRESS":  *consumerAddress,
+			"LAG_TOLERANCE":  *consumerLagTolerance,
 			"E2E_TEST_IDS":   *e2eTestUUIDs,
 		}).Infof("[Startup] notifications-push is starting ")
 
@@ -172,16 +180,7 @@ func main() {
 			kafkaTopics = append(kafkaTopics, *metadataTopic)
 		}
 
-		kafkaConsumer, err := createSupervisedConsumer(log,
-			*consumerAddrs,
-			*consumerGroupID,
-			kafkaTopics,
-			serviceName,
-		)
-
-		if err != nil {
-			log.WithError(err).Fatal("could not start kafka consumer")
-		}
+		kafkaConsumer := createConsumer(log, *consumerAddress, *consumerGroupID, kafkaTopics, *consumerLagTolerance)
 
 		httpClient := &http.Client{
 			Transport: &http.Transport{

@@ -3,7 +3,7 @@ package resources
 import (
 	"bytes"
 	"context"
-	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,7 +22,7 @@ func TestHealthcheck(t *testing.T) {
 		expectedStatus    int
 		expectedBody      string
 	}{
-		"Success - both ok": {
+		"Success - all ok": {
 			statusFn: func(ctx context.Context, url string) (int, error) {
 				return http.StatusOK, nil
 			},
@@ -30,21 +30,42 @@ func TestHealthcheck(t *testing.T) {
 				ConnectivityCheckF: func() error {
 					return nil
 				},
+				MonitorCheckF: func() error {
+					return nil
+				},
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   `"ok":true}`,
 		},
-		"Fail because of kafka": {
+		"Fail because of kafka connectivity": {
 			statusFn: func(ctx context.Context, url string) (int, error) {
 				return http.StatusOK, nil
 			},
 			kafkaConsumerMock: &mocks.KafkaConsumer{
 				ConnectivityCheckF: func() error {
-					return errors.New("sample error")
+					return fmt.Errorf("sample error")
+				},
+				MonitorCheckF: func() error {
+					return nil
 				},
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   `"ok":false,"severity":1}`,
+		},
+		"Fail because of kafka lag": {
+			statusFn: func(ctx context.Context, url string) (int, error) {
+				return http.StatusOK, nil
+			},
+			kafkaConsumerMock: &mocks.KafkaConsumer{
+				ConnectivityCheckF: func() error {
+					return nil
+				},
+				MonitorCheckF: func() error {
+					return fmt.Errorf("lag error")
+				},
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   `"ok":false,"severity":3}`,
 		},
 		"Fail because of ApiGateway does not return 200 OK": {
 			statusFn: func(ctx context.Context, url string) (int, error) {
@@ -52,6 +73,9 @@ func TestHealthcheck(t *testing.T) {
 			},
 			kafkaConsumerMock: &mocks.KafkaConsumer{
 				ConnectivityCheckF: func() error {
+					return nil
+				},
+				MonitorCheckF: func() error {
 					return nil
 				},
 			},

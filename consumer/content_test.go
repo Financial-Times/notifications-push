@@ -1,12 +1,12 @@
 package consumer
 
 import (
-	"io/ioutil"
+	"bytes"
 	"regexp"
 	"testing"
 
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/kafka-client-go/kafka"
+	"github.com/Financial-Times/kafka-client-go/v3"
 	"github.com/Financial-Times/notifications-push/v5/mocks"
 	hooks "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
@@ -23,14 +23,18 @@ func TestSyntheticMessage(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "lists",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
+
 	dispatcher := &mocks.Dispatcher{}
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "SYNTH_tid"},
 		`{"UUID": "a uuid", "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 
 	dispatcher.AssertNotCalled(t, "Send")
 }
@@ -42,13 +46,18 @@ func TestFailedCMSMessageParse(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "lists",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
+
 	dispatcher := &mocks.Dispatcher{}
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"}, "")
 
-	assert.Error(t, handler.HandleMessage(msg), "expect parse error")
+	handler.HandleMessage(msg)
+	assert.Contains(t, buf.String(), "unexpected end of JSON input")
+
 	dispatcher.AssertNotCalled(t, "Send")
 }
 
@@ -59,14 +68,18 @@ func TestWhitelist(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "lists",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
+
 	dispatcher := &mocks.Dispatcher{}
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
 		`{"ContentURI": "something which wouldn't match"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 
 	dispatcher.AssertNotCalled(t, "Send")
 }
@@ -78,7 +91,10 @@ func TestSparkCCTWhitelist(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "content",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
+
 	dispatcher := &mocks.Dispatcher{}
 	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
@@ -87,7 +103,9 @@ func TestSparkCCTWhitelist(t *testing.T) {
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
 		`{"payload": { }, "contentURI": "http://upp-content-validator.svc.ft.com/content/f601289e-93a0-4c08-854e-fef334584079"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
+
 	dispatcher.AssertExpectations(t)
 }
 
@@ -98,8 +116,10 @@ func TestMonitoringEvents(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "content",
 	}
-	l := logger.NewUPPLogger("test", "info")
-	l.Out = ioutil.Discard
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
+
 	h := hooks.NewLocal(l.Logger)
 	defer h.Reset()
 
@@ -156,11 +176,14 @@ func TestMonitoringEvents(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			msg := kafka.NewFTMessage(test.Headers, test.Body)
-			err := handler.HandleMessage(msg)
+			handler.HandleMessage(msg)
+
+			bufferedMsg := buf.String()
+			buf.Reset()
 			if test.ExpectError {
-				assert.Error(t, err)
+				assert.Contains(t, bufferedMsg, "error")
 			} else {
-				assert.NoError(t, err)
+				assert.NotContains(t, bufferedMsg, "error")
 			}
 
 			entry := h.LastEntry()
@@ -181,7 +204,11 @@ func TestAcceptNotificationBasedOnContentType(t *testing.T) {
 	}
 	contentTypeWhitelist := NewSet()
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
-	l := logger.NewUPPLogger("test", "PANIC")
+
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
+
 	dispatcher := &mocks.Dispatcher{}
 	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
@@ -190,7 +217,8 @@ func TestAcceptNotificationBasedOnContentType(t *testing.T) {
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/vnd.ft-upp-article+json; version=1.0; charset=utf-8"},
 		`{"payload": { }, "ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 	dispatcher.AssertExpectations(t)
 }
 
@@ -201,7 +229,10 @@ func TestAcceptNotificationBasedOnAudioContentType(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "content",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
 
 	contentTypeWhitelist := NewSet()
 	contentTypeWhitelist.Add("application/vnd.ft-upp-audio+json")
@@ -214,7 +245,8 @@ func TestAcceptNotificationBasedOnAudioContentType(t *testing.T) {
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/vnd.ft-upp-audio+json"},
 		`{"payload": { }, "ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 	dispatcher.AssertExpectations(t)
 }
 
@@ -225,7 +257,10 @@ func TestDiscardNotificationBasedOnContentType(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "content",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
 
 	contentTypeWhitelist := NewSet()
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
@@ -238,7 +273,8 @@ func TestDiscardNotificationBasedOnContentType(t *testing.T) {
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/vnd.ft-upp-invalid+json"},
 		`{"payload": { }, "ContentURI": "http://methode-article-mapper.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 
 	dispatcher.AssertNotCalled(t, "Send")
 }
@@ -250,7 +286,10 @@ func TestAcceptNotificationBasedOnContentUriWhenContentTypeIsApplicationJson(t *
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "content",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
 
 	contentTypeWhitelist := NewSet()
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
@@ -263,7 +302,8 @@ func TestAcceptNotificationBasedOnContentUriWhenContentTypeIsApplicationJson(t *
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/json"},
 		`{"payload": { }, "ContentURI": "http://methode-article-mapper.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 	dispatcher.AssertExpectations(t)
 }
 
@@ -274,7 +314,9 @@ func TestDiscardNotificationBasedOnContentUriWhenContentTypeIsApplicationJson(t 
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "content",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
 
 	contentTypeWhitelist := NewSet()
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
@@ -287,7 +329,8 @@ func TestDiscardNotificationBasedOnContentUriWhenContentTypeIsApplicationJson(t 
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin", "Content-Type": "application/json"},
 		`{"payload": { }, "ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 
 	dispatcher.AssertNotCalled(t, "Send")
 }
@@ -299,7 +342,9 @@ func TestAcceptNotificationBasedOnContentUriWhenContentTypeIsMissing(t *testing.
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "content",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
 
 	contentTypeWhitelist := NewSet()
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
@@ -312,7 +357,8 @@ func TestAcceptNotificationBasedOnContentUriWhenContentTypeIsMissing(t *testing.
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
 		`{"payload": { }, "ContentURI": "http://methode-article-mapper.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 	dispatcher.AssertExpectations(t)
 }
 
@@ -323,7 +369,10 @@ func TestDiscardNotificationBasedOnContentUriWhenContentTypeIsMissing(t *testing
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "content",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
+
 	contentTypeWhitelist := NewSet()
 	contentTypeWhitelist.Add("application/vnd.ft-upp-article+json")
 
@@ -335,7 +384,8 @@ func TestDiscardNotificationBasedOnContentUriWhenContentTypeIsMissing(t *testing
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
 		`{"payload": { }, "ContentURI": "http://not-in-the-whitelist.svc.ft.com:8080/content/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 
 	dispatcher.AssertNotCalled(t, "Send")
 }
@@ -347,7 +397,10 @@ func TestFailsConversionToNotification(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "list",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
+
 	dispatcher := &mocks.Dispatcher{}
 
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
@@ -355,7 +408,8 @@ func TestFailsConversionToNotification(t *testing.T) {
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
 		`{"payload": { }, "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a" + }`)
 
-	assert.Error(t, handler.HandleMessage(msg), "expect notification parse error")
+	handler.HandleMessage(msg)
+	assert.Contains(t, buf.String(), "invalid character '+'")
 
 	dispatcher.AssertNotCalled(t, "Send")
 }
@@ -367,7 +421,10 @@ func TestHandleMessage(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "lists",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
+
 	dispatcher := &mocks.Dispatcher{}
 	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
@@ -376,7 +433,8 @@ func TestHandleMessage(t *testing.T) {
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
 		`{"UUID": "a uuid", "payload": { }, "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 
 	dispatcher.AssertExpectations(t)
 }
@@ -388,7 +446,9 @@ func TestHandleMessageMappingError(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "lists",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
 
 	dispatcher := &mocks.Dispatcher{}
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
@@ -396,7 +456,8 @@ func TestHandleMessageMappingError(t *testing.T) {
 	msg := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_summin"},
 		`{"UUID": "", "payload": { }, "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/abc"}`)
 
-	assert.NotNil(t, handler.HandleMessage(msg), "Expected error to HandleMessage when UUID is empty")
+	handler.HandleMessage(msg)
+	assert.Contains(t, buf.String(), "does not contain")
 
 	dispatcher.AssertNotCalled(t, "Send")
 }
@@ -408,7 +469,7 @@ func TestDiscardStandardCarouselPublicationEvents(t *testing.T) {
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "lists",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	l := logger.NewUnstructuredLogger()
 
 	dispatcher := &mocks.Dispatcher{}
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
@@ -422,9 +483,9 @@ func TestDiscardStandardCarouselPublicationEvents(t *testing.T) {
 	msg3 := kafka.NewFTMessage(map[string]string{"X-Request-Id": "tid_ofcysuifp0_carousel_1488384556_gentx"},
 		`{"UUID": "a uuid", "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`,
 	)
-	_ = handler.HandleMessage(msg1)
-	_ = handler.HandleMessage(msg2)
-	_ = handler.HandleMessage(msg3)
+	handler.HandleMessage(msg1)
+	handler.HandleMessage(msg2)
+	handler.HandleMessage(msg3)
 
 	dispatcher.AssertNotCalled(t, "Send")
 }
@@ -436,7 +497,9 @@ func TestDiscardCarouselPublicationEventsWithGeneratedTransactionID(t *testing.T
 		APIBaseURL: "test.api.ft.com",
 		Resource:   "lists",
 	}
-	l := logger.NewUPPLogger("test", "PANIC")
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
 
 	dispatcher := &mocks.Dispatcher{}
 	handler := NewContentQueueHandler(defaultContentURIWhitelist, NewSet(), nil, mapper, dispatcher, l)
@@ -445,7 +508,8 @@ func TestDiscardCarouselPublicationEventsWithGeneratedTransactionID(t *testing.T
 		`{"UUID": "a uuid", "ContentURI": "http://list-transformer-pr-uk-up.svc.ft.com:8080/lists/blah/55e40823-6804-4264-ac2f-b29e11bf756a"}`,
 	)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 
 	dispatcher.AssertNotCalled(t, "Send")
 }
@@ -458,7 +522,11 @@ func TestAcceptNotificationBasedOnE2ETransactionID(t *testing.T) {
 		Resource:   "content",
 	}
 	e2eTestUUIDs := []string{"e4d2885f-1140-400b-9407-921e1c7378cd"}
-	l := logger.NewUPPLogger("test", "PANIC")
+
+	var buf bytes.Buffer
+	l := logger.NewUnstructuredLogger()
+	l.SetOutput(&buf)
+
 	dispatcher := &mocks.Dispatcher{}
 	dispatcher.On("Send", mock.AnythingOfType("dispatch.NotificationModel")).Return()
 
@@ -469,6 +537,7 @@ func TestAcceptNotificationBasedOnE2ETransactionID(t *testing.T) {
 		`{"payload": { }, "contentURI": "http://upp-content-validator.svc.ft.com/content/e4d2885f-1140-400b-9407-921e1c7378cd"}`,
 	)
 
-	assert.NoError(t, handler.HandleMessage(msg))
+	handler.HandleMessage(msg)
+	assert.NotContains(t, buf.String(), "error")
 	dispatcher.AssertExpectations(t)
 }

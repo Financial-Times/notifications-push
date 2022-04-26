@@ -4,21 +4,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
-	stdlog "log"
 	"net/http"
 	"regexp"
 	"time"
 
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/kafka-client-go/kafka"
+	"github.com/Financial-Times/kafka-client-go/v3"
 	queueConsumer "github.com/Financial-Times/notifications-push/v5/consumer"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/Financial-Times/notifications-push/v5/resources"
 	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/gorilla/mux"
-	"github.com/samuel/go-zookeeper/zk"
-	"github.com/wvanbergen/kazoo-go"
 )
 
 type notificationSystem interface {
@@ -26,10 +22,10 @@ type notificationSystem interface {
 	Stop()
 }
 
-func startService(srv *http.Server, n notificationSystem, consumer kafka.Consumer, msgHandler queueConsumer.MessageQueueHandler, log *logger.UPPLogger) func(time.Duration) {
+func startService(srv *http.Server, n notificationSystem, consumer *kafka.Consumer, msgHandler queueConsumer.MessageQueueHandler, log *logger.UPPLogger) func(time.Duration) {
 	go n.Start()
 
-	consumer.StartListening(msgHandler.HandleMessage)
+	go consumer.Start(msgHandler.HandleMessage)
 
 	go func() {
 		err := srv.ListenAndServe()
@@ -43,7 +39,10 @@ func startService(srv *http.Server, n notificationSystem, consumer kafka.Consume
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		_ = srv.Shutdown(ctx)
-		consumer.Shutdown()
+		err := consumer.Close()
+		if err != nil {
+			log.WithError(err).Error("Failed to close kafka consumer")
+		}
 		n.Stop()
 	}
 }
@@ -66,47 +65,19 @@ func initRouter(r *mux.Router,
 	r.HandleFunc("/__history", resources.History(h, log)).Methods("GET")
 }
 
-type supervisedConsumer struct {
-	c     kafka.Consumer
-	errCh chan error
-}
-
-func (s *supervisedConsumer) StartListening(messageHandler func(message kafka.FTMessage) error) {
-	s.c.StartListening(messageHandler)
-}
-
-func (s *supervisedConsumer) Shutdown() {
-	close(s.errCh)
-	s.c.Shutdown()
-}
-
-func (s *supervisedConsumer) ConnectivityCheck() error {
-	return s.c.ConnectivityCheck()
-}
-
-func createSupervisedConsumer(log *logger.UPPLogger, address string, groupID string, topics []string, serviceName string) (*supervisedConsumer, error) {
-	errCh := make(chan error, 2)
-	var fatalErrs = []error{kazoo.ErrPartitionNotClaimed, zk.ErrNoServer}
-	fatalErrHandler := func(err error, serviceName string) {
-		log.WithError(err).Fatalf("Exiting %s due to fatal error", serviceName)
+func createConsumer(log *logger.UPPLogger, address, groupID string, topics []string, lagTolerance int) *kafka.Consumer {
+	consumerConfig := kafka.ConsumerConfig{
+		BrokersConnectionString: address,
+		ConsumerGroup:           groupID,
+		ConnectionRetryInterval: 30 * time.Second,
+		OffsetFetchInterval:     2 * time.Minute,
+		Options:                 kafka.DefaultConsumerOptions(),
 	}
-
-	supervisor := newServiceSupervisor(serviceName, errCh, fatalErrs, fatalErrHandler)
-	go supervisor.Supervise()
-
-	consumerConfig := kafka.DefaultConsumerConfig()
-	consumerConfig.Zookeeper.Logger = stdlog.New(ioutil.Discard, "", 0)
-	c, err := kafka.NewConsumer(kafka.Config{
-		ZookeeperConnectionString: address,
-		ConsumerGroup:             groupID,
-		Topics:                    topics,
-		ConsumerGroupConfig:       consumerConfig,
-		Err:                       errCh,
-	})
-	if err != nil {
-		return nil, err
+	kafkaTopics := make([]*kafka.Topic, 0)
+	for _, topic := range topics {
+		kafkaTopics = append(kafkaTopics, kafka.NewTopic(topic, kafka.WithLagTolerance(int64(lagTolerance))))
 	}
-	return &supervisedConsumer{c: c, errCh: errCh}, nil
+	return kafka.NewConsumer(consumerConfig, kafkaTopics, log)
 }
 
 func createDispatcher(cacheDelay int, historySize int, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History) {

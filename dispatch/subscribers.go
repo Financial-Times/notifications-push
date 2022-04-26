@@ -3,16 +3,16 @@ package dispatch
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
-	uuid "github.com/gofrs/uuid"
+	"github.com/gofrs/uuid"
 )
 
 const notificationBuffer = 16
 
-var ErrSubLagging = errors.New("subscriber lagging behind")
+var ErrSubLagging = fmt.Errorf("subscriber lagging behind")
 
 type SubscriptionOption string
 
