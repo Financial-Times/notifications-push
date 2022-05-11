@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/notifications-push/v5/mocks"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -15,6 +16,8 @@ import (
 
 func TestHealthcheck(t *testing.T) {
 	t.Parallel()
+
+	log := logger.NewUPPLogger("test-service", "panic")
 
 	tests := map[string]struct {
 		statusFn          RequestStatusFn
@@ -88,7 +91,12 @@ func TestHealthcheck(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			hc := NewHealthCheck(test.kafkaConsumerMock, "randomAddress", test.statusFn, "notifications-push")
+			hc := NewHealthCheck(
+				test.kafkaConsumerMock,
+				"randomAddress",
+				test.statusFn,
+				"notifications-push",
+				log)
 
 			req, err := http.NewRequest("GET", "/__health", nil)
 			if err != nil {

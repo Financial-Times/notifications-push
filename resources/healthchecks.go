@@ -7,6 +7,7 @@ import (
 	"time"
 
 	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
+	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/service-status-go/gtg"
 )
 
@@ -24,14 +25,16 @@ type HealthCheck struct {
 	StatusFunc           RequestStatusFn
 	apiGatewayGTGAddress string
 	serviceName          string
+	log                  *logger.UPPLogger
 }
 
-func NewHealthCheck(kafkaConsumer kafkaConsumer, apiGatewayGTGAddress string, statusFunc RequestStatusFn, serviceName string) *HealthCheck {
+func NewHealthCheck(kafkaConsumer kafkaConsumer, apiGatewayGTGAddress string, statusFunc RequestStatusFn, serviceName string, log *logger.UPPLogger) *HealthCheck {
 	return &HealthCheck{
 		consumer:             kafkaConsumer,
 		apiGatewayGTGAddress: apiGatewayGTGAddress,
 		StatusFunc:           statusFunc,
 		serviceName:          serviceName,
+		log:                  log,
 	}
 }
 
@@ -61,7 +64,7 @@ func (h *HealthCheck) kafkaLagCheck() fthealth.Check {
 		BusinessImpact:   "Notifications about newly modified/published content will be delayed.",
 		TechnicalSummary: "Kafka is lagging",
 		PanicGuide:       panicGuideURL,
-		Checker:          h.checkKafkaConsumerLag,
+		Checker:          loggingCheck(h.log.WithField("check", "KafkaLagcheck"), h.checkKafkaConsumerLag),
 	}
 }
 
@@ -73,7 +76,7 @@ func (h *HealthCheck) kafkaConnectivityCheck() fthealth.Check {
 		BusinessImpact:   "Notifications about newly modified/published content will not reach this app, nor will they reach its clients.",
 		TechnicalSummary: "Kafka is not reachable/healthy",
 		PanicGuide:       panicGuideURL,
-		Checker:          h.checkKafkaConsumerReachable,
+		Checker:          loggingCheck(h.log.WithField("check", "KafkaReachable"), h.checkKafkaConsumerReachable),
 	}
 }
 
@@ -114,7 +117,7 @@ func (h *HealthCheck) apiGatewayCheck() fthealth.Check {
 		BusinessImpact:   "If apiGateway service is not available, consumer's helthcheck will return false ",
 		TechnicalSummary: "Checking if apiGateway service is available or not",
 		PanicGuide:       panicGuideURL,
-		Checker:          h.checkAPIGatewayService,
+		Checker:          loggingCheck(h.log.WithField("check", "ApiGatewayCheck"), h.checkAPIGatewayService),
 	}
 }
 
@@ -132,4 +135,16 @@ func (h *HealthCheck) checkAPIGatewayService() (string, error) {
 	}
 
 	return "", fmt.Errorf("unable to verify ApiGateway service is working")
+}
+
+type checker func() (string, error)
+
+func loggingCheck(log *logger.LogEntry, f checker) checker {
+	return func() (string, error) {
+		msg, err := f()
+		if err != nil {
+			log.WithError(err).Error("healthcheck failed")
+		}
+		return msg, err
+	}
 }

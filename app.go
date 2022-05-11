@@ -221,7 +221,7 @@ func main() {
 		}
 
 		healthCheckEndpoint = baseURL.ResolveReference(healthCheckEndpoint)
-		hc := resources.NewHealthCheck(kafkaConsumer, healthCheckEndpoint.String(), requestStatusCode, serviceName)
+		hc := resources.NewHealthCheck(kafkaConsumer, healthCheckEndpoint.String(), requestStatusCode, serviceName, log)
 
 		dispatcher, history := createDispatcher(*delay, *historySize, log)
 
