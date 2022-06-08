@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -154,7 +155,14 @@ func TestSubscription(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 
 			p.On("Validate", mock.Anything, apiKey).Return(nil)
-			p.On("GetPolicies", mock.Anything, apiKey).Return(test.APIKeyPolicies, nil)
+			_, exists := os.LookupEnv("API_KEY_POLICIES_ENDPOINT")
+			if exists {
+				p.On("GetPolicies", mock.Anything, apiKey).Return(test.APIKeyPolicies, nil)
+			} else if !test.isListHandler && !test.isPagesHandler {
+				os.Setenv("API_KEY_POLICIES_ENDPOINT", "test")
+				defer os.Unsetenv("API_KEY_POLICIES_ENDPOINT")
+				p.On("GetPolicies", mock.Anything, apiKey).Return(test.APIKeyPolicies, nil)
+			}
 
 			if test.ExpectStream {
 				sub, _ := dispatch.NewStandardSubscriber(subAddress, test.ExpectedType, test.SubscriptionOptions)
@@ -215,6 +223,9 @@ func TestPassKeyAsParameter(t *testing.T) {
 	q := req.URL.Query()
 	q.Add(apiKeyQueryParam, keyAPI)
 	req.URL.RawQuery = q.Encode()
+
+	os.Setenv("API_KEY_POLICIES_ENDPOINT", "test")
+	defer os.Unsetenv("API_KEY_POLICIES_ENDPOINT")
 
 	p := &mocks.KeyProcessor{}
 	p.On("Validate", mock.Anything, keyAPI).Return(nil)
@@ -292,6 +303,9 @@ func TestHeartbeat(t *testing.T) {
 	heartbeat := time.Second * 1
 	heartbeatMsg := "data: []\n\n"
 
+	os.Setenv("API_KEY_POLICIES_ENDPOINT", "test")
+	defer os.Unsetenv("API_KEY_POLICIES_ENDPOINT")
+
 	p := &mocks.KeyProcessor{}
 	p.On("Validate", mock.Anything, keyAPI).Return(nil)
 	p.On("GetPolicies", mock.Anything, keyAPI).Return([]string{}, nil)
@@ -360,6 +374,9 @@ func TestPushNotificationDelay(t *testing.T) {
 	heartbeat := time.Second * 1
 	notificationDelay := time.Millisecond * 100
 	heartbeatMsg := "data: []\n\n"
+
+	os.Setenv("API_KEY_POLICIES_ENDPOINT", "test")
+	defer os.Unsetenv("API_KEY_POLICIES_ENDPOINT")
 
 	p := &mocks.KeyProcessor{}
 	p.On("Validate", mock.Anything, keyAPI).Return(nil)
