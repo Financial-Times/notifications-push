@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -88,34 +89,35 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	policies, err := h.keyProcessor.GetPolicies(r.Context(), apiKey)
-	if err != nil {
-		logEntry := h.log.WithError(err)
+	subscriptionOptions := []dispatch.SubscriptionOption{}
+	if _, ok := os.LookupEnv("API_KEY_POLICIES_ENDPOINT"); ok {
+		policies, err := h.keyProcessor.GetPolicies(r.Context(), apiKey)
+		if err != nil {
+			logEntry := h.log.WithError(err)
 
-		keyErr := &KeyErr{}
-		if errors.As(err, &keyErr) {
-			if keyErr.KeySuffix != "" {
-				logEntry = logEntry.WithField("apiKeyLastChars", keyErr.KeySuffix)
-			}
-			if keyErr.Description != "" {
-				logEntry = logEntry.WithField("description", keyErr.Description)
+			keyErr := &KeyErr{}
+			if errors.As(err, &keyErr) {
+				if keyErr.KeySuffix != "" {
+					logEntry = logEntry.WithField("apiKeyLastChars", keyErr.KeySuffix)
+				}
+				if keyErr.Description != "" {
+					logEntry = logEntry.WithField("description", keyErr.Description)
+				}
+
+				http.Error(w, keyErr.Msg, keyErr.Status)
+			} else {
+				http.Error(w, "Extracting API key policies failed", http.StatusInternalServerError)
 			}
 
-			http.Error(w, keyErr.Msg, keyErr.Status)
-		} else {
-			http.Error(w, "Extracting API key policies failed", http.StatusInternalServerError)
+			logEntry.Error("Extracting API key x-policies failed")
+			return
 		}
 
-		logEntry.Error("Extracting API key x-policies failed")
-		return
-	}
-
-	subscriptionOptions := []dispatch.SubscriptionOption{}
-
-	for _, p := range policies {
-		if p == advancedNotificationsXPolicy {
-			subscriptionOptions = append(subscriptionOptions, dispatch.CreateEventOption)
-			break
+		for _, p := range policies {
+			if p == advancedNotificationsXPolicy {
+				subscriptionOptions = append(subscriptionOptions, dispatch.CreateEventOption)
+				break
+			}
 		}
 	}
 
