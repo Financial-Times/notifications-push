@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -239,8 +238,7 @@ func main() {
 
 		var keyPoliciesURL *url.URL
 		var policyCheckAllowed bool
-		log.Info(fmt.Sprintf("Fetching the API_KEY_POLICIES_ENDPOINT from helm config %s", *apiKeyPoliciesEndpoint))
-		if apiKeyPoliciesEndpoint != nil {
+		if apiKeyPoliciesEndpoint != nil && *apiKeyPoliciesEndpoint != "" {
 			keyPoliciesURL, err = url.Parse(*apiKeyPoliciesEndpoint)
 			if err != nil {
 				log.WithError(err).Fatal("cannot parse api_key_policies_endpoint")
