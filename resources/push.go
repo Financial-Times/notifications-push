@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -47,6 +46,7 @@ type SubHandler struct {
 	contentTypesIncludedInAll []string
 	contentTypesSupported     []string
 	defaultSubscriptionType   string
+	policyCheckAllowed        bool
 }
 
 func NewSubHandler(n notifier,
@@ -57,6 +57,7 @@ func NewSubHandler(n notifier,
 	contentTypesIncludedInAll []string,
 	contentTypesSupported []string,
 	defaultSubscriptionType string,
+	policyCheckAllowed bool,
 ) *SubHandler {
 	return &SubHandler{
 		notif:                     n,
@@ -67,6 +68,7 @@ func NewSubHandler(n notifier,
 		contentTypesIncludedInAll: contentTypesIncludedInAll,
 		contentTypesSupported:     contentTypesSupported,
 		defaultSubscriptionType:   defaultSubscriptionType,
+		policyCheckAllowed:        policyCheckAllowed,
 	}
 }
 
@@ -90,7 +92,7 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 	}
 
 	subscriptionOptions := []dispatch.SubscriptionOption{}
-	if _, ok := os.LookupEnv("API_KEY_POLICIES_ENDPOINT"); ok {
+	if h.policyCheckAllowed {
 		policies, err := h.keyProcessor.GetPolicies(r.Context(), apiKey)
 		if err != nil {
 			logEntry := h.log.WithError(err)
