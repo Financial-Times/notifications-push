@@ -46,6 +46,7 @@ type SubHandler struct {
 	contentTypesIncludedInAll []string
 	contentTypesSupported     []string
 	defaultSubscriptionType   string
+	policyCheckAllowed        bool
 }
 
 func NewSubHandler(n notifier,
@@ -56,6 +57,7 @@ func NewSubHandler(n notifier,
 	contentTypesIncludedInAll []string,
 	contentTypesSupported []string,
 	defaultSubscriptionType string,
+	policyCheckAllowed bool,
 ) *SubHandler {
 	return &SubHandler{
 		notif:                     n,
@@ -66,6 +68,7 @@ func NewSubHandler(n notifier,
 		contentTypesIncludedInAll: contentTypesIncludedInAll,
 		contentTypesSupported:     contentTypesSupported,
 		defaultSubscriptionType:   defaultSubscriptionType,
+		policyCheckAllowed:        policyCheckAllowed,
 	}
 }
 
@@ -88,34 +91,35 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	policies, err := h.keyProcessor.GetPolicies(r.Context(), apiKey)
-	if err != nil {
-		logEntry := h.log.WithError(err)
+	subscriptionOptions := []dispatch.SubscriptionOption{}
+	if h.policyCheckAllowed {
+		policies, err := h.keyProcessor.GetPolicies(r.Context(), apiKey)
+		if err != nil {
+			logEntry := h.log.WithError(err)
 
-		keyErr := &KeyErr{}
-		if errors.As(err, &keyErr) {
-			if keyErr.KeySuffix != "" {
-				logEntry = logEntry.WithField("apiKeyLastChars", keyErr.KeySuffix)
-			}
-			if keyErr.Description != "" {
-				logEntry = logEntry.WithField("description", keyErr.Description)
+			keyErr := &KeyErr{}
+			if errors.As(err, &keyErr) {
+				if keyErr.KeySuffix != "" {
+					logEntry = logEntry.WithField("apiKeyLastChars", keyErr.KeySuffix)
+				}
+				if keyErr.Description != "" {
+					logEntry = logEntry.WithField("description", keyErr.Description)
+				}
+
+				http.Error(w, keyErr.Msg, keyErr.Status)
+			} else {
+				http.Error(w, "Extracting API key policies failed", http.StatusInternalServerError)
 			}
 
-			http.Error(w, keyErr.Msg, keyErr.Status)
-		} else {
-			http.Error(w, "Extracting API key policies failed", http.StatusInternalServerError)
+			logEntry.Error("Extracting API key x-policies failed")
+			return
 		}
 
-		logEntry.Error("Extracting API key x-policies failed")
-		return
-	}
-
-	subscriptionOptions := []dispatch.SubscriptionOption{}
-
-	for _, p := range policies {
-		if p == advancedNotificationsXPolicy {
-			subscriptionOptions = append(subscriptionOptions, dispatch.CreateEventOption)
-			break
+		for _, p := range policies {
+			if p == advancedNotificationsXPolicy {
+				subscriptionOptions = append(subscriptionOptions, dispatch.CreateEventOption)
+				break
+			}
 		}
 	}
 

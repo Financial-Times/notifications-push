@@ -236,15 +236,20 @@ func main() {
 		}
 		keyValidateURL = baseURL.ResolveReference(keyValidateURL)
 
-		keyPoliciesURL, err := url.Parse(*apiKeyPoliciesEndpoint)
-		if err != nil {
-			log.WithError(err).Fatal("cannot parse api_key_policies_endpoint")
+		var keyPoliciesURL *url.URL
+		var policyCheckAllowed bool
+		if apiKeyPoliciesEndpoint != nil && *apiKeyPoliciesEndpoint != "" {
+			keyPoliciesURL, err = url.Parse(*apiKeyPoliciesEndpoint)
+			if err != nil {
+				log.WithError(err).Fatal("cannot parse api_key_policies_endpoint")
+			}
+			keyPoliciesURL = baseURL.ResolveReference(keyPoliciesURL)
+			policyCheckAllowed = true
 		}
-		keyPoliciesURL = baseURL.ResolveReference(keyPoliciesURL)
 
 		keyProcessor := resources.NewKeyProcessor(keyValidateURL.String(), keyPoliciesURL.String(), httpClient, log)
 		subHandler := resources.NewSubHandler(dispatcher, keyProcessor, srv, heartbeatPeriod,
-			log, *allowedAllContentType, *supportedSubscriptionType, *defaultSubscriptionType)
+			log, *allowedAllContentType, *supportedSubscriptionType, *defaultSubscriptionType, policyCheckAllowed)
 		if err != nil {
 			log.WithError(err).Fatal("Could not create request handler")
 		}
