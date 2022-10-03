@@ -6,6 +6,7 @@ import (
 
 	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/kafka-client-go/v3"
+	"github.com/Financial-Times/notifications-push/v5/dispatch"
 )
 
 var exists = struct{}{}
@@ -100,6 +101,10 @@ func (qHandler *ContentQueueHandler) HandleMessage(queueMsg kafka.FTMessage) {
 		WithField("resource", notification.APIURL).
 		WithField("notification_type", notification.Type).
 		Info("Valid notification received")
+
+	if !isE2ETest && notification.SubscriptionType == dispatch.ArticleContentType {
+		qHandler.log.WithField("eventType", notification.Type).WithField("ID", notification.ID).WithTransactionID(tid).Info("Processed article notification")
+	}
 	qHandler.dispatcher.Send(notification)
 }
 
