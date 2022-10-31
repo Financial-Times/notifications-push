@@ -1,0 +1,20 @@
+# Values used for the deployed application.
+replicaCount: 2
+service:
+  name: annotation-notifications-push
+env:
+  TOPIC: "PostConceptAnnotations"
+  NOTIFICATIONS_RESOURCE: "annotations"
+  API_URL_RESOURCE: "content"
+
+  MONITOR_NOTIFICATIONS: "false"
+  UPDATE_EVENT_TYPE: "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE"
+
+  CONTENT_URI_ALLOWLIST: "^http://(pac|next-video)\\.annotations-rw-neo4j\\.svc\\.ft\\.com/annotations/[\\w-]+.*$"
+  CONTENT_TYPE_ALLOWLIST: "application/json"
+
+  API_KEY_VALIDATION_ENDPOINT: "t800/a"
+
+  DEFAULT_SUBSCRIPTION_TYPE: "Annotations"
+  E2E_TEST_IDS: "427f2a19-2ae7-47c1-b580-c225fa0a0199"
+  PUSH_PORT: "8599"

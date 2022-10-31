@@ -17,8 +17,9 @@ resources:
 env:
   GROUP_ID: ""
   TOPIC: ""
-  METADATA_TOPIC: ""
   NOTIFICATIONS_RESOURCE: ""
-  WHITELIST: ""
-  WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS: ""
+  API_URL_RESOURCE: ""
+  MONITOR_NOTIFICATIONS: "true"
+  INCLUDE_SCOOP: "false"
   PUSH_PORT: ""
+  UPDATE_EVENT_TYPE: "http://www.ft.com/thing/ThingChangeType/UPDATE"
