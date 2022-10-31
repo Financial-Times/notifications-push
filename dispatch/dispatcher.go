@@ -154,7 +154,7 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 				entry.Info("Test notification. Skipping standard subscriber.")
 				continue
 			}
-		} else {
+		} else if notification.SubscriptionType != "" {
 			if !matchesSubType(notification, sub) {
 				skipped++
 				entry.Info("Skipping subscriber.")

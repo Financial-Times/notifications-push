@@ -9,8 +9,10 @@ import (
 
 // NotificationMapper maps CmsPublicationEvents to Notifications
 type NotificationMapper struct {
-	APIBaseURL string
-	Resource   string
+	APIBaseURL      string
+	UpdateEventType string
+	APIUrlResource  string
+	IncludeScoop    bool
 }
 
 // UUIDRegexp enables to check if a string matches a UUID
@@ -22,76 +24,50 @@ const (
 )
 
 // MapNotification maps the given event to a new notification.
-func (n NotificationMapper) MapNotification(event ContentMessage, transactionID string) (dispatch.NotificationModel, error) {
-	UUID := UUIDRegexp.FindString(event.ContentURI)
-	if UUID == "" {
+func (n NotificationMapper) MapNotification(event NotificationMessage, transactionID string) (dispatch.NotificationModel, error) {
+	uuid := UUIDRegexp.FindString(event.ContentURI)
+	if uuid == "" {
 		// nolint:golint
 		return dispatch.NotificationModel{}, fmt.Errorf("ContentURI does not contain a UUID")
 	}
-
-	var (
-		eventType   string
-		scoop       bool
-		title       string
-		contentType string
-	)
 
 	notificationPayloadMap, ok := event.Payload.(map[string]interface{})
 	if !ok {
 		return dispatch.NotificationModel{}, fmt.Errorf("invalid payload type: %T", event.Payload)
 	}
 
-	deleteFlag, _ := notificationPayloadMap[payloadDeletedKey].(bool)
+	eventType := n.UpdateEventType
+	title := getValueFromPayload("title", notificationPayloadMap)
+	contentType := getValueFromPayload("type", notificationPayloadMap)
 
-	if deleteFlag {
+	// If it's a create event.
+	publishCountStr := fmt.Sprintf("%v", notificationPayloadMap[payloadPublishCountKey])
+	if publishCountStr == "1" {
+		eventType = dispatch.ContentCreateType
+	}
+
+	// If it's a delete event.
+	if isTrue, deletedIsPresent := notificationPayloadMap[payloadDeletedKey].(bool); deletedIsPresent && isTrue {
 		eventType = dispatch.ContentDeleteType
-		contentType = resolveTypeFromMessageHeader(event.ContentTypeHeader)
-	} else {
-		eventType = dispatch.ContentUpdateType
-		publishCountStr := fmt.Sprintf("%v", notificationPayloadMap[payloadPublishCountKey])
-		if publishCountStr == "1" {
-			eventType = dispatch.ContentCreateType
-		}
-
-		title = getValueFromPayload("title", notificationPayloadMap)
-		contentType = getValueFromPayload("type", notificationPayloadMap)
-		scoop = getScoopFromPayload(notificationPayloadMap)
+		contentType = resolveTypeFromMessageHeader(event.ContentType)
 	}
 
-	var standout *dispatch.Standout
-	if contentType != dispatch.ListType && contentType != dispatch.PageType {
-		standout = &dispatch.Standout{Scoop: scoop}
-	}
-
-	return dispatch.NotificationModel{
+	notification := dispatch.NotificationModel{
 		Type:             eventType,
-		ID:               "http://www.ft.com/thing/" + UUID,
-		APIURL:           n.APIBaseURL + "/" + n.Resource + "/" + UUID,
+		ID:               "http://www.ft.com/thing/" + uuid,
+		APIURL:           fmt.Sprintf("%s/%s/%s", n.APIBaseURL, n.APIUrlResource, uuid),
 		PublishReference: transactionID,
 		LastModified:     event.LastModified,
 		Title:            title,
-		Standout:         standout,
 		SubscriptionType: contentType,
-	}, nil
-}
-
-func (n NotificationMapper) MapMetadataNotification(event AnnotationsMessage, transactionID string) (dispatch.NotificationModel, error) {
-	UUID := UUIDRegexp.FindString(event.ContentURI)
-	if UUID == "" {
-		return dispatch.NotificationModel{}, fmt.Errorf("contentURI does not contain a UUID")
-	}
-	if event.Payload == nil {
-		return dispatch.NotificationModel{}, fmt.Errorf("payload missing")
 	}
 
-	return dispatch.NotificationModel{
-		Type:             dispatch.AnnotationUpdateType,
-		ID:               "http://www.ft.com/thing/" + UUID,
-		APIURL:           n.APIBaseURL + "/" + n.Resource + "/" + UUID,
-		PublishReference: transactionID,
-		SubscriptionType: dispatch.AnnotationsType,
-		LastModified:     event.LastModified,
-	}, nil
+	if n.IncludeScoop {
+		scoop := getScoopFromPayload(notificationPayloadMap)
+		notification.Standout = &dispatch.Standout{Scoop: scoop}
+	}
+
+	return notification, nil
 }
 
 func resolveTypeFromMessageHeader(contentTypeHeader string) string {

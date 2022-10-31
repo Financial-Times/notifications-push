@@ -1,6 +1,9 @@
 package consumer
 
 import (
+	"regexp"
+
+	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/kafka-client-go/v3"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 )
@@ -14,30 +17,106 @@ type notificationDispatcher interface {
 	Send(notification dispatch.NotificationModel)
 }
 
-type MessageQueueRouter struct {
-	contentHandler  MessageQueueHandler
-	metadataHandler MessageQueueHandler
+var exists = struct{}{}
+
+type Set struct {
+	m map[string]struct{}
 }
 
-func NewMessageQueueHandler(contentHandler, metadataHandler MessageQueueHandler) *MessageQueueRouter {
-	return &MessageQueueRouter{
-		contentHandler:  contentHandler,
-		metadataHandler: metadataHandler,
+func NewSet() *Set {
+	s := &Set{}
+	s.m = make(map[string]struct{})
+	return s
+}
+
+func (s *Set) Add(value string) {
+	s.m[value] = exists
+}
+
+func (s *Set) Contains(value string) bool {
+	_, c := s.m[value]
+	return c
+}
+
+type QueueHandler struct {
+	contentURIAllowlist  *regexp.Regexp
+	contentTypeAllowlist *Set
+	e2eTestUUIDs         []string
+	mapper               NotificationMapper
+	dispatcher           notificationDispatcher
+	monitorsEvents       bool
+	log                  *logger.UPPLogger
+}
+
+func NewQueueHandler(contentURIAllowlist *regexp.Regexp, contentTypeAllowlist *Set, e2eTestUUIDs []string, monitorsEvents bool, mapper NotificationMapper, dispatcher notificationDispatcher, log *logger.UPPLogger) *QueueHandler {
+	return &QueueHandler{
+		contentURIAllowlist:  contentURIAllowlist,
+		contentTypeAllowlist: contentTypeAllowlist,
+		e2eTestUUIDs:         e2eTestUUIDs,
+		mapper:               mapper,
+		dispatcher:           dispatcher,
+		monitorsEvents:       monitorsEvents,
+		log:                  log,
 	}
 }
 
-func (h *MessageQueueRouter) HandleMessage(queueMsg kafka.FTMessage) {
-	if h.metadataHandler != nil && isAnnotationMessage(queueMsg.Headers) {
-		h.metadataHandler.HandleMessage(queueMsg)
+func (h *QueueHandler) HandleMessage(queueMsg kafka.FTMessage) {
+	msg := NotificationQueueMessage{queueMsg}
+	tid := msg.TransactionID()
+
+	pubEvent, err := msg.Unmarshal()
+
+	var logEntry *logger.LogEntry
+	if h.monitorsEvents {
+		logEntry = h.log.WithMonitoringEvent("NotificationsPush", tid, pubEvent.ContentType)
+	} else {
+		logEntry = h.log.WithTransactionID(tid)
+	}
+
+	if err != nil {
+		logEntry.WithError(err).Error("Failed to unmarshall kafka message")
 		return
 	}
-	h.contentHandler.HandleMessage(queueMsg)
-}
 
-func isAnnotationMessage(msgHeaders map[string]string) bool {
-	msgType, ok := msgHeaders["Message-Type"]
-	if !ok {
-		return false
+	if msg.HasCarouselTransactionID() {
+		logEntry.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: Carousel publish event.")
+		return
 	}
-	return msgType == "concept-annotation"
+
+	isE2ETest := msg.HasE2ETestTransactionID(h.e2eTestUUIDs)
+	if !isE2ETest {
+		if msg.HasSynthTransactionID() {
+			logEntry.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: Synthetic transaction ID.")
+			return
+		}
+
+		if pubEvent.ContentType == "application/json" {
+			if !pubEvent.Matches(h.contentURIAllowlist) {
+				logEntry.WithValidFlag(false).WithField("contentUri", pubEvent.ContentURI).Info("Skipping event: contentUri is not in the allowlist.")
+				return
+			}
+		} else {
+			if !h.contentTypeAllowlist.Contains(pubEvent.ContentType) {
+				logEntry.WithValidFlag(false).Info("Skipping event: contentType is not in the allowlist.")
+				return
+			}
+		}
+	}
+
+	notification, err := h.mapper.MapNotification(pubEvent, msg.TransactionID())
+	if err != nil {
+		logEntry.WithError(err).Warn("Skipping event: Cannot build notification for message.")
+		return
+	}
+	notification.IsE2ETest = isE2ETest
+
+	logEntry.
+		WithField("resource", notification.APIURL).
+		WithField("notification_type", notification.Type).
+		Info("Valid notification received")
+
+	if !isE2ETest && notification.SubscriptionType == dispatch.ArticleContentType {
+		h.log.WithField("eventType", notification.Type).WithField("ID", notification.ID).WithTransactionID(tid).Info("Processed article notification")
+	}
+	h.dispatcher.Send(notification)
 }

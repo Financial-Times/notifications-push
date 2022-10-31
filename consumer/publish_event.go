@@ -43,49 +43,27 @@ func (msg NotificationQueueMessage) TransactionID() string {
 	return msg.Headers["X-Request-Id"]
 }
 
-func (msg NotificationQueueMessage) OriginID() string {
-	return msg.Headers["Origin-System-Id"]
-}
-
-// AsContent converts the message to a CmsPublicationEvent
-func (msg NotificationQueueMessage) AsContent() (event ContentMessage, err error) {
-	err = json.Unmarshal([]byte(msg.Body), &event)
-	return event, err
-}
-
-// AsMetadata converts message to ConceptAnnotations Event
-func (msg NotificationQueueMessage) AsMetadata() (AnnotationsMessage, error) {
-	var event AnnotationsMessage
+func (msg NotificationQueueMessage) Unmarshal() (NotificationMessage, error) {
+	var event NotificationMessage
 	err := json.Unmarshal([]byte(msg.Body), &event)
-	return event, err
+	if err != nil {
+		return NotificationMessage{}, err
+	}
+
+	event.ContentType = msg.Headers["Content-Type"]
+
+	return event, nil
 }
 
-type AnnotationsMessage struct {
-	ContentURI   string       `json:"contentUri"`
-	LastModified string       `json:"lastModified"`
-	Payload      *Annotations `json:"payload"`
-}
-
-type Annotations struct {
-	ContentID   string `json:"uuid"`
-	Annotations []struct {
-		Thing struct {
-			ID        string `json:"id"`
-			Predicate string `json:"predicate"`
-		} `json:"thing"`
-	} `json:"annotations"`
-}
-
-// ContentMessage is the data structure that represents a publication event consumed from Kafka
-type ContentMessage struct {
-	ContentURI        string
-	ContentTypeHeader string
-	LastModified      string
-	Payload           interface{}
+type NotificationMessage struct {
+	ContentURI   string
+	ContentType  string
+	LastModified string
+	Payload      interface{}
 }
 
 // Matches is a method that returns True if the ContentURI of a publication event
-// matches a whitelist regexp
-func (e ContentMessage) Matches(whitelist *regexp.Regexp) bool {
-	return whitelist.MatchString(e.ContentURI)
+// matches a allowlist regexp
+func (e NotificationMessage) Matches(allowlist *regexp.Regexp) bool {
+	return allowlist.MatchString(e.ContentURI)
 }
