@@ -15,15 +15,16 @@ func TestMapToUpdateNotification(t *testing.T) {
 	standout := map[string]interface{}{"scoop": true}
 	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": "2"}
 	id, _ := uuid.NewV4()
-	event := ContentMessage{
+	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
 		LastModified: "2016-11-02T10:54:22.234Z",
 		Payload:      payload,
 	}
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "list",
+		APIBaseURL:      "test.api.ft.com",
+		UpdateEventType: "http://www.ft.com/thing/ThingChangeType/UPDATE",
+		IncludeScoop:    true,
 	}
 
 	n, err := mapper.MapNotification(event, "tid_test1")
@@ -39,17 +40,18 @@ func TestMapToCreateNotification(t *testing.T) {
 	t.Parallel()
 
 	standout := map[string]interface{}{"scoop": true}
-	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": "1"}
+	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": 1}
 	id, _ := uuid.NewV4()
-	event := ContentMessage{
+	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
 		LastModified: "2016-11-02T10:54:22.234Z",
 		Payload:      payload,
 	}
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "list",
+		APIBaseURL:     "test.api.ft.com",
+		APIUrlResource: "list",
+		IncludeScoop:   true,
 	}
 
 	n, err := mapper.MapNotification(event, "tid_test1")
@@ -66,15 +68,16 @@ func TestMapToUpdateNotification_ForContentWithVersion3UUID(t *testing.T) {
 
 	payload := map[string]interface{}{}
 
-	event := ContentMessage{
+	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + uuid.NewV3(uuid.UUID{}, "id").String(),
 		LastModified: "2016-11-02T10:54:22.234Z",
 		Payload:      payload,
 	}
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "list",
+		APIBaseURL:      "test.api.ft.com",
+		APIUrlResource:  "list",
+		UpdateEventType: "http://www.ft.com/thing/ThingChangeType/UPDATE",
 	}
 
 	n, err := mapper.MapNotification(event, "tid_test1")
@@ -87,7 +90,7 @@ func TestMapToUpdateNotification_ForContentWithVersion3UUID(t *testing.T) {
 func TestMapToDeleteNotification(t *testing.T) {
 	t.Parallel()
 	id, _ := uuid.NewV4()
-	event := ContentMessage{
+	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah/" + id.String(),
 		LastModified: "2016-11-02T10:54:22.234Z",
 		Payload: map[string]interface{}{
@@ -96,8 +99,8 @@ func TestMapToDeleteNotification(t *testing.T) {
 	}
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "list",
+		APIBaseURL:     "test.api.ft.com",
+		APIUrlResource: "list",
 	}
 
 	n, err := mapper.MapNotification(event, "tid_test1")
@@ -109,16 +112,16 @@ func TestMapToDeleteNotification(t *testing.T) {
 func TestMapToDeleteNotification_ContentTypeHeader(t *testing.T) {
 	t.Parallel()
 	id, _ := uuid.NewV4()
-	event := ContentMessage{
-		ContentURI:        "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah/" + id.String(),
-		LastModified:      "2016-11-02T10:54:22.234Z",
-		ContentTypeHeader: "application/vnd.ft-upp-article-internal+json",
-		Payload:           map[string]interface{}{"deleted": true},
+	event := NotificationMessage{
+		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah/" + id.String(),
+		LastModified: "2016-11-02T10:54:22.234Z",
+		ContentType:  "application/vnd.ft-upp-article-internal+json",
+		Payload:      map[string]interface{}{"deleted": true},
 	}
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "list",
+		APIBaseURL:     "test.api.ft.com",
+		APIUrlResource: "list",
 	}
 
 	n, err := mapper.MapNotification(event, "tid_test1")
@@ -132,7 +135,7 @@ func TestNotificationMapper_MapNotification_Page(t *testing.T) {
 	t.Parallel()
 
 	id, _ := uuid.NewV4()
-	event := ContentMessage{
+	event := NotificationMessage{
 		ContentURI: "http://upp-notifications-creator.svc.ft.com/content/" + id.String(),
 		Payload: map[string]interface{}{
 			"title": "Page title",
@@ -141,8 +144,9 @@ func TestNotificationMapper_MapNotification_Page(t *testing.T) {
 	}
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "pages",
+		APIBaseURL:      "test.api.ft.com",
+		UpdateEventType: "http://www.ft.com/thing/ThingChangeType/UPDATE",
+		APIUrlResource:  "pages",
 	}
 
 	notification, err := mapper.MapNotification(event, "tid_test1")
@@ -158,15 +162,15 @@ func TestNotificationMapper_MapNotification_Page(t *testing.T) {
 func TestNotificationMappingFailure(t *testing.T) {
 	t.Parallel()
 
-	event := ContentMessage{
+	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah",
 		LastModified: "2016-11-02T10:54:22.234Z",
 		Payload:      map[string]interface{}{},
 	}
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "list",
+		APIBaseURL:     "test.api.ft.com",
+		APIUrlResource: "list",
 	}
 
 	_, err := mapper.MapNotification(event, "tid_test1")
@@ -179,15 +183,17 @@ func TestNotificationMappingFieldsNotExtractedFromPayload(t *testing.T) {
 
 	payload := map[string]interface{}{"foo": "bar"}
 	id, _ := uuid.NewV4()
-	event := ContentMessage{
+	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
 		LastModified: "2016-11-02T10:54:22.234Z",
 		Payload:      payload,
 	}
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "list",
+		APIBaseURL:      "test.api.ft.com",
+		APIUrlResource:  "list",
+		UpdateEventType: "http://www.ft.com/thing/ThingChangeType/UPDATE",
+		IncludeScoop:    true,
 	}
 
 	n, err := mapper.MapNotification(event, "tid_test1")
@@ -203,22 +209,24 @@ func TestNotificationMappingMetadata(t *testing.T) {
 	t.Parallel()
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "content",
+		APIBaseURL:      "test.api.ft.com",
+		UpdateEventType: "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE",
+		APIUrlResource:  "content",
 	}
 
 	testTID := "tid_test"
 
 	tests := map[string]struct {
-		Event    AnnotationsMessage
+		Event    NotificationMessage
 		HasError bool
 		Expected dispatch.NotificationModel
 	}{
 		"Success": {
-			Event: AnnotationsMessage{
+			Event: NotificationMessage{
 				ContentURI:   "http://annotations-rw-neo4j.svc.ft.com/annotations/d1b430b9-0ce2-4b85-9c7b-5b700e8519fe",
 				LastModified: "2019-11-10T14:34:25.209Z",
-				Payload:      &Annotations{ContentID: "d1b430b9-0ce2-4b85-9c7b-5b700e8519fe"},
+				Payload:      map[string]interface{}{"ContentID": "d1b430b9-0ce2-4b85-9c7b-5b700e8519fe"},
+				ContentType:  "application/json",
 			},
 			Expected: dispatch.NotificationModel{
 				APIURL:           "test.api.ft.com/content/d1b430b9-0ce2-4b85-9c7b-5b700e8519fe",
@@ -226,18 +234,18 @@ func TestNotificationMappingMetadata(t *testing.T) {
 				Type:             dispatch.AnnotationUpdateType,
 				PublishReference: testTID,
 				LastModified:     "2019-11-10T14:34:25.209Z",
-				SubscriptionType: dispatch.AnnotationsType,
+				SubscriptionType: "",
 			},
 		},
 		"Invalid UUID in contentURI": {
-			Event: AnnotationsMessage{
+			Event: NotificationMessage{
 				ContentURI:   "http://annotations-rw-neo4j.svc.ft.com/annotations/invalid-uuid",
 				LastModified: "2019-11-10T14:34:25.209Z",
 			},
 			HasError: true,
 		},
 		"Missing payload": {
-			Event: AnnotationsMessage{
+			Event: NotificationMessage{
 				ContentURI:   "http://annotations-rw-neo4j.svc.ft.com/annotations/d1b430b9-0ce2-4b85-9c7b-5b700e8519fe",
 				LastModified: "2019-11-10T14:34:25.209Z",
 				Payload:      nil,
@@ -251,7 +259,7 @@ func TestNotificationMappingMetadata(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			n, err := mapper.MapMetadataNotification(test.Event, testTID)
+			n, err := mapper.MapNotification(test.Event, testTID)
 			if test.HasError {
 				assert.Error(t, err)
 				return
@@ -269,15 +277,16 @@ func TestNotificationMappingEmptyStandoutForLists(t *testing.T) {
 	var standout *dispatch.Standout
 	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "List"}
 	id, _ := uuid.NewV4()
-	event := ContentMessage{
+	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
 		LastModified: "2016-11-02T10:54:22.234Z",
 		Payload:      payload,
 	}
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "lists",
+		APIBaseURL:      "test.api.ft.com",
+		UpdateEventType: "http://www.ft.com/thing/ThingChangeType/UPDATE",
+		APIUrlResource:  "lists",
 	}
 
 	n, err := mapper.MapNotification(event, "tid_test1")
@@ -298,15 +307,16 @@ func TestNotificationMappingEmptyStandoutForPages(t *testing.T) {
 	var standout *dispatch.Standout
 	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Page"}
 	id, _ := uuid.NewV4()
-	event := ContentMessage{
+	event := NotificationMessage{
 		ContentURI:   "http://upp-notifications-creator.svc.ft.com/content/e" + id.String(),
 		LastModified: "2016-11-02T10:54:22.234Z",
 		Payload:      payload,
 	}
 
 	mapper := NotificationMapper{
-		APIBaseURL: "test.api.ft.com",
-		Resource:   "pages",
+		APIBaseURL:      "test.api.ft.com",
+		UpdateEventType: "http://www.ft.com/thing/ThingChangeType/UPDATE",
+		APIUrlResource:  "pages",
 	}
 
 	n, err := mapper.MapNotification(event, "tid_test1")

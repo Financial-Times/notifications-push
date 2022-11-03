@@ -38,6 +38,7 @@ var n2 = NotificationModel{
 	Type:             "http://www.ft.com/thing/ThingChangeType/DELETE",
 	PublishReference: "tid_test2",
 	LastModified:     "2016-11-02T10:55:24.244Z",
+	SubscriptionType: "Article",
 }
 
 var annNotif = NotificationModel{
@@ -45,7 +46,7 @@ var annNotif = NotificationModel{
 	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
 	Type:             "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE",
 	PublishReference: "tid_test3",
-	SubscriptionType: "Annotations",
+	SubscriptionType: "",
 }
 
 var e2eTestNotification = NotificationModel{
@@ -131,9 +132,9 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	notBefore := time.Now()
 	d.Send(n1)
 	// sleep for ensuring that notifications come in the order they are send.
-	<-time.After(time.Millisecond * 20)
+	<-time.After(time.Millisecond * 1000)
 	d.Send(n2)
-	<-time.After(time.Millisecond * 20)
+	<-time.After(time.Millisecond * 1000)
 	d.Send(annNotif)
 
 	actualN2StdMsg := <-s.Notifications()
