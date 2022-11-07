@@ -4,7 +4,7 @@ notifications-push
 [![CircleCI](https://circleci.com/gh/Financial-Times/notifications-push.svg?style=svg)](https://circleci.com/gh/Financial-Times/notifications-push) [![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/notifications-push)](https://goreportcard.com/report/github.com/Financial-Times/notifications-push) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/notifications-push/badge.svg)](https://coveralls.io/github/Financial-Times/notifications-push)
 
 Notifications-push is a microservice that provides push notifications of publications or changes of articles and lists of content.
-The microservice consumes a specific Apache Kafka topic group, then it pushes a notification for each article or list available in the consumed Kafka messages.
+The microservice consumes a specific Kafka (MSK) topic group, then it pushes a notification depending on the subscription type of the user.
 
 How to Build & Run the binary
 -----------------------------
@@ -19,57 +19,69 @@ go install
 ```
 2. Run locally:
 
-* Create tunnel to the Kafka service inside the cluster for ports 2181 and 9092 (use the public IP):
-```
-kubectl port-forward service/kafka-zookeeper 2181
-kubectl port-forward kafka-0 9092
-```
-
-* Add the private DNS of the Kafka machine to the hosts file:
-```
-127.0.0.1       <private_dns> 
-```
+* Create a tunnel for kafka to your local machine, self host a kafka or run a kafka instance in a docker image.
 
 * Start the service using environment variables:
 
   For content push notifications:
 ```
 export NOTIFICATIONS_RESOURCE=content \
-    && export KAFKA_ADDRS=localhost:2181 \
+    && export API_URL_RESOURCE=content \
+    && export KAFKA_ADDRESS=localhost:9092 \
     && export GROUP_ID=notifications-push-yourtest \
     && export TOPIC=PostPublicationEvents \
     && export NOTIFICATIONS_DELAY=10 \
     && export API_BASE_URL="http://api.ft.com" \
-    && export CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
-    && export CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
+    && export CONTENT_TYPE_ALLOWLIST="application/vnd.ft-upp-article-internal+json,application/vnd.ft-upp-audio+json,application/vnd.ft-upp-live-blog-post-internal+json,application/vnd.ft-upp-live-blog-package-internal+json" \
+    && export CONTENT_URI_ALLOWLIST="^http://(content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder)?(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$" \
     && export ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
-    && export SUPPORTED_SUBSCRIPTION_TYPE="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content"
-    && export DEFAULT_SUBSCRIPTION_TYPE="Article"
+    && export SUPPORTED_SUBSCRIPTION_TYPE="Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content" \
+    && export DEFAULT_SUBSCRIPTION_TYPE="Article" \
     && ./notifications-push
 ``` 
 or for list push notifications:   
 ```
 export NOTIFICATIONS_RESOURCE=lists \
-    && export KAFKA_ADDRS=localhost:2181 \
+    && export API_URL_RESOURCE=lists \
+    && export KAFKA_ADDRESS=localhost:9092 \
     && export GROUP_ID=notifications-push-yourtest \
     && export TOPIC=PostPublicationEvents \
     && export NOTIFICATIONS_DELAY=10 \
     && export API_BASE_URL="http://api.ft.com" \
-    && export CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-list+json" \
-    && export DEFAULT_SUBSCRIPTION_TYPE="List"
+    && export CONTENT_TYPE_ALLOWLIST="application/vnd.ft-upp-list+json" \
+    && export CONTENT_URI_ALLOWLIST="$." \
+    && export DEFAULT_SUBSCRIPTION_TYPE="List" \
     && ./notifications-push
 ```
 
 or for pages push notifications: 
 ```
 export NOTIFICATIONS_RESOURCE=pages \
-    && export KAFKA_ADDRS=localhost:2181 \
+    && export API_URL_RESOURCE=pages \
+    && export KAFKA_ADDRESS=localhost:9092 \
     && export GROUP_ID=notifications-push-yourtest \
     && export TOPIC=PostPublicationEvents \
     && export NOTIFICATIONS_DELAY=10 \
     && export API_BASE_URL="http://api.ft.com" \
-    && export CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-page+json" \
-    && export DEFAULT_SUBSCRIPTION_TYPE="Page"
+    && export CONTENT_TYPE_ALLOWLIST="application/vnd.ft-upp-page+json" \
+    && export CONTENT_URI_ALLOWLIST="$." \
+    && export DEFAULT_SUBSCRIPTION_TYPE="Page" \
+    && ./notifications-push
+```
+
+or for annotations push notifications:
+```
+export NOTIFICATIONS_RESOURCE=annotations \
+    && export API_URL_RESOURCE=content \
+    && export MONITOR_NOTIFICATIONS=false \
+    && export KAFKA_ADDRESS=localhost:9092 \
+    && export GROUP_ID=notifications-push-yourtest \
+    && export TOPIC=PostConceptAnnotations \
+    && export NOTIFICATIONS_DELAY=10 \
+    && export API_BASE_URL="http://api.ft.com" \
+    && export CONTENT_TYPE_ALLOWLIST="application/json" \
+    && export CONTENT_URI_ALLOWLIST="^http://(pac|next-video)\\.annotations-rw-neo4j\\.svc\\.ft\\.com/annotations/[\\w-]+.*$" \
+    && export DEFAULT_SUBSCRIPTION_TYPE="Annotations" \
     && ./notifications-push
 ```
 
@@ -78,14 +90,14 @@ export NOTIFICATIONS_RESOURCE=pages \
 ```
 ./notifications-push \
     --notifications_resource="content" \
-    --consumer_addr="localhost:2181" \
+    --consumer_addr="localhost:9092" \
     --consumer_group_id="notifications-push" \
     --topic="PostPublicationEvents" \
     --notifications_delay=10 \
     --api_base_url="http://api.ft.com" \
     --api_key_validation_endpoint="t800/a" \
-    --content_type_whitelist="application/vnd.ft-upp-article+json" --content_type_whitelist="application/vnd.ft-upp-content-package+json" \
-    --content_uri_whitelist="^http://(methode|wordpress|content)-(article|collection|content-placeholder)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
+    --content_type_allowlist="application/vnd.ft-upp-article+json" \
+    --content_uri_allowlist="^http://(content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder)?(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$" \
     --allowed_all_contentType="Article,ContentPackage,Audio" \
     --supported_subscription_type="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content"
     --default_subscription_type="Article"
@@ -108,8 +120,7 @@ The following subscription types could be also specified for which the client wo
 * `Audio`
 * `LiveBlogPackage`
 * `LiveBlogPost`
-* `All`- all content changes (Article, ContentPackage, Audio, Content), but not Annotation, LiveBlogPackage and LiveBlogPost changes.
-* `Annotations` - notifications for manual annotation changes
+* `All`- all content changes (Article, ContentPackage, Audio, Content), but not LiveBlogPackage and LiveBlogPost changes.
 
 If not specified, by default `Article` is used. If an invalid type is requested an HTTP 400 Bad Request is returned.
 
@@ -178,10 +189,10 @@ The empty `[]` lines are heartbeats. Notifications-push will send a heartbeat ev
 ### Annotations Push Stream
 
 ```
-curl -i --header "x-api-key: «api_key»" https://api.ft.com/content/notifications-push?type=Annotations
+curl -i --header "x-api-key: «api_key»" https://api.ft.com/annotations/notifications-push
 ```
 
-By opening a HTTP connection with a GET method to the `/content/notifications-push?type=Annotations` endpoint, subscribers can consume the notifications push stream for annotation changes. The stream will look similar to the content one.
+By opening a HTTP connection with a GET method to the `/annotations/notifications-push` endpoint, subscribers can consume the notifications push stream for annotation changes. The stream will look similar to the content one, with the exception that notification types are `ANNOTATIONS_UPDATE` instead of `UPDATE`
 
 #### Message format
 
@@ -283,13 +294,13 @@ How to Build & Run with Docker
     docker build -t coco/notifications-push .
 
     docker run --env NOTIFICATIONS_RESOURCE=content \
-        --env KAFKA_ADDRS=localhost:2181 \
+        --env KAFKA_ADDRESS=localhost:9092 \
         --env GROUP_ID="notifications-push-yourtest" \
         --env TOPIC="PostPublicationEvents" \
         --env NOTIFICATIONS_DELAY=10 \
         --env API_BASE_URL="http://api.ft.com" \
-        --env CONTENT_TYPE_WHITELIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
-        --env CONTENT_URI_WHITELIST="^http://(methode|wordpress|content)-(article|collection)-(transformer|mapper|unfolder)(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content)/[\\w-]+.*$" \
+        --env CONTENT_TYPE_ALLOWLIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-content-package+json" \
+        --env CONTENT_URI_ALLOWLIST="^http://(content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder)?(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$" \
         --env ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
         --env SUPPORTED_SUBSCRIPTION_TYPE="Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content" \
         --env DEFAULT_SUBSCRIPTION_TYPE="Article" \
