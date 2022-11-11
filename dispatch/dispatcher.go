@@ -154,7 +154,7 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 				entry.Info("Test notification. Skipping standard subscriber.")
 				continue
 			}
-		} else if notification.SubscriptionType != "" {
+		} else {
 			if !matchesSubType(notification, sub) {
 				skipped++
 				entry.Info("Skipping subscriber.")
@@ -181,15 +181,8 @@ func matchesSubType(n NotificationModel, s Subscriber) bool {
 	}
 
 	notifType := strings.ToLower(n.SubscriptionType)
-	ann := strings.ToLower(AnnotationsType)
 
-	if n.Type == ContentDeleteType {
-		if notifType != "" {
-			return subTypes[notifType]
-		}
-		if len(subTypes) <= 1 && subTypes[ann] {
-			return false
-		}
+	if n.Type == ContentDeleteType && notifType == "" {
 		return true
 	}
 

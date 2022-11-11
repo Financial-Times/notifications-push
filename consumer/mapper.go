@@ -21,6 +21,7 @@ var UUIDRegexp = regexp.MustCompile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4
 const (
 	payloadDeletedKey      = "deleted"
 	payloadPublishCountKey = "publishCount"
+	annotationMessageType  = "concept-annotation"
 )
 
 // MapNotification maps the given event to a new notification.
@@ -39,6 +40,9 @@ func (n NotificationMapper) MapNotification(event NotificationMessage, transacti
 	eventType := n.UpdateEventType
 	title := getValueFromPayload("title", notificationPayloadMap)
 	contentType := getValueFromPayload("type", notificationPayloadMap)
+	if contentType == "" && event.MessageType == annotationMessageType {
+		contentType = dispatch.AnnotationsType
+	}
 
 	// If it's a create event.
 	publishCountStr := fmt.Sprintf("%v", notificationPayloadMap[payloadPublishCountKey])

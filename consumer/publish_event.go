@@ -51,6 +51,7 @@ func (msg NotificationQueueMessage) Unmarshal() (NotificationMessage, error) {
 	}
 
 	event.ContentType = msg.Headers["Content-Type"]
+	event.MessageType = msg.Headers["Message-Type"]
 
 	return event, nil
 }
@@ -59,6 +60,7 @@ type NotificationMessage struct {
 	ContentURI   string
 	ContentType  string
 	LastModified string
+	MessageType  string
 	Payload      interface{}
 }
 
