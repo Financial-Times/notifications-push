@@ -46,7 +46,7 @@ var annNotif = NotificationModel{
 	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
 	Type:             "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE",
 	PublishReference: "tid_test3",
-	SubscriptionType: "",
+	SubscriptionType: "Annotations",
 }
 
 var e2eTestNotification = NotificationModel{
@@ -462,17 +462,6 @@ func TestMatchesSubType(t *testing.T) {
 			res: true,
 		},
 		{
-			name: "test if subscriber is subscribed only for annotations and notification is of type DELETE and its content type cannot be resolved - we should NOT match it",
-			n: NotificationModel{
-				SubscriptionType: "",
-				Type:             ContentDeleteType,
-			},
-			s: &StandardSubscriber{
-				acceptedTypes: []string{AnnotationsType},
-			},
-			res: false,
-		},
-		{
 			name: "test if subscriber is not subscribed for annotations and notification is of type DELETE and its content type cannot be resolved - we should match it",
 			n: NotificationModel{
 				SubscriptionType: "",
@@ -480,17 +469,6 @@ func TestMatchesSubType(t *testing.T) {
 			},
 			s: &StandardSubscriber{
 				acceptedTypes: []string{ArticleContentType},
-			},
-			res: true,
-		},
-		{
-			name: "test if subscriber is subscribed for annotations and another content type AND notification is of type DELETE and its content type cannot be resolved - we should match it",
-			n: NotificationModel{
-				SubscriptionType: "",
-				Type:             ContentDeleteType,
-			},
-			s: &StandardSubscriber{
-				acceptedTypes: []string{AnnotationsType, ArticleContentType},
 			},
 			res: true,
 		},

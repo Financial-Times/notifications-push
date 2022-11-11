@@ -227,6 +227,7 @@ func TestNotificationMappingMetadata(t *testing.T) {
 				LastModified: "2019-11-10T14:34:25.209Z",
 				Payload:      map[string]interface{}{"ContentID": "d1b430b9-0ce2-4b85-9c7b-5b700e8519fe"},
 				ContentType:  "application/json",
+				MessageType:  annotationMessageType,
 			},
 			Expected: dispatch.NotificationModel{
 				APIURL:           "test.api.ft.com/content/d1b430b9-0ce2-4b85-9c7b-5b700e8519fe",
@@ -234,7 +235,7 @@ func TestNotificationMappingMetadata(t *testing.T) {
 				Type:             dispatch.AnnotationUpdateType,
 				PublishReference: testTID,
 				LastModified:     "2019-11-10T14:34:25.209Z",
-				SubscriptionType: "",
+				SubscriptionType: dispatch.AnnotationsType,
 			},
 		},
 		"Invalid UUID in contentURI": {
