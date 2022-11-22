@@ -65,7 +65,7 @@ func initRouter(r *mux.Router,
 	r.HandleFunc("/__history", resources.History(h, log)).Methods("GET")
 }
 
-func createConsumer(log *logger.UPPLogger, address, groupID string, topics []string, lagTolerance int) *kafka.Consumer {
+func createConsumer(log *logger.UPPLogger, address, groupID string, topic string, lagTolerance int) *kafka.Consumer {
 	consumerConfig := kafka.ConsumerConfig{
 		BrokersConnectionString: address,
 		ConsumerGroup:           groupID,
@@ -73,11 +73,12 @@ func createConsumer(log *logger.UPPLogger, address, groupID string, topics []str
 		OffsetFetchInterval:     2 * time.Minute,
 		Options:                 kafka.DefaultConsumerOptions(),
 	}
-	kafkaTopics := make([]*kafka.Topic, 0)
-	for _, topic := range topics {
-		kafkaTopics = append(kafkaTopics, kafka.NewTopic(topic, kafka.WithLagTolerance(int64(lagTolerance))))
+
+	kafkaTopic := []*kafka.Topic{
+		kafka.NewTopic(topic, kafka.WithLagTolerance(int64(lagTolerance))),
 	}
-	return kafka.NewConsumer(consumerConfig, kafkaTopics, log)
+
+	return kafka.NewConsumer(consumerConfig, kafkaTopic, log)
 }
 
 func createDispatcher(cacheDelay int, historySize int, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History) {
@@ -87,35 +88,33 @@ func createDispatcher(cacheDelay int, historySize int, log *logger.UPPLogger) (*
 }
 
 type msgHandlerCfg struct {
-	Resource        string
-	BaseURL         string
-	ContentURI      string
-	ContentTypes    []string
-	MetadataHeaders []string
-	E2ETestUUIDs    []string
+	BaseURL              string
+	ContentURIAllowList  string
+	ContentTypeAllowList []string
+	E2ETestUUIDs         []string
+	ShouldMonitor        bool
+	UpdateEventType      string
+	APIUrlResource       string
+	IncludeScoop         bool
 }
 
-func createMessageHandler(config msgHandlerCfg, dispatcher *dispatch.Dispatcher, log *logger.UPPLogger) (*queueConsumer.MessageQueueRouter, error) {
+func createMessageHandler(config msgHandlerCfg, dispatcher *dispatch.Dispatcher, log *logger.UPPLogger) (*queueConsumer.QueueHandler, error) {
 	mapper := queueConsumer.NotificationMapper{
-		Resource:   config.Resource,
-		APIBaseURL: config.BaseURL,
+		APIBaseURL:      config.BaseURL,
+		UpdateEventType: config.UpdateEventType,
+		APIUrlResource:  config.APIUrlResource,
+		IncludeScoop:    config.IncludeScoop,
 	}
-	whitelistR, err := regexp.Compile(config.ContentURI)
+	allowListR, err := regexp.Compile(config.ContentURIAllowList)
 	if err != nil {
-		return nil, fmt.Errorf("content whitelist regex MUST compile: %w", err)
+		return nil, fmt.Errorf("content allowlist regex MUST compile: %w", err)
 	}
-	ctWhitelist := queueConsumer.NewSet()
-	for _, value := range config.ContentTypes {
-		ctWhitelist.Add(value)
+	ctAllowList := queueConsumer.NewSet()
+	for _, value := range config.ContentTypeAllowList {
+		ctAllowList.Add(value)
 	}
 
-	contentHandler := queueConsumer.NewContentQueueHandler(whitelistR, ctWhitelist, config.E2ETestUUIDs, mapper, dispatcher, log)
-
-	var metadataHandler *queueConsumer.MetadataQueueHandler
-	if len(config.MetadataHeaders) > 0 {
-		metadataHandler = queueConsumer.NewMetadataQueueHandler(config.MetadataHeaders, mapper, dispatcher, log)
-	}
-	return queueConsumer.NewMessageQueueHandler(contentHandler, metadataHandler), nil
+	return queueConsumer.NewQueueHandler(allowListR, ctAllowList, config.E2ETestUUIDs, config.ShouldMonitor, mapper, dispatcher, log), nil
 }
 
 func requestStatusCode(ctx context.Context, url string) (int, error) {

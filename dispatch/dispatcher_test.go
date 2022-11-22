@@ -38,6 +38,7 @@ var n2 = NotificationModel{
 	Type:             "http://www.ft.com/thing/ThingChangeType/DELETE",
 	PublishReference: "tid_test2",
 	LastModified:     "2016-11-02T10:55:24.244Z",
+	SubscriptionType: "Article",
 }
 
 var annNotif = NotificationModel{
@@ -131,9 +132,9 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	notBefore := time.Now()
 	d.Send(n1)
 	// sleep for ensuring that notifications come in the order they are send.
-	<-time.After(time.Millisecond * 20)
+	<-time.After(time.Millisecond * 1000)
 	d.Send(n2)
-	<-time.After(time.Millisecond * 20)
+	<-time.After(time.Millisecond * 1000)
 	d.Send(annNotif)
 
 	actualN2StdMsg := <-s.Notifications()
@@ -461,17 +462,6 @@ func TestMatchesSubType(t *testing.T) {
 			res: true,
 		},
 		{
-			name: "test if subscriber is subscribed only for annotations and notification is of type DELETE and its content type cannot be resolved - we should NOT match it",
-			n: NotificationModel{
-				SubscriptionType: "",
-				Type:             ContentDeleteType,
-			},
-			s: &StandardSubscriber{
-				acceptedTypes: []string{AnnotationsType},
-			},
-			res: false,
-		},
-		{
 			name: "test if subscriber is not subscribed for annotations and notification is of type DELETE and its content type cannot be resolved - we should match it",
 			n: NotificationModel{
 				SubscriptionType: "",
@@ -479,17 +469,6 @@ func TestMatchesSubType(t *testing.T) {
 			},
 			s: &StandardSubscriber{
 				acceptedTypes: []string{ArticleContentType},
-			},
-			res: true,
-		},
-		{
-			name: "test if subscriber is subscribed for annotations and another content type AND notification is of type DELETE and its content type cannot be resolved - we should match it",
-			n: NotificationModel{
-				SubscriptionType: "",
-				Type:             ContentDeleteType,
-			},
-			s: &StandardSubscriber{
-				acceptedTypes: []string{AnnotationsType, ArticleContentType},
 			},
 			res: true,
 		},

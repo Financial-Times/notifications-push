@@ -181,15 +181,8 @@ func matchesSubType(n NotificationModel, s Subscriber) bool {
 	}
 
 	notifType := strings.ToLower(n.SubscriptionType)
-	ann := strings.ToLower(AnnotationsType)
 
-	if n.Type == ContentDeleteType {
-		if notifType != "" {
-			return subTypes[notifType]
-		}
-		if len(subTypes) <= 1 && subTypes[ann] {
-			return false
-		}
+	if n.Type == ContentDeleteType && notifType == "" {
 		return true
 	}
 

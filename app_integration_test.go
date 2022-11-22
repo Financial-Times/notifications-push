@@ -51,14 +51,14 @@ var invalidContentTypeMsg = kafka.NewFTMessage(map[string]string{
 	"X-Request-Id":      "test-publish-123",
 }, `{"payload":{"title":"Invalid type message","type":"Article","standout":{"scoop":false}},"contentUri":"invalid type/3cc23068-e501-11e9-9743-db5a370481bc","lastModified":"2019-10-02T15:13:19.52Z"}`)
 
-var annotationMsg = kafka.NewFTMessage(map[string]string{
+var invalidContentURIMsg = kafka.NewFTMessage(map[string]string{
 	"Message-Id":        "58b55a73-3074-44ed-999f-ea7ff7b48605",
 	"Message-Timestamp": "2019-10-02T15:13:26.329Z",
 	"Message-Type":      "concept-annotation",
 	"Origin-System-Id":  "http://cmdb.ft.com/systems/pac",
 	"Content-Type":      "application/json",
 	"X-Request-Id":      "test-publish-123",
-}, `{"contentUri": "http://annotations-rw-neo4j.svc.ft.com/annotations/4de8b414-c5aa-11e9-a8e9-296ca66511c9","lastModified": "2019-10-02T15:13:19.52Z","payload": {"uuid":"4de8b414-c5aa-11e9-a8e9-296ca66511c9","annotations":[{"thing":{ "id":"http://www.ft.com/thing/68678217-1d06-4600-9d43-b0e71a333c2a","predicate":"about"}}]}}`)
+}, `{"contentUri": "http://invalid.svc.ft.com/annotations/4de8b414-c5aa-11e9-a8e9-296ca66511c9","lastModified": "2019-10-02T15:13:19.52Z","payload": {"uuid":"4de8b414-c5aa-11e9-a8e9-296ca66511c9","annotations":[{"thing":{ "id":"http://www.ft.com/thing/68678217-1d06-4600-9d43-b0e71a333c2a","predicate":"about"}}]}}`)
 
 func TestPushNotifications(t *testing.T) {
 	t.Parallel()
@@ -79,11 +79,9 @@ func TestPushNotifications(t *testing.T) {
 	)
 	// message consumer vars
 	var (
-		uriWhitelist                    = `^http://(methode|wordpress-article|content)(-collection|-content-placeholder)?-(mapper|unfolder)(-pr|-iw)?(-uk-.*)?\.svc\.ft\.com(:\d{2,5})?/(content|complementarycontent)/[\w-]+.*$`
-		typeWhitelist                   = []string{"application/vnd.ft-upp-article+json", "application/vnd.ft-upp-content-package+json", "application/vnd.ft-upp-audio+json"}
-		originWhitelist                 = []string{"http://cmdb.ft.com/systems/pac", "http://cmdb.ft.com/systems/methode-web-pub", "http://cmdb.ft.com/systems/next-video-editor"}
+		uriAllowlist                    = `^http://(methode|wordpress-article|content)(-collection|-content-placeholder)?-(mapper|unfolder)(-pr|-iw)?(-uk-.*)?\.svc\.ft\.com(:\d{2,5})?/(content|complementarycontent)/[\w-]+.*$`
+		typeAllowlist                   = []string{"application/vnd.ft-upp-article+json", "application/vnd.ft-upp-content-package+json", "application/vnd.ft-upp-audio+json"}
 		expectedArticleNotificationBody = "data: [{\"apiUrl\":\"test-api/content/3cc23068-e501-11e9-9743-db5a370481bc\",\"id\":\"http://www.ft.com/thing/3cc23068-e501-11e9-9743-db5a370481bc\",\"type\":\"http://www.ft.com/thing/ThingChangeType/UPDATE\",\"title\":\"Lebanon eases dollar flow for importers as crisis grows\",\"standout\":{\"scoop\":false}}]\n\n\n"
-		expectedPACNotificationBody     = "data: [{\"apiUrl\":\"test-api/content/4de8b414-c5aa-11e9-a8e9-296ca66511c9\",\"id\":\"http://www.ft.com/thing/4de8b414-c5aa-11e9-a8e9-296ca66511c9\",\"type\":\"http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE\"}]\n\n\n"
 		sendDelay                       = time.Millisecond * 190
 	)
 
@@ -106,7 +104,7 @@ func TestPushNotifications(t *testing.T) {
 
 	keyProcessor := resources.NewKeyProcessor(server.URL+apiGatewayValidateURL, server.URL+apiGatewayPoliciesURL, http.DefaultClient, l)
 	s := resources.NewSubHandler(d, keyProcessor, reg, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-		[]string{"Annotations", "Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content"}, "Article", true)
+		[]string{"Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content"}, "Article", true)
 
 	initRouter(router, s, resource, d, h, hc, l)
 
@@ -128,7 +126,7 @@ func TestPushNotifications(t *testing.T) {
 	testClientWithNONotifications(ctx, t, server.URL, heartbeat, "Audio")
 	testClientWithNotifications(ctx, t, server.URL, "Article", expectedArticleNotificationBody)
 	testClientWithNotifications(ctx, t, server.URL, "All", expectedArticleNotificationBody)
-	testClientWithNotifications(ctx, t, server.URL, "Annotations", expectedPACNotificationBody)
+	testClientShouldNotReceiveNotification(ctx, t, server.URL, "ContentPackage", expectedArticleNotificationBody)
 	reg.AssertNumberOfCalls(t, "RegisterOnShutdown", 4)
 
 	// message producer
@@ -137,19 +135,19 @@ func TestPushNotifications(t *testing.T) {
 			articleMsg,
 			syntheticMsg,
 			invalidContentTypeMsg,
-			annotationMsg,
+			invalidContentURIMsg,
 		}
 		var buff bytes.Buffer
-		logger := logger.NewUnstructuredLogger()
-		logger.SetOutput(&buff)
-		queue := createMsgQueue(t, uriWhitelist, typeWhitelist, originWhitelist, resource, "test-api", d, logger)
+		log := logger.NewUnstructuredLogger()
+		log.SetOutput(&buff)
+		queueHandler := createMsgQueue(t, uriAllowlist, typeAllowlist, resource, "test-api", d, log)
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-time.After(sendDelay):
 				for _, msg := range msgs {
-					queue.HandleMessage(msg)
+					queueHandler.HandleMessage(msg)
 					buffMessage := buff.String()
 					if !assert.NotContains(t, buffMessage, "error") {
 						return
@@ -282,6 +280,26 @@ func testClientWithNotifications(ctx context.Context, t *testing.T, serverURL st
 	}()
 }
 
+// Tests a subscriber should not receive a notification
+func testClientShouldNotReceiveNotification(ctx context.Context, t *testing.T, serverURL string, subType string, expectedBody string) {
+	ch, err := startSubscriber(ctx, serverURL, subType)
+	assert.NoError(t, err)
+
+	go func() {
+		body := <-ch
+		assert.Equal(t, "data: []\n\n", body, "Client with type '%s' expects to receive heartbeat message when connecting to the service.", subType)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case body = <-ch:
+				assert.NotEqual(t, expectedBody, body, "Client with type '%s' received a notification when they shouldn't", subType)
+			}
+		}
+	}()
+}
+
 // Tests a subscriber that expects only heartbeats
 func testClientWithNONotifications(ctx context.Context, t *testing.T, serverURL string, heartbeat time.Duration, subType string) {
 
@@ -351,20 +369,20 @@ func startDispatcher(delay time.Duration, historySize int, log *logger.UPPLogger
 	return d, h
 }
 
-func createMsgQueue(t *testing.T, uriWhitelist string, typeWhitelist []string, originWhitelist []string, resource string, apiURL string, d *dispatch.Dispatcher, log *logger.UPPLogger) consumer.MessageQueueHandler {
+func createMsgQueue(t *testing.T, uriAllowlist string, typeAllowlist []string, resource string, apiURL string, d *dispatch.Dispatcher, log *logger.UPPLogger) consumer.MessageQueueHandler {
 	set := consumer.NewSet()
-	for _, value := range typeWhitelist {
+	for _, value := range typeAllowlist {
 		set.Add(value)
 	}
-	reg, err := regexp.Compile(uriWhitelist)
+	reg, err := regexp.Compile(uriAllowlist)
 	assert.NoError(t, err)
 
 	mapper := consumer.NotificationMapper{
-		Resource:   resource,
-		APIBaseURL: apiURL,
+		APIBaseURL:      apiURL,
+		APIUrlResource:  resource,
+		UpdateEventType: "http://www.ft.com/thing/ThingChangeType/UPDATE",
+		IncludeScoop:    true,
 	}
-	contentHandler := consumer.NewContentQueueHandler(reg, set, nil, mapper, d, log)
-	metadataHandler := consumer.NewMetadataQueueHandler(originWhitelist, mapper, d, log)
 
-	return consumer.NewMessageQueueHandler(contentHandler, metadataHandler)
+	return consumer.NewQueueHandler(reg, set, nil, true, mapper, d, log)
 }

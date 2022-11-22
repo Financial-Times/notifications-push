@@ -79,17 +79,11 @@ func main() {
 		Desc:   "The API Gateway healthcheck endpoint",
 		EnvVar: "API_HEALTHCHECK_ENDPOINT",
 	})
-	contentTopic := app.String(cli.StringOpt{
+	kafkaTopic := app.String(cli.StringOpt{
 		Name:   "topic",
 		Value:  "",
 		Desc:   "Kafka topic to read from.",
 		EnvVar: "TOPIC",
-	})
-	metadataTopic := app.String(cli.StringOpt{
-		Name:   "metadata_topic",
-		Value:  "",
-		Desc:   "Kafka topic for annotation changes.",
-		EnvVar: "METADATA_TOPIC",
 	})
 	port := app.Int(cli.IntOpt{
 		Name:   "port",
@@ -109,25 +103,18 @@ func main() {
 		Desc:   "The time to delay each notification before forwarding to any subscribers (in seconds).",
 		EnvVar: "NOTIFICATIONS_DELAY",
 	})
-	contentURIWhitelist := app.String(cli.StringOpt{
-		Name:   "content_uri_whitelist",
+	contentURIAllowList := app.String(cli.StringOpt{
+		Name:   "contentURIAllowList",
 		Value:  "",
-		Desc:   `The contentURI whitelist for incoming notifications - i.e. ^http://.*-transformer-(pr|iw)-uk-.*\.svc\.ft\.com(:\d{2,5})?/content/[\w-]+.*$`,
-		EnvVar: "CONTENT_URI_WHITELIST",
+		Desc:   `The contentURI allowlist for incoming notifications - i.e. ^http://.*-transformer-(pr|iw)-uk-.*\.svc\.ft\.com(:\d{2,5})?/content/[\w-]+.*$`,
+		EnvVar: "CONTENT_URI_ALLOWLIST",
 	})
-	contentTypeWhitelist := app.Strings(cli.StringsOpt{
-		Name:   "content_type_whitelist",
+	contentTypeAllowlist := app.Strings(cli.StringsOpt{
+		Name:   "content_type_allowlist",
 		Value:  []string{},
-		Desc:   `Comma-separated list of whitelisted ContentTypes for incoming notifications - i.e. application/vnd.ft-upp-article+json,application/vnd.ft-upp-audio+json`,
-		EnvVar: "CONTENT_TYPE_WHITELIST",
+		Desc:   `Comma-separated list of allowlisted ContentTypes for incoming notifications - i.e. application/vnd.ft-upp-article+json,application/vnd.ft-upp-audio+json`,
+		EnvVar: "CONTENT_TYPE_ALLOWLIST",
 	})
-	whitelistedMetadataOriginSystemHeaders := app.Strings(cli.StringsOpt{
-		Name:   "whitelistedMetadataOriginSystemHeaders",
-		Value:  []string{},
-		Desc:   "Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue.",
-		EnvVar: "WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS",
-	})
-
 	logLevel := app.String(cli.StringOpt{
 		Name:   "logLevel",
 		Value:  "INFO",
@@ -163,24 +150,46 @@ func main() {
 		EnvVar: "E2E_TEST_IDS",
 	})
 
+	shouldMonitor := app.Bool(cli.BoolOpt{
+		Name:   "shouldMonitor",
+		Value:  true,
+		Desc:   "Specifies if the messages be monitored by PAM and NPM.",
+		EnvVar: "MONITOR_NOTIFICATIONS",
+	})
+
+	updateEventType := app.String(cli.StringOpt{
+		Name:   "updateEventType",
+		Value:  "http://www.ft.com/thing/ThingChangeType/UPDATE",
+		Desc:   "Specifies the update event type.",
+		EnvVar: "UPDATE_EVENT_TYPE",
+	})
+
+	apiURLResource := app.String(cli.StringOpt{
+		Name:   "apiURLResource",
+		Value:  "",
+		Desc:   "Specifies the resource in the apiUrl in the notification.",
+		EnvVar: "API_URL_RESOURCE",
+	})
+
+	includeScoop := app.Bool(cli.BoolOpt{
+		Name:   "includeScoop",
+		Value:  false,
+		Desc:   "Should the standout scoop field be included in the response.",
+		EnvVar: "INCLUDE_SCOOP",
+	})
+
 	log := logger.NewUPPLogger(serviceName, *logLevel)
 
 	app.Action = func() {
 		log.WithFields(map[string]interface{}{
-			"CONTENT_TOPIC":  *contentTopic,
-			"METADATA_TOPIC": *metadataTopic,
-			"GROUP_ID":       *consumerGroupID,
-			"KAFKA_ADDRESS":  *consumerAddress,
-			"LAG_TOLERANCE":  *consumerLagTolerance,
-			"E2E_TEST_IDS":   *e2eTestUUIDs,
+			"KAFKA_TOPIC":   *kafkaTopic,
+			"GROUP_ID":      *consumerGroupID,
+			"KAFKA_ADDRESS": *consumerAddress,
+			"LAG_TOLERANCE": *consumerLagTolerance,
+			"E2E_TEST_IDS":  *e2eTestUUIDs,
 		}).Infof("[Startup] notifications-push is starting ")
 
-		kafkaTopics := []string{*contentTopic}
-		if *metadataTopic != "" {
-			kafkaTopics = append(kafkaTopics, *metadataTopic)
-		}
-
-		kafkaConsumer := createConsumer(log, *consumerAddress, *consumerGroupID, kafkaTopics, *consumerLagTolerance)
+		kafkaConsumer := createConsumer(log, *consumerAddress, *consumerGroupID, *kafkaTopic, *consumerLagTolerance)
 
 		httpClient := &http.Client{
 			Transport: &http.Transport{
@@ -217,12 +226,14 @@ func main() {
 		dispatcher, history := createDispatcher(*delay, *historySize, log)
 
 		msgConfig := msgHandlerCfg{
-			Resource:        *resource,
-			BaseURL:         *apiBaseURL,
-			ContentURI:      *contentURIWhitelist,
-			ContentTypes:    *contentTypeWhitelist,
-			MetadataHeaders: *whitelistedMetadataOriginSystemHeaders,
-			E2ETestUUIDs:    *e2eTestUUIDs,
+			BaseURL:              *apiBaseURL,
+			ContentURIAllowList:  *contentURIAllowList,
+			ContentTypeAllowList: *contentTypeAllowlist,
+			E2ETestUUIDs:         *e2eTestUUIDs,
+			ShouldMonitor:        *shouldMonitor,
+			UpdateEventType:      *updateEventType,
+			APIUrlResource:       *apiURLResource,
+			IncludeScoop:         *includeScoop,
 		}
 
 		queueHandler, err := createMessageHandler(msgConfig, dispatcher, log)
