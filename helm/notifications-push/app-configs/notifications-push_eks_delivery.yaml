@@ -7,7 +7,7 @@ env:
   NOTIFICATIONS_RESOURCE: "content"
   API_URL_RESOURCE: "content"
   CONTENT_URI_ALLOWLIST: "^http://(content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder)?(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$"
-  CONTENT_TYPE_ALLOWLIST: "application/vnd.ft-upp-article-internal+json,application/vnd.ft-upp-audio+json,application/vnd.ft-upp-live-blog-post-internal+json,application/vnd.ft-upp-live-blog-package-internal+json"
+  CONTENT_TYPE_ALLOWLIST: "application/vnd.ft-upp-article-internal+json,application/vnd.ft-upp-audio+json,application/vnd.ft-upp-live-blog-post-internal+json,application/vnd.ft-upp-live-blog-package-internal+json,application/vnd.ft-upp-content-placeholder-internal+json"
 
   API_KEY_VALIDATION_ENDPOINT: "t800/a"
   API_KEY_POLICIES_ENDPOINT: "t800/policy"
