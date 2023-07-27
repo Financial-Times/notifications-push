@@ -11,24 +11,27 @@ import (
 	"time"
 
 	logger "github.com/Financial-Times/go-logger/v2"
+	"github.com/Financial-Times/notifications-push/v5/access"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 )
 
 const (
-	HeartbeatMsg                 = "[]"
-	apiKeyHeaderField            = "X-Api-Key"
-	apiKeyQueryParam             = "apiKey"
-	ClientAdrKey                 = "X-Forwarded-For"
-	advancedNotificationsXPolicy = "ADVANCED_NOTIFICATIONS"
+	HeartbeatMsg      = "[]"
+	apiKeyHeaderField = "X-Api-Key" // #nosec G101
+	apiKeyQueryParam  = "apiKey"    // #nosec G101
+	ClientAdrKey      = "X-Forwarded-For"
 )
 
 type keyProcessor interface {
 	Validate(ctx context.Context, key string) error
-	GetPolicies(ctx context.Context, key string) ([]string, error)
+}
+
+type policyProcessor interface {
+	GetNotificationSubscriptionOptions(ctx context.Context, k string) (*dispatch.NotificationSubscriptionOptions, error)
 }
 
 type notifier interface {
-	Subscribe(address string, subTypes []string, monitoring bool, options []dispatch.SubscriptionOption) (dispatch.Subscriber, error)
+	Subscribe(address string, subTypes []string, monitoring bool, options *dispatch.NotificationSubscriptionOptions) (dispatch.Subscriber, error)
 	Unsubscribe(subscriber dispatch.Subscriber)
 }
 
@@ -40,35 +43,35 @@ type onShutdown interface {
 type SubHandler struct {
 	notif                     notifier
 	keyProcessor              keyProcessor
+	policyProcessor           policyProcessor
 	shutdown                  onShutdown
 	heartbeatPeriod           time.Duration
 	log                       *logger.UPPLogger
 	contentTypesIncludedInAll []string
 	contentTypesSupported     []string
 	defaultSubscriptionType   string
-	policyCheckAllowed        bool
 }
 
 func NewSubHandler(n notifier,
 	keyProcessor keyProcessor,
+	policyProcessor policyProcessor,
 	shutdown onShutdown,
 	heartbeatPeriod time.Duration,
 	log *logger.UPPLogger,
 	contentTypesIncludedInAll []string,
 	contentTypesSupported []string,
 	defaultSubscriptionType string,
-	policyCheckAllowed bool,
 ) *SubHandler {
 	return &SubHandler{
 		notif:                     n,
 		keyProcessor:              keyProcessor,
+		policyProcessor:           policyProcessor,
 		shutdown:                  shutdown,
 		heartbeatPeriod:           heartbeatPeriod,
 		log:                       log,
 		contentTypesIncludedInAll: contentTypesIncludedInAll,
 		contentTypesSupported:     contentTypesSupported,
 		defaultSubscriptionType:   defaultSubscriptionType,
-		policyCheckAllowed:        policyCheckAllowed,
 	}
 }
 
@@ -82,7 +85,7 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 	apiKey := getAPIKey(r)
 	err := h.keyProcessor.Validate(r.Context(), apiKey)
 	if err != nil {
-		keyErr := &KeyErr{}
+		keyErr := &access.KeyErr{}
 		if !errors.As(err, &keyErr) {
 			http.Error(w, "Cannot stream.", http.StatusInternalServerError)
 			return
@@ -91,36 +94,29 @@ func (h *SubHandler) HandleSubscription(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	subscriptionOptions := []dispatch.SubscriptionOption{}
-	if h.policyCheckAllowed {
-		policies, err := h.keyProcessor.GetPolicies(r.Context(), apiKey)
-		if err != nil {
-			logEntry := h.log.WithError(err)
+	subscriptionOptions, err := h.policyProcessor.GetNotificationSubscriptionOptions(r.Context(), apiKey)
+	if err != nil {
+		logEntry := h.log.WithError(err)
 
-			keyErr := &KeyErr{}
-			if errors.As(err, &keyErr) {
-				if keyErr.KeySuffix != "" {
-					logEntry = logEntry.WithField("apiKeyLastChars", keyErr.KeySuffix)
-				}
-				if keyErr.Description != "" {
-					logEntry = logEntry.WithField("description", keyErr.Description)
-				}
-
-				http.Error(w, keyErr.Msg, keyErr.Status)
-			} else {
-				http.Error(w, "Extracting API key policies failed", http.StatusInternalServerError)
+		policyErr := &access.PolicyErr{}
+		if errors.As(err, &policyErr) {
+			if policyErr.KeySuffix != "" {
+				logEntry = logEntry.WithField("apiKeyLastChars", policyErr.KeySuffix)
+			}
+			if policyErr.Description != "" {
+				logEntry = logEntry.WithField("description", policyErr.Description)
 			}
 
-			logEntry.Error("Extracting API key x-policies failed")
+			http.Error(w, policyErr.Msg, policyErr.Status)
+		} else {
+			http.Error(w, "Extracting subscription options based on API Key X-Policies failed", http.StatusInternalServerError)
+
 			return
 		}
 
-		for _, p := range policies {
-			if p == advancedNotificationsXPolicy {
-				subscriptionOptions = append(subscriptionOptions, dispatch.CreateEventOption)
-				break
-			}
-		}
+		logEntry.Error("Extracting subscription options based on API Key X-Policies failed")
+
+		return
 	}
 
 	subscriptionParams, err := resolveSubType(r, h.contentTypesIncludedInAll, h.contentTypesSupported, h.defaultSubscriptionType)
@@ -241,7 +237,7 @@ func resolveSubType(r *http.Request, contentTypesIncludedInAll []string, content
 	return retVal, nil
 }
 
-//ApiKey is provided either as a request param or as a header.
+// ApiKey is provided either as a request param or as a header.
 func getAPIKey(r *http.Request) string {
 	apiKey := r.Header.Get(apiKeyHeaderField)
 	if apiKey != "" {

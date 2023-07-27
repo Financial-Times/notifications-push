@@ -8,13 +8,14 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/gorilla/mux"
+
 	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/kafka-client-go/v3"
 	queueConsumer "github.com/Financial-Times/notifications-push/v5/consumer"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/Financial-Times/notifications-push/v5/resources"
 	"github.com/Financial-Times/service-status-go/httphandlers"
-	"github.com/gorilla/mux"
 )
 
 type notificationSystem interface {

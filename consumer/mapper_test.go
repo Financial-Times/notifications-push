@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/Financial-Times/notifications-push/v5/dispatch"
 )
 
 func TestMapToUpdateNotification(t *testing.T) {

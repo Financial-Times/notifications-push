@@ -27,7 +27,7 @@ type Subscriber interface {
 	Address() string
 	Since() time.Time
 	SubTypes() []string
-	Options() []SubscriptionOption
+	Options() *NotificationSubscriptionOptions
 }
 
 type NotificationConsumer interface {
@@ -42,11 +42,11 @@ type StandardSubscriber struct {
 	addr                string
 	sinceTime           time.Time
 	acceptedTypes       []string
-	subscriberOptions   []SubscriptionOption
+	subscriberOptions   *NotificationSubscriptionOptions
 }
 
 // NewStandardSubscriber returns a new instance of a standard subscriber
-func NewStandardSubscriber(address string, subTypes []string, options []SubscriptionOption) (*StandardSubscriber, error) {
+func NewStandardSubscriber(address string, subTypes []string, options *NotificationSubscriptionOptions) (*StandardSubscriber, error) {
 	notificationChannel := make(chan string, notificationBuffer)
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *StandardSubscriber) Notifications() <-chan string {
 }
 
 // Options returns if the subscriber's options
-func (s *StandardSubscriber) Options() []SubscriptionOption {
+func (s *StandardSubscriber) Options() *NotificationSubscriptionOptions {
 	return s.subscriberOptions
 }
 
@@ -148,7 +148,7 @@ type MonitorSubscriber struct {
 	addr                string
 	sinceTime           time.Time
 	acceptedTypes       []string
-	subscriberOptions   []SubscriptionOption
+	subscriberOptions   *NotificationSubscriptionOptions
 }
 
 func (m *MonitorSubscriber) ID() string {
@@ -172,7 +172,7 @@ func (m *MonitorSubscriber) SubTypes() []string {
 }
 
 // Options returns if the subscriber's options
-func (m *MonitorSubscriber) Options() []SubscriptionOption {
+func (m *MonitorSubscriber) Options() *NotificationSubscriptionOptions {
 	return m.subscriberOptions
 }
 
@@ -192,7 +192,7 @@ func (m *MonitorSubscriber) Send(n NotificationResponse) error {
 }
 
 // NewMonitorSubscriber returns a new instance of a Monitor subscriber
-func NewMonitorSubscriber(address string, subTypes []string, options []SubscriptionOption) (*MonitorSubscriber, error) {
+func NewMonitorSubscriber(address string, subTypes []string, options *NotificationSubscriptionOptions) (*MonitorSubscriber, error) {
 	notificationChannel := make(chan string, notificationBuffer)
 	id, err := uuid.NewV4()
 	if err != nil {

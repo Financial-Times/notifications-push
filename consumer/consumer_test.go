@@ -5,12 +5,13 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/kafka-client-go/v3"
-	"github.com/Financial-Times/notifications-push/v5/mocks"
 	hooks "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/Financial-Times/go-logger/v2"
+	"github.com/Financial-Times/kafka-client-go/v3"
+	"github.com/Financial-Times/notifications-push/v5/mocks"
 )
 
 var defaultContentURIAllowlist = regexp.MustCompile(`^http://.*-transformer-(pr|iw)-uk-.*\.svc\.ft\.com(:\d{2,5})?/(lists)/[\w-]+.*$`)

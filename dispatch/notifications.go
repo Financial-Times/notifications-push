@@ -2,16 +2,15 @@ package dispatch
 
 // subscription types
 const (
-	AnnotationsType        = "Annotations"
-	ArticleContentType     = "Article"
-	ContentPackageType     = "ContentPackage"
-	AudioContentType       = "Audio"
-	LiveBlogPackageType    = "LiveBlogPackage"
-	LiveBlogPostType       = "LiveBlogPost"
-	ContentPlaceholderType = "Content"
-	PageType               = "Page"
-	AllContentType         = "All"
-	ListType               = "List"
+	AnnotationsType     = "Annotations"
+	ArticleContentType  = "Article"
+	ContentPackageType  = "ContentPackage"
+	AudioContentType    = "Audio"
+	LiveBlogPackageType = "LiveBlogPackage"
+	LiveBlogPostType    = "LiveBlogPost"
+	PageType            = "Page"
+	AllContentType      = "All"
+	ListType            = "List"
 )
 
 // notification types
@@ -21,6 +20,10 @@ const (
 	ContentDeleteType    = "http://www.ft.com/thing/ThingChangeType/DELETE"
 	AnnotationUpdateType = "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE"
 )
+
+type NotificationSubscriptionOptions struct {
+	ReceiveAdvancedNotifications bool
+}
 
 // NotificationModel model
 type NotificationModel struct {
@@ -55,18 +58,10 @@ type Standout struct {
 	Scoop bool `json:"scoop"`
 }
 
-func CreateNotificationResponse(notification NotificationModel, subscriberOptions []SubscriptionOption) NotificationResponse {
+func CreateNotificationResponse(notification NotificationModel, subscriberOptions *NotificationSubscriptionOptions) NotificationResponse {
 	notificationType := notification.Type
 
-	hasCreateEventOption := false
-	for _, o := range subscriberOptions {
-		if o == CreateEventOption {
-			hasCreateEventOption = true
-			break
-		}
-	}
-
-	if notificationType == ContentCreateType && !hasCreateEventOption {
+	if notificationType == ContentCreateType && !subscriberOptions.ReceiveAdvancedNotifications {
 		notificationType = ContentUpdateType
 	}
 

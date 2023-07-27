@@ -8,10 +8,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/notifications-push/v5/mocks"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/Financial-Times/go-logger/v2"
+	"github.com/Financial-Times/notifications-push/v5/mocks"
 )
 
 func TestHealthcheck(t *testing.T) {

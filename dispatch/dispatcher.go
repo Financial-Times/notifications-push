@@ -74,7 +74,7 @@ func (d *Dispatcher) Subscribers() []Subscriber {
 	return subs
 }
 
-func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool, options []SubscriptionOption) (Subscriber, error) {
+func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool, options *NotificationSubscriptionOptions) (Subscriber, error) {
 	var s NotificationConsumer
 	var err error
 	if monitoring {
