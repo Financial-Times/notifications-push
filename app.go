@@ -180,13 +180,6 @@ func main() {
 		EnvVar: "INCLUDE_SCOOP",
 	})
 
-	_ = app.Bool(cli.BoolOpt{
-		Name:   "exclusiveContentAccessFilteringEnabled",
-		Value:  false,
-		Desc:   "Should we apply filtering for exclusive access level",
-		EnvVar: "EXCLUSIVE_CONTENT_FILTERING",
-	})
-
 	log := logger.NewUPPLogger(serviceName, *logLevel)
 
 	app.Action = func() {
@@ -198,7 +191,10 @@ func main() {
 			"E2E_TEST_IDS":  *e2eTestUUIDs,
 		}).Infof("[Startup] notifications-push is starting ")
 
-		kafkaConsumer := createConsumer(log, *consumerAddress, *consumerGroupID, *kafkaTopic, *consumerLagTolerance)
+		kafkaConsumer, err := createConsumer(log, *consumerAddress, *consumerGroupID, *kafkaTopic, *consumerLagTolerance)
+		if err != nil {
+			log.WithError(err).Fatalf("could not create Kafka consumer for %s and topic %s", *consumerAddress, *kafkaTopic)
+		}
 
 		httpClient := &http.Client{
 			Transport: &http.Transport{

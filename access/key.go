@@ -31,7 +31,7 @@ func (kp *KeyProcessor) Validate(ctx context.Context, key string) error {
 
 	req, err := http.NewRequestWithContext(ctx, "GET", kp.url.String(), nil)
 	if err != nil {
-		//kp.log.WithField("url", kp.validationURL).WithError(err).Error("Invalid URL for api key validation")
+		kp.log.WithField("url", kp.url).WithError(err).Error("Invalid URL for api key validation")
 		return NewKeyErr("Invalid URL", http.StatusInternalServerError, "", "")
 	}
 
@@ -65,11 +65,11 @@ func (kp *KeyProcessor) logFailedRequest(resp *http.Response, keySuffix string) 
 	responseBody := ""
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		kp.log.WithField("apiKeyLastChars", keySuffix).WithError(err).Warnf("Getting API Gateway response body failed")
+		kp.log.WithField("apiKeyLastChars", keySuffix).WithError(err).Errorf("Getting API Gateway response body failed")
 	} else {
 		err = json.Unmarshal(data, &msg)
 		if err != nil {
-			kp.log.WithField("apiKeyLastChars", keySuffix).Warnf("Decoding API Gateway response body as json failed: %v", err)
+			kp.log.WithField("apiKeyLastChars", keySuffix).Errorf("Decoding API Gateway response body as json failed: %v", err)
 			responseBody = string(data[:])
 		}
 	}

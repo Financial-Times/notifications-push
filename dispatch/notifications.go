@@ -1,16 +1,19 @@
 package dispatch
 
+import "github.com/Financial-Times/notifications-push/v5/access"
+
 // subscription types
 const (
-	AnnotationsType     = "Annotations"
-	ArticleContentType  = "Article"
-	ContentPackageType  = "ContentPackage"
-	AudioContentType    = "Audio"
-	LiveBlogPackageType = "LiveBlogPackage"
-	LiveBlogPostType    = "LiveBlogPost"
-	PageType            = "Page"
-	AllContentType      = "All"
-	ListType            = "List"
+	AnnotationsType        = "Annotations"
+	ArticleContentType     = "Article"
+	ContentPackageType     = "ContentPackage"
+	AudioContentType       = "Audio"
+	LiveBlogPackageType    = "LiveBlogPackage"
+	LiveBlogPostType       = "LiveBlogPost"
+	PageType               = "Page"
+	AllContentType         = "All"
+	ListType               = "List"
+	ContentPlaceholderType = "Content"
 )
 
 // notification types
@@ -20,10 +23,6 @@ const (
 	ContentDeleteType    = "http://www.ft.com/thing/ThingChangeType/DELETE"
 	AnnotationUpdateType = "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE"
 )
-
-type NotificationSubscriptionOptions struct {
-	ReceiveAdvancedNotifications bool
-}
 
 // NotificationModel model
 type NotificationModel struct {
@@ -58,7 +57,7 @@ type Standout struct {
 	Scoop bool `json:"scoop"`
 }
 
-func CreateNotificationResponse(notification NotificationModel, subscriberOptions *NotificationSubscriptionOptions) NotificationResponse {
+func CreateNotificationResponse(notification NotificationModel, subscriberOptions *access.NotificationSubscriptionOptions) NotificationResponse {
 	notificationType := notification.Type
 
 	if notificationType == ContentCreateType && !subscriberOptions.ReceiveAdvancedNotifications {

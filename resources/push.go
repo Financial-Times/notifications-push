@@ -27,11 +27,11 @@ type keyProcessor interface {
 }
 
 type policyProcessor interface {
-	GetNotificationSubscriptionOptions(ctx context.Context, k string) (*dispatch.NotificationSubscriptionOptions, error)
+	GetNotificationSubscriptionOptions(ctx context.Context, k string) (*access.NotificationSubscriptionOptions, error)
 }
 
 type notifier interface {
-	Subscribe(address string, subTypes []string, monitoring bool, options *dispatch.NotificationSubscriptionOptions) (dispatch.Subscriber, error)
+	Subscribe(address string, subTypes []string, monitoring bool, options *access.NotificationSubscriptionOptions) (dispatch.Subscriber, error)
 	Unsubscribe(subscriber dispatch.Subscriber)
 }
 

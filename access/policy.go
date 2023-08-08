@@ -7,13 +7,15 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-
-	"github.com/Financial-Times/notifications-push/v5/dispatch"
 )
 
 const advancedNotificationsXPolicy = "ADVANCED_NOTIFICATIONS"
 
 var xPoliciesPattern = regexp.MustCompile(`['"]x-policy['"]\s*:\s*['"](.*)?['"]`)
+
+type NotificationSubscriptionOptions struct {
+	ReceiveAdvancedNotifications bool
+}
 
 type PolicyProcessor struct {
 	client *http.Client
@@ -26,8 +28,8 @@ func NewPolicyProcessor(u *url.URL, c *http.Client) *PolicyProcessor {
 		client: c}
 }
 
-func (pp *PolicyProcessor) GetNotificationSubscriptionOptions(ctx context.Context, k string) (*dispatch.NotificationSubscriptionOptions, error) {
-	opts := &dispatch.NotificationSubscriptionOptions{
+func (pp *PolicyProcessor) GetNotificationSubscriptionOptions(ctx context.Context, k string) (*NotificationSubscriptionOptions, error) {
+	opts := &NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	}
 

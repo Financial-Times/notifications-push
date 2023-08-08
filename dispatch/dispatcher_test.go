@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Financial-Times/notifications-push/v5/access"
+
 	hooks "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -87,10 +89,10 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &NotificationSubscriptionOptions{
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &NotificationSubscriptionOptions{
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
 
@@ -127,13 +129,13 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &NotificationSubscriptionOptions{
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
-	s, _ := d.Subscribe("192.168.1.3", []string{typeArticle}, false, &NotificationSubscriptionOptions{
+	s, _ := d.Subscribe("192.168.1.3", []string{typeArticle}, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
-	annSub, _ := d.Subscribe("192.168.1.4", []string{annotationSubType}, false, &NotificationSubscriptionOptions{
+	annSub, _ := d.Subscribe("192.168.1.4", []string{annotationSubType}, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
 
@@ -196,10 +198,10 @@ func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testin
 	h := NewHistory(historySize)
 	d := NewDispatcher(time.Millisecond, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &NotificationSubscriptionOptions{
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &NotificationSubscriptionOptions{
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
 
@@ -229,16 +231,16 @@ func TestCreateNotificationIsProperlyDispatchedToSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(time.Millisecond, h, l)
 
-	m1, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &NotificationSubscriptionOptions{
+	m1, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: true,
 	})
-	s1, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &NotificationSubscriptionOptions{
+	s1, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: true,
 	})
-	m2, _ := d.Subscribe("192.168.1.4", contentSubscribeTypes, true, &NotificationSubscriptionOptions{
+	m2, _ := d.Subscribe("192.168.1.4", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
-	s2, _ := d.Subscribe("192.168.1.5", contentSubscribeTypes, false, &NotificationSubscriptionOptions{
+	s2, _ := d.Subscribe("192.168.1.5", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
 
@@ -280,11 +282,11 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &NotificationSubscriptionOptions{
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
 	m = m.(NotificationConsumer)
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &NotificationSubscriptionOptions{
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
 	s = s.(NotificationConsumer)
@@ -316,7 +318,7 @@ func TestDispatchDelay(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &NotificationSubscriptionOptions{
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
 
@@ -520,8 +522,8 @@ type MockSubscriber struct {
 	_dummy int //nolint:unused,structcheck
 }
 
-func (_m *MockSubscriber) Options() *NotificationSubscriptionOptions {
-	return &NotificationSubscriptionOptions{
+func (_m *MockSubscriber) Options() *access.NotificationSubscriptionOptions {
+	return &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	}
 }

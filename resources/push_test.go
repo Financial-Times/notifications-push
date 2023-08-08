@@ -35,7 +35,7 @@ func TestSubscription(t *testing.T) {
 		ExpectedBody        string
 		ExpectedStatus      int
 		ExpectStream        bool
-		SubscriptionOptions *dispatch.NotificationSubscriptionOptions
+		SubscriptionOptions *access.NotificationSubscriptionOptions
 		isListHandler       bool
 		isPagesHandler      bool
 	}{
@@ -45,7 +45,7 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
-			SubscriptionOptions: &dispatch.NotificationSubscriptionOptions{
+			SubscriptionOptions: &access.NotificationSubscriptionOptions{
 				ReceiveAdvancedNotifications: false,
 			},
 		},
@@ -55,7 +55,7 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
-			SubscriptionOptions: &dispatch.NotificationSubscriptionOptions{
+			SubscriptionOptions: &access.NotificationSubscriptionOptions{
 				ReceiveAdvancedNotifications: false,
 			},
 		},
@@ -65,7 +65,7 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
-			SubscriptionOptions: &dispatch.NotificationSubscriptionOptions{
+			SubscriptionOptions: &access.NotificationSubscriptionOptions{
 				ReceiveAdvancedNotifications: false,
 			},
 		},
@@ -75,7 +75,7 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
-			SubscriptionOptions: &dispatch.NotificationSubscriptionOptions{
+			SubscriptionOptions: &access.NotificationSubscriptionOptions{
 				ReceiveAdvancedNotifications: false,
 			},
 		},
@@ -86,7 +86,7 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
-			SubscriptionOptions: &dispatch.NotificationSubscriptionOptions{
+			SubscriptionOptions: &access.NotificationSubscriptionOptions{
 				ReceiveAdvancedNotifications: false,
 			},
 		},
@@ -96,7 +96,7 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
-			SubscriptionOptions: &dispatch.NotificationSubscriptionOptions{
+			SubscriptionOptions: &access.NotificationSubscriptionOptions{
 				ReceiveAdvancedNotifications: false,
 			},
 		},
@@ -106,7 +106,7 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
-			SubscriptionOptions: &dispatch.NotificationSubscriptionOptions{
+			SubscriptionOptions: &access.NotificationSubscriptionOptions{
 				ReceiveAdvancedNotifications: false,
 			},
 		},
@@ -117,7 +117,7 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
-			SubscriptionOptions: &dispatch.NotificationSubscriptionOptions{
+			SubscriptionOptions: &access.NotificationSubscriptionOptions{
 				ReceiveAdvancedNotifications: true,
 			},
 		},
@@ -133,7 +133,7 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
-			SubscriptionOptions: &dispatch.NotificationSubscriptionOptions{
+			SubscriptionOptions: &access.NotificationSubscriptionOptions{
 				ReceiveAdvancedNotifications: false,
 			},
 		},
@@ -150,7 +150,7 @@ func TestSubscription(t *testing.T) {
 			ExpectedBody:   "data: []\n\n",
 			ExpectedStatus: http.StatusOK,
 			ExpectStream:   true,
-			SubscriptionOptions: &dispatch.NotificationSubscriptionOptions{
+			SubscriptionOptions: &access.NotificationSubscriptionOptions{
 				ReceiveAdvancedNotifications: false,
 			},
 		},
@@ -240,15 +240,15 @@ func TestPassKeyAsParameter(t *testing.T) {
 	kp.On("Validate", mock.Anything, keyAPI).Return(nil)
 
 	pp := &mocks.PolicyProcessor{}
-	pp.On("GetNotificationSubscriptionOptions", mock.Anything, keyAPI).Return(&dispatch.NotificationSubscriptionOptions{
+	pp.On("GetNotificationSubscriptionOptions", mock.Anything, keyAPI).Return(&access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	}, nil)
 
-	sub, _ := dispatch.NewStandardSubscriber(req.RemoteAddr, []string{"Article"}, &dispatch.NotificationSubscriptionOptions{
+	sub, _ := dispatch.NewStandardSubscriber(req.RemoteAddr, []string{"Article"}, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", req.RemoteAddr, []string{"Article"}, false, &dispatch.NotificationSubscriptionOptions{
+	d.On("Subscribe", req.RemoteAddr, []string{"Article"}, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	}).Run(func(args mock.Arguments) {
 		go func() {
@@ -326,15 +326,15 @@ func TestHeartbeat(t *testing.T) {
 	kp.On("Validate", mock.Anything, keyAPI).Return(nil)
 
 	pp := &mocks.PolicyProcessor{}
-	pp.On("GetNotificationSubscriptionOptions", mock.Anything, keyAPI).Return(&dispatch.NotificationSubscriptionOptions{
+	pp.On("GetNotificationSubscriptionOptions", mock.Anything, keyAPI).Return(&access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	}, nil)
 
-	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{"Article"}, &dispatch.NotificationSubscriptionOptions{
+	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{"Article"}, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", subAddress, []string{"Article"}, false, &dispatch.NotificationSubscriptionOptions{
+	d.On("Subscribe", subAddress, []string{"Article"}, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	}).Return(sub)
 	d.On("Unsubscribe", mock.AnythingOfType("*dispatch.StandardSubscriber")).Return()
@@ -405,15 +405,15 @@ func TestPushNotificationDelay(t *testing.T) {
 	kp.On("Validate", mock.Anything, keyAPI).Return(nil)
 
 	pp := &mocks.PolicyProcessor{}
-	pp.On("GetNotificationSubscriptionOptions", mock.Anything, keyAPI).Return(&dispatch.NotificationSubscriptionOptions{
+	pp.On("GetNotificationSubscriptionOptions", mock.Anything, keyAPI).Return(&access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	}, nil)
 
-	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{"Article"}, &dispatch.NotificationSubscriptionOptions{
+	sub, _ := dispatch.NewStandardSubscriber(subAddress, []string{"Article"}, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	})
 	d := &mocks.Dispatcher{}
-	d.On("Subscribe", subAddress, []string{"Article"}, false, &dispatch.NotificationSubscriptionOptions{
+	d.On("Subscribe", subAddress, []string{"Article"}, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
 	}).Run(func(args mock.Arguments) {
 		go func() {
