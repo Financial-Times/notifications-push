@@ -5,9 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestHistory(t *testing.T) {

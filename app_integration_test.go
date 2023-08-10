@@ -9,19 +9,23 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"regexp"
 	"testing"
 	"time"
 
+	"github.com/Financial-Times/notifications-push/v5/access"
+
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/kafka-client-go/v3"
+	"github.com/Financial-Times/kafka-client-go/v4"
 	"github.com/Financial-Times/notifications-push/v5/consumer"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/Financial-Times/notifications-push/v5/mocks"
 	"github.com/Financial-Times/notifications-push/v5/resources"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 var articleMsg = kafka.NewFTMessage(map[string]string{
@@ -102,9 +106,14 @@ func TestPushNotifications(t *testing.T) {
 	// handler
 	hc := resources.NewHealthCheck(queue, apiGatewayGTGURL, nil, "notifications-push", l)
 
-	keyProcessor := resources.NewKeyProcessor(server.URL+apiGatewayValidateURL, server.URL+apiGatewayPoliciesURL, http.DefaultClient, l)
-	s := resources.NewSubHandler(d, keyProcessor, reg, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
-		[]string{"Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content"}, "Article", true)
+	keyProcessorURL, _ := url.Parse(server.URL + apiGatewayValidateURL)
+	policyProcessorURL, _ := url.Parse(server.URL + apiGatewayPoliciesURL)
+
+	keyProcessor := access.NewKeyProcessor(keyProcessorURL, http.DefaultClient, l)
+	policyProcessor := access.NewPolicyProcessor(policyProcessorURL, http.DefaultClient)
+
+	s := resources.NewSubHandler(d, keyProcessor, policyProcessor, reg, heartbeat, l, []string{"Article", "ContentPackage", "Audio"},
+		[]string{"Article", "ContentPackage", "Audio", "All", "LiveBlogPackage", "LiveBlogPost", "Content"}, "Article")
 
 	initRouter(router, s, resource, d, h, hc, l)
 

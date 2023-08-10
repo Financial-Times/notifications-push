@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Financial-Times/notifications-push/v5/access"
+
 	"github.com/Financial-Times/go-logger/v2"
 )
 
@@ -74,7 +76,7 @@ func (d *Dispatcher) Subscribers() []Subscriber {
 	return subs
 }
 
-func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool, options []SubscriptionOption) (Subscriber, error) {
+func (d *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool, options *access.NotificationSubscriptionOptions) (Subscriber, error) {
 	var s NotificationConsumer
 	var err error
 	if monitoring {

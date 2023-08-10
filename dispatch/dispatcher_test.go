@@ -3,14 +3,17 @@ package dispatch
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
-	"github.com/Financial-Times/go-logger/v2"
+	"github.com/Financial-Times/notifications-push/v5/access"
+
 	hooks "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Financial-Times/go-logger/v2"
 )
 
 const (
@@ -86,8 +89,12 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, []SubscriptionOption{})
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, []SubscriptionOption{})
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
 
 	go d.Start()
 	defer d.Stop()
@@ -115,16 +122,22 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	t.Parallel()
 
 	l := logger.NewUPPLogger("test", "panic")
-	l.Out = ioutil.Discard
+	l.Out = io.Discard
 	hook := hooks.NewLocal(l.Logger)
 	defer hook.Reset()
 
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, []SubscriptionOption{})
-	s, _ := d.Subscribe("192.168.1.3", []string{typeArticle}, false, []SubscriptionOption{})
-	annSub, _ := d.Subscribe("192.168.1.4", []string{annotationSubType}, false, []SubscriptionOption{})
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
+	s, _ := d.Subscribe("192.168.1.3", []string{typeArticle}, false, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
+	annSub, _ := d.Subscribe("192.168.1.4", []string{annotationSubType}, false, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
 
 	go d.Start()
 	defer d.Stop()
@@ -185,8 +198,12 @@ func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testin
 	h := NewHistory(historySize)
 	d := NewDispatcher(time.Millisecond, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, []SubscriptionOption{})
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, []SubscriptionOption{})
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
 
 	go d.Start()
 	defer d.Stop()
@@ -214,10 +231,18 @@ func TestCreateNotificationIsProperlyDispatchedToSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(time.Millisecond, h, l)
 
-	m1, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, []SubscriptionOption{CreateEventOption})
-	s1, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, []SubscriptionOption{CreateEventOption})
-	m2, _ := d.Subscribe("192.168.1.4", contentSubscribeTypes, true, []SubscriptionOption{})
-	s2, _ := d.Subscribe("192.168.1.5", contentSubscribeTypes, false, []SubscriptionOption{})
+	m1, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: true,
+	})
+	s1, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: true,
+	})
+	m2, _ := d.Subscribe("192.168.1.4", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
+	s2, _ := d.Subscribe("192.168.1.5", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
 
 	go d.Start()
 	defer d.Stop()
@@ -257,9 +282,13 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, []SubscriptionOption{})
+	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
 	m = m.(NotificationConsumer)
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, []SubscriptionOption{})
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
 	s = s.(NotificationConsumer)
 
 	go d.Start()
@@ -289,7 +318,9 @@ func TestDispatchDelay(t *testing.T) {
 	h := NewHistory(historySize)
 	d := NewDispatcher(delay, h, l)
 
-	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, []SubscriptionOption{})
+	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
 
 	go d.Start()
 	defer d.Stop()
@@ -343,7 +374,7 @@ func TestInternalFailToSendNotifications(t *testing.T) {
 	t.Parallel()
 
 	l := logger.NewUPPLogger("test", "info")
-	l.Out = ioutil.Discard
+	l.Out = io.Discard
 	hook := hooks.NewLocal(l.Logger)
 	defer hook.Reset()
 
@@ -491,8 +522,10 @@ type MockSubscriber struct {
 	_dummy int //nolint:unused,structcheck
 }
 
-func (_m *MockSubscriber) Options() []SubscriptionOption {
-	return []SubscriptionOption{}
+func (_m *MockSubscriber) Options() *access.NotificationSubscriptionOptions {
+	return &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	}
 }
 
 // AcceptedSubType provides a mock function with given fields:
@@ -506,7 +539,7 @@ func (_m *MockSubscriber) Address() string {
 }
 
 // send provides a mock function with given fields: n
-func (_m *MockSubscriber) Send(n NotificationResponse) error {
+func (_m *MockSubscriber) Send(_ NotificationResponse) error {
 	return fmt.Errorf("error")
 }
 

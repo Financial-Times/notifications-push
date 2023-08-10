@@ -3,13 +3,16 @@ package mocks
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
 
-	"github.com/Financial-Times/notifications-push/v5/dispatch"
+	"github.com/Financial-Times/notifications-push/v5/access"
+
 	"github.com/stretchr/testify/mock"
+
+	"github.com/Financial-Times/notifications-push/v5/dispatch"
 )
 
 type KeyProcessor struct {
@@ -25,14 +28,14 @@ func (m *KeyProcessor) Validate(ctx context.Context, key string) error {
 	return nil
 }
 
-func (m *KeyProcessor) GetPolicies(ctx context.Context, key string) ([]string, error) {
-	args := m.Called(ctx, key)
+type PolicyProcessor struct {
+	mock.Mock
+}
 
-	if args.Get(1) != nil {
-		return nil, args.Get(1).(error)
-	}
+func (m *PolicyProcessor) GetNotificationSubscriptionOptions(ctx context.Context, k string) (*access.NotificationSubscriptionOptions, error) {
+	args := m.Called(ctx, k)
 
-	return args.Get(0).([]string), nil
+	return args.Get(0).(*access.NotificationSubscriptionOptions), args.Error(1)
 }
 
 type Dispatcher struct {
@@ -56,7 +59,7 @@ func (m *Dispatcher) Subscribers() []dispatch.Subscriber {
 	return args.Get(0).([]dispatch.Subscriber)
 }
 
-func (m *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool, options []dispatch.SubscriptionOption) (dispatch.Subscriber, error) {
+func (m *Dispatcher) Subscribe(address string, subTypes []string, monitoring bool, options *access.NotificationSubscriptionOptions) (dispatch.Subscriber, error) {
 	args := m.Called(address, subTypes, monitoring, options)
 	return args.Get(0).(dispatch.Subscriber), nil
 }
@@ -103,7 +106,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	response.Header.Set("Content-Type", "application/json")
-	response.Body = ioutil.NopCloser(strings.NewReader(t.ResponseBody))
+	response.Body = io.NopCloser(strings.NewReader(t.ResponseBody))
 
 	if t.Error != nil {
 		return nil, t.Error

@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Financial-Times/notifications-push/v5/access"
+
 	"github.com/gorilla/mux"
 	cli "github.com/jawher/mow.cli"
 
@@ -189,7 +191,10 @@ func main() {
 			"E2E_TEST_IDS":  *e2eTestUUIDs,
 		}).Infof("[Startup] notifications-push is starting ")
 
-		kafkaConsumer := createConsumer(log, *consumerAddress, *consumerGroupID, *kafkaTopic, *consumerLagTolerance)
+		kafkaConsumer, err := createConsumer(log, *consumerAddress, *consumerGroupID, *kafkaTopic, *consumerLagTolerance)
+		if err != nil {
+			log.WithError(err).Fatalf("could not create Kafka consumer for %s and topic %s", *consumerAddress, *kafkaTopic)
+		}
 
 		httpClient := &http.Client{
 			Transport: &http.Transport{
@@ -248,19 +253,18 @@ func main() {
 		keyValidateURL = baseURL.ResolveReference(keyValidateURL)
 
 		var keyPoliciesURL *url.URL
-		var policyCheckAllowed bool
 		if apiKeyPoliciesEndpoint != nil && *apiKeyPoliciesEndpoint != "" {
 			keyPoliciesURL, err = url.Parse(*apiKeyPoliciesEndpoint)
 			if err != nil {
 				log.WithError(err).Fatal("cannot parse api_key_policies_endpoint")
 			}
 			keyPoliciesURL = baseURL.ResolveReference(keyPoliciesURL)
-			policyCheckAllowed = true
 		}
 
-		keyProcessor := resources.NewKeyProcessor(keyValidateURL.String(), keyPoliciesURL.String(), httpClient, log)
-		subHandler := resources.NewSubHandler(dispatcher, keyProcessor, srv, heartbeatPeriod,
-			log, *allowedAllContentType, *supportedSubscriptionType, *defaultSubscriptionType, policyCheckAllowed)
+		keyProcessor := access.NewKeyProcessor(keyValidateURL, httpClient, log)
+		policyProcessor := access.NewPolicyProcessor(keyPoliciesURL, httpClient)
+		subHandler := resources.NewSubHandler(dispatcher, keyProcessor, policyProcessor, srv, heartbeatPeriod,
+			log, *allowedAllContentType, *supportedSubscriptionType, *defaultSubscriptionType)
 		if err != nil {
 			log.WithError(err).Fatal("Could not create request handler")
 		}

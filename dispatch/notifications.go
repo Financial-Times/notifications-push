@@ -1,5 +1,7 @@
 package dispatch
 
+import "github.com/Financial-Times/notifications-push/v5/access"
+
 // subscription types
 const (
 	AnnotationsType        = "Annotations"
@@ -8,10 +10,10 @@ const (
 	AudioContentType       = "Audio"
 	LiveBlogPackageType    = "LiveBlogPackage"
 	LiveBlogPostType       = "LiveBlogPost"
-	ContentPlaceholderType = "Content"
 	PageType               = "Page"
 	AllContentType         = "All"
 	ListType               = "List"
+	ContentPlaceholderType = "Content"
 )
 
 // notification types
@@ -55,18 +57,10 @@ type Standout struct {
 	Scoop bool `json:"scoop"`
 }
 
-func CreateNotificationResponse(notification NotificationModel, subscriberOptions []SubscriptionOption) NotificationResponse {
+func CreateNotificationResponse(notification NotificationModel, subscriberOptions *access.NotificationSubscriptionOptions) NotificationResponse {
 	notificationType := notification.Type
 
-	hasCreateEventOption := false
-	for _, o := range subscriberOptions {
-		if o == CreateEventOption {
-			hasCreateEventOption = true
-			break
-		}
-	}
-
-	if notificationType == ContentCreateType && !hasCreateEventOption {
+	if notificationType == ContentCreateType && !subscriberOptions.ReceiveAdvancedNotifications {
 		notificationType = ContentUpdateType
 	}
 

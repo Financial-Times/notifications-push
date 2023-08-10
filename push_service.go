@@ -8,13 +8,14 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/gorilla/mux"
+
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/kafka-client-go/v3"
+	"github.com/Financial-Times/kafka-client-go/v4"
 	queueConsumer "github.com/Financial-Times/notifications-push/v5/consumer"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/Financial-Times/notifications-push/v5/resources"
 	"github.com/Financial-Times/service-status-go/httphandlers"
-	"github.com/gorilla/mux"
 )
 
 type notificationSystem interface {
@@ -65,11 +66,10 @@ func initRouter(r *mux.Router,
 	r.HandleFunc("/__history", resources.History(h, log)).Methods("GET")
 }
 
-func createConsumer(log *logger.UPPLogger, address, groupID string, topic string, lagTolerance int) *kafka.Consumer {
+func createConsumer(log *logger.UPPLogger, address, groupID string, topic string, lagTolerance int) (*kafka.Consumer, error) {
 	consumerConfig := kafka.ConsumerConfig{
 		BrokersConnectionString: address,
 		ConsumerGroup:           groupID,
-		ConnectionRetryInterval: 30 * time.Second,
 		OffsetFetchInterval:     2 * time.Minute,
 		Options:                 kafka.DefaultConsumerOptions(),
 	}
