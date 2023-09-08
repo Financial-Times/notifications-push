@@ -30,6 +30,7 @@ type NotificationModel struct {
 	ID               string
 	Type             string
 	SubscriberID     string
+	EditorialDesc    string
 	PublishReference string
 	LastModified     string
 	NotificationDate string

@@ -8,14 +8,14 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/gorilla/mux"
-
 	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/kafka-client-go/v4"
+	"github.com/Financial-Times/notifications-push/v5/access"
 	queueConsumer "github.com/Financial-Times/notifications-push/v5/consumer"
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/Financial-Times/notifications-push/v5/resources"
 	"github.com/Financial-Times/service-status-go/httphandlers"
+	"github.com/gorilla/mux"
 )
 
 type notificationSystem interface {
@@ -81,9 +81,9 @@ func createConsumer(log *logger.UPPLogger, address, groupID string, topic string
 	return kafka.NewConsumer(consumerConfig, kafkaTopic, log)
 }
 
-func createDispatcher(cacheDelay int, historySize int, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History) {
+func createDispatcher(cacheDelay int, historySize int, evaluator *access.Evaluator, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History) {
 	history := dispatch.NewHistory(historySize)
-	dispatcher := dispatch.NewDispatcher(time.Duration(cacheDelay)*time.Second, history, log)
+	dispatcher := dispatch.NewDispatcher(time.Duration(cacheDelay)*time.Second, history, evaluator, log)
 	return dispatcher, history
 }
 

@@ -10,18 +10,17 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/notifications-push/v5/access"
-
+	"github.com/Financial-Times/notifications-push/v5/resources"
 	"github.com/gorilla/mux"
 	cli "github.com/jawher/mow.cli"
-
-	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/notifications-push/v5/resources"
 )
 
 const (
-	heartbeatPeriod = 30 * time.Second
-	appDescription  = "Proactively notifies subscribers about new publishes/modifications."
+	heartbeatPeriod          = 30 * time.Second
+	appDescription           = "Proactively notifies subscribers about new publishes/modifications."
+	centralBankingModuleName = "central_banking_filter"
 )
 
 func main() {
@@ -36,21 +35,18 @@ func main() {
 		Desc:   "The resource of which notifications are produced (e.g., content or lists)",
 		EnvVar: "NOTIFICATIONS_RESOURCE",
 	})
-
 	consumerAddress := app.String(cli.StringOpt{
 		Name:   "consumer_addr",
 		Value:  "",
 		Desc:   "Comma separated kafka hosts for message consuming.",
 		EnvVar: "KAFKA_ADDRESS",
 	})
-
 	consumerLagTolerance := app.Int(cli.IntOpt{
 		Name:   "consumer_lag_tolerance",
 		Value:  120,
 		Desc:   "Kafka lag tolerance",
 		EnvVar: "KAFKA_LAG_TOLERANCE",
 	})
-
 	consumerGroupID := app.String(cli.StringOpt{
 		Name:   "consumer_group_id",
 		Value:  "",
@@ -123,61 +119,59 @@ func main() {
 		Desc:   "Logging level (DEBUG, INFO, WARN, ERROR)",
 		EnvVar: "LOG_LEVEL",
 	})
-
 	allowedAllContentType := app.Strings(cli.StringsOpt{
 		Name:   "allowed_all_contentType",
 		Value:  []string{},
 		Desc:   `Comma-separated list of ContentTypes that compose ALL (contentType) - i.e. Article,`,
 		EnvVar: "ALLOWED_ALL_CONTENT_TYPE",
 	})
-
 	supportedSubscriptionType := app.Strings(cli.StringsOpt{
 		Name:   "supported_subscription_type",
 		Value:  []string{},
 		Desc:   `Comma-separated list of supported subscription types`,
 		EnvVar: "SUPPORTED_SUBSCRIPTION_TYPE",
 	})
-
 	defaultSubscriptionType := app.String(cli.StringOpt{
 		Name:   "default_subscription_type",
 		Value:  "Article",
 		Desc:   `The default subscription type to serve when no arguments are passed.`,
 		EnvVar: "DEFAULT_SUBSCRIPTION_TYPE",
 	})
-
 	e2eTestUUIDs := app.Strings(cli.StringsOpt{
 		Name:   "e2e_test_ids",
 		Value:  []string{},
 		Desc:   `Comma-separated list of allowed UUIDs used for end-to-end tests.`,
 		EnvVar: "E2E_TEST_IDS",
 	})
-
 	shouldMonitor := app.Bool(cli.BoolOpt{
 		Name:   "shouldMonitor",
 		Value:  true,
 		Desc:   "Specifies if the messages be monitored by PAM and NPM.",
 		EnvVar: "MONITOR_NOTIFICATIONS",
 	})
-
 	updateEventType := app.String(cli.StringOpt{
 		Name:   "updateEventType",
 		Value:  "http://www.ft.com/thing/ThingChangeType/UPDATE",
 		Desc:   "Specifies the update event type.",
 		EnvVar: "UPDATE_EVENT_TYPE",
 	})
-
 	apiURLResource := app.String(cli.StringOpt{
 		Name:   "apiURLResource",
 		Value:  "",
 		Desc:   "Specifies the resource in the apiUrl in the notification.",
 		EnvVar: "API_URL_RESOURCE",
 	})
-
 	includeScoop := app.Bool(cli.BoolOpt{
 		Name:   "includeScoop",
 		Value:  false,
 		Desc:   "Should the standout scoop field be included in the response.",
 		EnvVar: "INCLUDE_SCOOP",
+	})
+	opaFileLocation := app.String(cli.StringOpt{
+		Name:   "opaFileLocation",
+		Value:  "",
+		Desc:   "Location of the OPA rule file.",
+		EnvVar: "OPA_FILE_LOCATION",
 	})
 
 	log := logger.NewUPPLogger(serviceName, *logLevel)
@@ -194,6 +188,14 @@ func main() {
 		kafkaConsumer, err := createConsumer(log, *consumerAddress, *consumerGroupID, *kafkaTopic, *consumerLagTolerance)
 		if err != nil {
 			log.WithError(err).Fatalf("could not create Kafka consumer for %s and topic %s", *consumerAddress, *kafkaTopic)
+		}
+
+		evaluator, err := access.CreateEvaluator(
+			"data.centralBanking.isCentralBanking",
+			[]string{*opaFileLocation},
+		)
+		if err != nil {
+			log.WithError(err).Fatalf("failed to create evaluator")
 		}
 
 		httpClient := &http.Client{
@@ -228,7 +230,7 @@ func main() {
 		healthCheckEndpoint = baseURL.ResolveReference(healthCheckEndpoint)
 		hc := resources.NewHealthCheck(kafkaConsumer, healthCheckEndpoint.String(), requestStatusCode, serviceName, log)
 
-		dispatcher, history := createDispatcher(*delay, *historySize, log)
+		dispatcher, history := createDispatcher(*delay, *historySize, evaluator, log)
 
 		msgConfig := msgHandlerCfg{
 			BaseURL:              *apiBaseURL,
