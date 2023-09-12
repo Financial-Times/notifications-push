@@ -146,7 +146,7 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 		}
 	}()
 
-	hasAccess, err := d.evaluator.EvaluateNotificationAccessLevel(notification)
+	hasAccess, err := d.evaluator.EvaluateNotificationAccessLevel(map[string]interface{}{"EditorialDesc": notification.EditorialDesc})
 	if err != nil {
 		d.log.
 			WithTransactionID(notification.PublishReference).
@@ -173,7 +173,7 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 				entry.Info("Skipping subscriber due to subscription type mismatch.")
 				continue
 			}
-			if hasAccess {
+			if !hasAccess {
 				skipped++
 				entry.Info("Skipping subscriber due to access level mismatch.")
 				continue

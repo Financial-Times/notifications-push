@@ -23,8 +23,8 @@ func CreateEvaluator(query string, moduleLocation []string) (*Evaluator, error) 
 	return &Evaluator{evalQuery: evalQuery}, nil
 }
 
-func (e *Evaluator) EvaluateNotificationAccessLevel(notification interface{}) (bool, error) {
-	eval, err := e.evalQuery.Eval(context.TODO(), rego.EvalInput(notification))
+func (e *Evaluator) EvaluateNotificationAccessLevel(input map[string]interface{}) (bool, error) {
+	eval, err := e.evalQuery.Eval(context.TODO(), rego.EvalInput(input))
 	if err != nil {
 		return false, err
 	}

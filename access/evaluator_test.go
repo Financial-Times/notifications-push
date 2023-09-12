@@ -16,22 +16,18 @@ func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 	).PrepareForEval(context.TODO())
 	assert.NoError(t, err)
 
-	type notification struct {
-		EditorialDesk string
-	}
-
 	tests := []struct {
 		name         string
 		evalQuery    rego.PreparedEvalQuery
-		notification interface{}
+		notification map[string]interface{}
 		want         bool
 		wantErr      assert.ErrorAssertionFunc
 	}{
 		{
 			name:      "Basic central banking notification",
 			evalQuery: defaultEvalQuery,
-			notification: notification{
-				EditorialDesk: "/FT/Professional/Central Banking",
+			notification: map[string]interface{}{
+				"EditorialDesk": "/FT/Professional/Central Banking",
 			},
 			want:    false,
 			wantErr: assert.NoError,
@@ -39,8 +35,8 @@ func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 		{
 			name:      "Basic non-central banking notification",
 			evalQuery: defaultEvalQuery,
-			notification: notification{
-				EditorialDesk: "/FT/Newsletters",
+			notification: map[string]interface{}{
+				"EditorialDesk": "/FT/Newsletters",
 			},
 			want:    true,
 			wantErr: assert.NoError,
@@ -48,7 +44,7 @@ func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 		{
 			name:         "Missing editorial desk field",
 			evalQuery:    defaultEvalQuery,
-			notification: notification{},
+			notification: map[string]interface{}{},
 			want:         true,
 			wantErr:      assert.NoError,
 		},
