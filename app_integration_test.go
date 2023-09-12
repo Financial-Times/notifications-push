@@ -375,7 +375,7 @@ func startSubscriber(ctx context.Context, serverURL string, subType string) (<-c
 func startDispatcher(delay time.Duration, historySize int, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History, error) {
 	h := dispatch.NewHistory(historySize)
 	e, err := access.CreateEvaluator(
-		"data.centralBanking.isCentralBanking",
+		"data.centralBanking.allow",
 		[]string{"./opa_modules/central_banking.rego"},
 	)
 	if err != nil {
