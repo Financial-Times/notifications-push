@@ -18,9 +18,8 @@ import (
 )
 
 const (
-	heartbeatPeriod          = 30 * time.Second
-	appDescription           = "Proactively notifies subscribers about new publishes/modifications."
-	centralBankingModuleName = "central_banking_filter"
+	heartbeatPeriod = 30 * time.Second
+	appDescription  = "Proactively notifies subscribers about new publishes/modifications."
 )
 
 func main() {

@@ -146,7 +146,7 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 		}
 	}()
 
-	hasAccess, err := d.evaluator.EvaluateNotificationAccessLevel(map[string]interface{}{"EditorialDesc": notification.EditorialDesc})
+	hasAccess, err := d.evaluator.EvaluateNotificationAccessLevel(map[string]interface{}{"EditorialDesk": notification.EditorialDesk})
 	if err != nil {
 		d.log.
 			WithTransactionID(notification.PublishReference).

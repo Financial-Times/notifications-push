@@ -63,7 +63,7 @@ func (n NotificationMapper) MapNotification(event NotificationMessage, transacti
 		APIURL:           fmt.Sprintf("%s/%s/%s", n.APIBaseURL, n.APIUrlResource, uuid),
 		PublishReference: transactionID,
 		LastModified:     event.LastModified,
-		EditorialDesc:    editorialDesk,
+		EditorialDesk:    editorialDesk,
 		Title:            title,
 		SubscriptionType: contentType,
 	}
