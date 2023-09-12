@@ -73,8 +73,6 @@ func (h *QueueHandler) HandleMessage(queueMsg kafka.FTMessage) {
 		logEntry = h.log.WithTransactionID(tid)
 	}
 
-	logEntry.Infof("pubEvent: %+v", pubEvent)
-
 	if err != nil {
 		logEntry.WithError(err).Error("Failed to unmarshall kafka message")
 		return
@@ -106,7 +104,6 @@ func (h *QueueHandler) HandleMessage(queueMsg kafka.FTMessage) {
 	}
 
 	notification, err := h.mapper.MapNotification(pubEvent, msg.TransactionID())
-	logEntry.Infof("notification: %+v", notification)
 	if err != nil {
 		logEntry.WithError(err).Warn("Skipping event: Cannot build notification for message.")
 		return
