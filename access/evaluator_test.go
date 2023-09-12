@@ -11,7 +11,7 @@ import (
 
 func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 	defaultEvalQuery, err := rego.New(
-		rego.Query("data.centralBanking.isCentralBanking"),
+		rego.Query("data.centralBanking.allow"),
 		rego.Load([]string{"../opa_modules/central_banking.rego"}, nil),
 	).PrepareForEval(context.TODO())
 	assert.NoError(t, err)
@@ -33,7 +33,7 @@ func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 			notification: notification{
 				EditorialDesk: "/FT/Professional/Central Banking",
 			},
-			want:    true,
+			want:    false,
 			wantErr: assert.NoError,
 		},
 		{
@@ -42,14 +42,14 @@ func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 			notification: notification{
 				EditorialDesk: "/FT/Newsletters",
 			},
-			want:    false,
+			want:    true,
 			wantErr: assert.NoError,
 		},
 		{
 			name:         "Missing editorial desk field",
 			evalQuery:    defaultEvalQuery,
 			notification: notification{},
-			want:         false,
+			want:         true,
 			wantErr:      assert.NoError,
 		},
 	}

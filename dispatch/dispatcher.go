@@ -180,8 +180,7 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 			}
 		}
 		nr := CreateNotificationResponse(notification, sub.Options())
-		err = sub.Send(nr)
-		if err != nil {
+		if err = sub.Send(nr); err != nil {
 			failed++
 			entry.WithError(err).Warn("Failed forwarding to subscriber.")
 		} else {

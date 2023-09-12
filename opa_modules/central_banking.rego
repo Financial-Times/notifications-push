@@ -2,8 +2,8 @@ package centralBanking
 
 import future.keywords.if
 
-default isCentralBanking := false
+default allow := true
 
-isCentralBanking if {
+allow = false if {
     input.EditorialDesk == "/FT/Professional/Central Banking"
 }
