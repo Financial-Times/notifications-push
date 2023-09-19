@@ -18,7 +18,7 @@ import (
 const (
 	typeArticle       = "Article"
 	annotationSubType = "Annotations"
-	opaFile           = "../opa_modules/central_banking.rego"
+	opaFile           = "../opa_modules/special_content.rego"
 )
 
 var contentSubscribeTypes = []string{"Article", "ContentPackage", "Audio"}
@@ -88,7 +88,7 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
 	e, err := access.CreateEvaluator(
-		"data.centralBanking.allow",
+		"data.specialContent.allow",
 		[]string{opaFile},
 	)
 	assert.NoError(t, err)
@@ -134,7 +134,7 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	h := NewHistory(historySize)
 
 	e, err := access.CreateEvaluator(
-		"data.centralBanking.allow",
+		"data.specialContent.allow",
 		[]string{opaFile},
 	)
 	assert.NoError(t, err)
@@ -208,7 +208,7 @@ func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testin
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
 	e, err := access.CreateEvaluator(
-		"data.centralBanking.allow",
+		"data.specialContent.allow",
 		[]string{opaFile},
 	)
 	assert.NoError(t, err)
@@ -246,7 +246,7 @@ func TestCreateNotificationIsProperlyDispatchedToSubscribers(t *testing.T) {
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
 	e, err := access.CreateEvaluator(
-		"data.centralBanking.allow",
+		"data.specialContent.allow",
 		[]string{opaFile},
 	)
 	assert.NoError(t, err)
@@ -303,7 +303,7 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	h := NewHistory(historySize)
 
 	e, err := access.CreateEvaluator(
-		"data.centralBanking.allow",
+		"data.specialContent.allow",
 		[]string{opaFile},
 	)
 	assert.NoError(t, err)
@@ -345,7 +345,7 @@ func TestDispatchDelay(t *testing.T) {
 	h := NewHistory(historySize)
 
 	e, err := access.CreateEvaluator(
-		"data.centralBanking.allow",
+		"data.specialContent.allow",
 		[]string{opaFile},
 	)
 	assert.NoError(t, err)
@@ -377,7 +377,7 @@ func TestDispatchedNotificationsInHistory(t *testing.T) {
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
 	e, err := access.CreateEvaluator(
-		"data.centralBanking.allow",
+		"data.specialContent.allow",
 		[]string{opaFile},
 	)
 	assert.NoError(t, err)
@@ -418,7 +418,7 @@ func TestInternalFailToSendNotifications(t *testing.T) {
 
 	h := NewHistory(historySize)
 	e, err := access.CreateEvaluator(
-		"data.centralBanking.allow",
+		"data.specialContent.allow",
 		[]string{opaFile},
 	)
 	assert.NoError(t, err)

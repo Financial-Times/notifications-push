@@ -20,4 +20,4 @@ env:
   E2E_TEST_IDS: "427f2a19-2ae7-47c1-b580-c225fa0a0199"
   PUSH_PORT: "8599"
 
-  OPA_FILE_LOCATION: "./opa_modules/central_banking.rego"
+  OPA_FILE_LOCATION: "./opa_modules/special_content.rego"

@@ -190,7 +190,7 @@ func main() {
 		}
 
 		evaluator, err := access.CreateEvaluator(
-			"data.centralBanking.allow",
+			"data.specialContent.allow",
 			[]string{*opaFileLocation},
 		)
 		if err != nil {

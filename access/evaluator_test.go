@@ -11,8 +11,8 @@ import (
 
 func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 	defaultEvalQuery, err := rego.New(
-		rego.Query("data.centralBanking.allow"),
-		rego.Load([]string{"../opa_modules/central_banking.rego"}, nil),
+		rego.Query("data.specialContent.allow"),
+		rego.Load([]string{"../opa_modules/special_content.rego"}, nil),
 	).PrepareForEval(context.TODO())
 	assert.NoError(t, err)
 
@@ -24,7 +24,7 @@ func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 		wantErr      assert.ErrorAssertionFunc
 	}{
 		{
-			name:      "Basic central banking notification",
+			name:      "Basic special content notification",
 			evalQuery: defaultEvalQuery,
 			notification: map[string]interface{}{
 				"EditorialDesk": "/FT/Professional/Central Banking",
@@ -33,7 +33,7 @@ func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 			wantErr: assert.NoError,
 		},
 		{
-			name:      "Basic non-central banking notification",
+			name:      "Basic non-special banking notification",
 			evalQuery: defaultEvalQuery,
 			notification: map[string]interface{}{
 				"EditorialDesk": "/FT/Newsletters",
