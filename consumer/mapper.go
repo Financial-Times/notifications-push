@@ -39,6 +39,7 @@ func (n NotificationMapper) MapNotification(event NotificationMessage, transacti
 
 	eventType := n.UpdateEventType
 	title := getValueFromPayload("title", notificationPayloadMap)
+	editorialDesk := getValueFromPayload("editorialDesk", notificationPayloadMap)
 	contentType := getValueFromPayload("type", notificationPayloadMap)
 	if contentType == "" && event.MessageType == annotationMessageType {
 		contentType = dispatch.AnnotationsType
@@ -62,6 +63,7 @@ func (n NotificationMapper) MapNotification(event NotificationMessage, transacti
 		APIURL:           fmt.Sprintf("%s/%s/%s", n.APIBaseURL, n.APIUrlResource, uuid),
 		PublishReference: transactionID,
 		LastModified:     event.LastModified,
+		EditorialDesk:    editorialDesk,
 		Title:            title,
 		SubscriptionType: contentType,
 	}

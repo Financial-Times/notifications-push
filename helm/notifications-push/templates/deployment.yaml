@@ -77,6 +77,8 @@ spec:
           value: {{ .Values.env.API_KEY_POLICIES_ENDPOINT }}
         - name: API_KEY_VALIDATION_ENDPOINT
           value: {{ .Values.env.API_KEY_VALIDATION_ENDPOINT }}
+        - name: OPA_FILE_LOCATION
+          value: {{ .Values.env.OPA_FILE_LOCATION }}
         - name: MONITOR_NOTIFICATIONS
           value: "{{ .Values.env.MONITOR_NOTIFICATIONS }}"
         - name: INCLUDE_SCOOP

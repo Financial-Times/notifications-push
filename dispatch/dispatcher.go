@@ -6,9 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Financial-Times/notifications-push/v5/access"
-
 	"github.com/Financial-Times/go-logger/v2"
+	"github.com/Financial-Times/notifications-push/v5/access"
 )
 
 const (
@@ -18,13 +17,14 @@ const (
 // NewDispatcher creates and returns a new Dispatcher
 // Delay argument configures minimum delay between send notifications
 // History is a system that collects a list of all notifications send by Dispatcher
-func NewDispatcher(delay time.Duration, history History, log *logger.UPPLogger) *Dispatcher {
+func NewDispatcher(delay time.Duration, history History, evaluator *access.Evaluator, log *logger.UPPLogger) *Dispatcher {
 	return &Dispatcher{
 		delay:       delay,
 		inbound:     make(chan NotificationModel),
 		subscribers: map[NotificationConsumer]struct{}{},
 		lock:        &sync.RWMutex{},
 		history:     history,
+		evaluator:   evaluator,
 		stopChan:    make(chan bool),
 		log:         log,
 	}
@@ -36,6 +36,7 @@ type Dispatcher struct {
 	subscribers map[NotificationConsumer]struct{}
 	lock        *sync.RWMutex
 	history     History
+	evaluator   *access.Evaluator
 	stopChan    chan bool
 	log         *logger.UPPLogger
 }
@@ -145,6 +146,16 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 		}
 	}()
 
+	hasAccess, err := d.evaluator.EvaluateNotificationAccessLevel(map[string]interface{}{"EditorialDesk": notification.EditorialDesk})
+	if err != nil {
+		d.log.
+			WithTransactionID(notification.PublishReference).
+			WithField("resource", notification.APIURL).
+			WithError(err).
+			Warn("Failed to evaluate notification")
+		return
+	}
+
 	for sub := range d.subscribers {
 		entry := logWithSubscriber(d.log, sub).
 			WithTransactionID(notification.PublishReference).
@@ -159,13 +170,17 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 		} else {
 			if !matchesSubType(notification, sub) {
 				skipped++
-				entry.Info("Skipping subscriber.")
+				entry.Info("Skipping subscriber due to subscription type mismatch.")
+				continue
+			}
+			if !hasAccess {
+				skipped++
+				entry.Info("Skipping subscriber due to access level mismatch.")
 				continue
 			}
 		}
 		nr := CreateNotificationResponse(notification, sub.Options())
-		err := sub.Send(nr)
-		if err != nil {
+		if err = sub.Send(nr); err != nil {
 			failed++
 			entry.WithError(err).Warn("Failed forwarding to subscriber.")
 		} else {
@@ -182,11 +197,11 @@ func matchesSubType(n NotificationModel, s Subscriber) bool {
 		subTypes[strings.ToLower(subType)] = true
 	}
 
-	notifType := strings.ToLower(n.SubscriptionType)
+	notificationType := strings.ToLower(n.SubscriptionType)
 
-	if n.Type == ContentDeleteType && notifType == "" {
+	if n.Type == ContentDeleteType && notificationType == "" {
 		return true
 	}
 
-	return subTypes[notifType]
+	return subTypes[notificationType]
 }

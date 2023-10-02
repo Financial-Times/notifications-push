@@ -25,7 +25,8 @@ type PolicyProcessor struct {
 func NewPolicyProcessor(u *url.URL, c *http.Client) *PolicyProcessor {
 	return &PolicyProcessor{
 		url:    u,
-		client: c}
+		client: c,
+	}
 }
 
 func (pp *PolicyProcessor) GetNotificationSubscriptionOptions(ctx context.Context, k string) (*NotificationSubscriptionOptions, error) {

@@ -95,8 +95,9 @@ func TestPushNotifications(t *testing.T) {
 	reg.On("RegisterOnShutdown", mock.Anything)
 	defer reg.Shutdown()
 	// dispatcher
-	d, h := startDispatcher(delay, historySize, l)
+	d, h, err := startDispatcher(delay, historySize, l)
 	defer d.Stop()
+	assert.NoError(t, err)
 
 	// server
 	router := mux.NewRouter()
@@ -371,11 +372,18 @@ func startSubscriber(ctx context.Context, serverURL string, subType string) (<-c
 	return ch, nil
 }
 
-func startDispatcher(delay time.Duration, historySize int, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History) {
+func startDispatcher(delay time.Duration, historySize int, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History, error) {
 	h := dispatch.NewHistory(historySize)
-	d := dispatch.NewDispatcher(delay, h, log)
+	e, err := access.CreateEvaluator(
+		"data.specialContent.allow",
+		[]string{"./opa_modules/special_content.rego"},
+	)
+	if err != nil {
+		return nil, h, err
+	}
+	d := dispatch.NewDispatcher(delay, h, e, log)
 	go d.Start()
-	return d, h
+	return d, h, nil
 }
 
 func createMsgQueue(t *testing.T, uriAllowlist string, typeAllowlist []string, resource string, apiURL string, d *dispatch.Dispatcher, log *logger.UPPLogger) consumer.MessageQueueHandler {

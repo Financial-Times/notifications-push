@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/Financial-Times/notifications-push/v5/access"
-
 	hooks "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,6 +18,7 @@ import (
 const (
 	typeArticle       = "Article"
 	annotationSubType = "Annotations"
+	opaFile           = "../opa_modules/special_content.rego"
 )
 
 var contentSubscribeTypes = []string{"Article", "ContentPackage", "Audio"}
@@ -87,7 +87,12 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
-	d := NewDispatcher(delay, h, l)
+	e, err := access.CreateEvaluator(
+		"data.specialContent.allow",
+		[]string{opaFile},
+	)
+	assert.NoError(t, err)
+	d := NewDispatcher(delay, h, e, l)
 
 	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
@@ -127,7 +132,13 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	defer hook.Reset()
 
 	h := NewHistory(historySize)
-	d := NewDispatcher(delay, h, l)
+
+	e, err := access.CreateEvaluator(
+		"data.specialContent.allow",
+		[]string{opaFile},
+	)
+	assert.NoError(t, err)
+	d := NewDispatcher(delay, h, e, l)
 
 	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
@@ -196,7 +207,12 @@ func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testin
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
-	d := NewDispatcher(time.Millisecond, h, l)
+	e, err := access.CreateEvaluator(
+		"data.specialContent.allow",
+		[]string{opaFile},
+	)
+	assert.NoError(t, err)
+	d := NewDispatcher(time.Millisecond, h, e, l)
 
 	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
@@ -229,7 +245,12 @@ func TestCreateNotificationIsProperlyDispatchedToSubscribers(t *testing.T) {
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
-	d := NewDispatcher(time.Millisecond, h, l)
+	e, err := access.CreateEvaluator(
+		"data.specialContent.allow",
+		[]string{opaFile},
+	)
+	assert.NoError(t, err)
+	d := NewDispatcher(time.Millisecond, h, e, l)
 
 	m1, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: true,
@@ -280,7 +301,13 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
-	d := NewDispatcher(delay, h, l)
+
+	e, err := access.CreateEvaluator(
+		"data.specialContent.allow",
+		[]string{opaFile},
+	)
+	assert.NoError(t, err)
+	d := NewDispatcher(delay, h, e, l)
 
 	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
@@ -316,7 +343,13 @@ func TestDispatchDelay(t *testing.T) {
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
-	d := NewDispatcher(delay, h, l)
+
+	e, err := access.CreateEvaluator(
+		"data.specialContent.allow",
+		[]string{opaFile},
+	)
+	assert.NoError(t, err)
+	d := NewDispatcher(delay, h, e, l)
 
 	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
@@ -343,7 +376,12 @@ func TestDispatchedNotificationsInHistory(t *testing.T) {
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
-	d := NewDispatcher(delay, h, l)
+	e, err := access.CreateEvaluator(
+		"data.specialContent.allow",
+		[]string{opaFile},
+	)
+	assert.NoError(t, err)
+	d := NewDispatcher(delay, h, e, l)
 
 	go d.Start()
 	defer d.Stop()
@@ -379,7 +417,12 @@ func TestInternalFailToSendNotifications(t *testing.T) {
 	defer hook.Reset()
 
 	h := NewHistory(historySize)
-	d := NewDispatcher(0, h, l)
+	e, err := access.CreateEvaluator(
+		"data.specialContent.allow",
+		[]string{opaFile},
+	)
+	assert.NoError(t, err)
+	d := NewDispatcher(0, h, e, l)
 
 	s1 := &MockSubscriber{}
 	s2 := &MockSubscriber{}
