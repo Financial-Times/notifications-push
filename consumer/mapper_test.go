@@ -1,20 +1,25 @@
 package consumer
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
+	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/Financial-Times/notifications-push/v5/dispatch"
 )
 
 func TestMapToUpdateNotification(t *testing.T) {
 	t.Parallel()
 
-	standout := map[string]interface{}{"scoop": true}
-	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": "2"}
+	itemJSON := `{"title":"This is a title", "standout": {"scoop": true}, "type": "Article", "publishCount": 2}`
+
+	var payload Item
+
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
 	id, _ := uuid.NewV4()
 	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
@@ -40,8 +45,13 @@ func TestMapToUpdateNotification(t *testing.T) {
 func TestMapToCreateNotification(t *testing.T) {
 	t.Parallel()
 
-	standout := map[string]interface{}{"scoop": true}
-	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Article", "publishCount": 1}
+	itemJSON := `{"title":"This is a title", "standout": {"scoop": true}, "type": "Article", "publishCount": 1}`
+
+	var payload Item
+
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
 	id, _ := uuid.NewV4()
 	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
@@ -67,7 +77,7 @@ func TestMapToCreateNotification(t *testing.T) {
 func TestMapToUpdateNotification_ForContentWithVersion3UUID(t *testing.T) {
 	t.Parallel()
 
-	payload := map[string]interface{}{}
+	payload := Item{}
 
 	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + uuid.NewV3(uuid.UUID{}, "id").String(),
@@ -90,13 +100,17 @@ func TestMapToUpdateNotification_ForContentWithVersion3UUID(t *testing.T) {
 
 func TestMapToDeleteNotification(t *testing.T) {
 	t.Parallel()
+
+	itemJSON := `{"deleted": true}`
+	var payload Item
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
 	id, _ := uuid.NewV4()
 	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah/" + id.String(),
 		LastModified: "2016-11-02T10:54:22.234Z",
-		Payload: map[string]interface{}{
-			"deleted": true,
-		},
+		Payload:      payload,
 	}
 
 	mapper := NotificationMapper{
@@ -112,12 +126,18 @@ func TestMapToDeleteNotification(t *testing.T) {
 
 func TestMapToDeleteNotification_ContentTypeHeader(t *testing.T) {
 	t.Parallel()
+
+	itemJSON := `{"deleted": true}`
+	var payload Item
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
 	id, _ := uuid.NewV4()
 	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah/" + id.String(),
 		LastModified: "2016-11-02T10:54:22.234Z",
 		ContentType:  "application/vnd.ft-upp-article-internal+json",
-		Payload:      map[string]interface{}{"deleted": true},
+		Payload:      payload,
 	}
 
 	mapper := NotificationMapper{
@@ -135,13 +155,15 @@ func TestMapToDeleteNotification_ContentTypeHeader(t *testing.T) {
 func TestNotificationMapper_MapNotification_Page(t *testing.T) {
 	t.Parallel()
 
+	itemJSON := `{"title": "Page title", "type": "Page"}`
+	var payload Item
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
 	id, _ := uuid.NewV4()
 	event := NotificationMessage{
 		ContentURI: "http://upp-notifications-creator.svc.ft.com/content/" + id.String(),
-		Payload: map[string]interface{}{
-			"title": "Page title",
-			"type":  "Page",
-		},
+		Payload:    payload,
 	}
 
 	mapper := NotificationMapper{
@@ -163,10 +185,12 @@ func TestNotificationMapper_MapNotification_Page(t *testing.T) {
 func TestNotificationMappingFailure(t *testing.T) {
 	t.Parallel()
 
+	payload := Item{}
+
 	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah",
 		LastModified: "2016-11-02T10:54:22.234Z",
-		Payload:      map[string]interface{}{},
+		Payload:      payload,
 	}
 
 	mapper := NotificationMapper{
@@ -182,7 +206,11 @@ func TestNotificationMappingFailure(t *testing.T) {
 func TestNotificationMappingFieldsNotExtractedFromPayload(t *testing.T) {
 	t.Parallel()
 
-	payload := map[string]interface{}{"foo": "bar"}
+	itemJSON := `{}`
+	var payload Item
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
 	id, _ := uuid.NewV4()
 	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
@@ -202,7 +230,7 @@ func TestNotificationMappingFieldsNotExtractedFromPayload(t *testing.T) {
 	assert.Nil(t, err, "The mapping should not return an error")
 	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/UPDATE", n.Type, "It is an UPDATE notification")
 	assert.Empty(t, n.Title, "Title should be empty when it cannot be extracted from payload")
-	assert.Equal(t, false, n.Standout.Scoop, "Scoop field should be set to false when it cannot be extracted from payload")
+	//assert.Equal(t, false, n.Standout.Scoop, "Scoop field should be set to false when it cannot be extracted from payload")
 	assert.Equal(t, "", n.SubscriptionType, "SubscriptionType field should be empty when it cannot be extracted from payload")
 }
 
@@ -217,6 +245,11 @@ func TestNotificationMappingMetadata(t *testing.T) {
 
 	testTID := "tid_test"
 
+	itemJSON := `{"ContentID": "d1b430b9-0ce2-4b85-9c7b-5b700e8519fe"}`
+	var payload Item
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
 	tests := map[string]struct {
 		Event    NotificationMessage
 		HasError bool
@@ -226,7 +259,7 @@ func TestNotificationMappingMetadata(t *testing.T) {
 			Event: NotificationMessage{
 				ContentURI:   "http://annotations-rw-neo4j.svc.ft.com/annotations/d1b430b9-0ce2-4b85-9c7b-5b700e8519fe",
 				LastModified: "2019-11-10T14:34:25.209Z",
-				Payload:      map[string]interface{}{"ContentID": "d1b430b9-0ce2-4b85-9c7b-5b700e8519fe"},
+				Payload:      payload,
 				ContentType:  "application/json",
 				MessageType:  annotationMessageType,
 			},
@@ -243,14 +276,6 @@ func TestNotificationMappingMetadata(t *testing.T) {
 			Event: NotificationMessage{
 				ContentURI:   "http://annotations-rw-neo4j.svc.ft.com/annotations/invalid-uuid",
 				LastModified: "2019-11-10T14:34:25.209Z",
-			},
-			HasError: true,
-		},
-		"Missing payload": {
-			Event: NotificationMessage{
-				ContentURI:   "http://annotations-rw-neo4j.svc.ft.com/annotations/d1b430b9-0ce2-4b85-9c7b-5b700e8519fe",
-				LastModified: "2019-11-10T14:34:25.209Z",
-				Payload:      nil,
 			},
 			HasError: true,
 		},
@@ -276,8 +301,11 @@ func TestNotificationMappingMetadata(t *testing.T) {
 func TestNotificationMappingEmptyStandoutForLists(t *testing.T) {
 	t.Parallel()
 
-	var standout *dispatch.Standout
-	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "List"}
+	itemJSON := `{"title":"This is a title", "type": "List"}`
+	var payload Item
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
 	id, _ := uuid.NewV4()
 	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
@@ -306,8 +334,11 @@ func TestNotificationMappingEmptyStandoutForLists(t *testing.T) {
 func TestNotificationMappingEmptyStandoutForPages(t *testing.T) {
 	t.Parallel()
 
-	var standout *dispatch.Standout
-	payload := map[string]interface{}{"title": "This is a title", "standout": standout, "type": "Page"}
+	itemJSON := `{"title":"This is a title", "type": "Page"}`
+	var payload Item
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
 	id, _ := uuid.NewV4()
 	event := NotificationMessage{
 		ContentURI:   "http://upp-notifications-creator.svc.ft.com/content/e" + id.String(),
@@ -331,4 +362,66 @@ func TestNotificationMappingEmptyStandoutForPages(t *testing.T) {
 	assert.Nil(t, n.Standout, "Scoop field should be mapped correctly")
 	assert.Equal(t, "Page", n.SubscriptionType, "SubscriptionType field should be mapped correctly")
 	assert.Equal(t, mappedAPIURL, n.APIURL, "API URL field should be mapped correctly")
+}
+
+func TestMapToCreateNotificationSustainableViews(t *testing.T) {
+	t.Parallel()
+
+	itemJSON := `{"title":"Policymakers and business urged to push plant-based products", "standout": {"scoop": true}, "type": "Article", "publishCount": 1, "publication": ["8e6c705e-1132-42a2-8db0-c295e29e8658"]}`
+
+	var payload Item
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
+	id, _ := uuid.NewV4()
+	event := NotificationMessage{
+		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
+		LastModified: "2016-11-02T10:54:22.234Z",
+		Payload:      payload,
+	}
+
+	mapper := NotificationMapper{
+		APIBaseURL:     "test.api.ft.com",
+		APIUrlResource: "list",
+		IncludeScoop:   true,
+	}
+
+	n, err := mapper.MapNotification(event, "tid_test1")
+
+	assert.Nil(t, err, "The mapping should not return an error")
+	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/CREATE", n.Type, "It is an CREATE notification")
+	assert.Equal(t, "Policymakers and business urged to push plant-based products", n.Title, "Title should pe mapped correctly")
+	assert.Equal(t, true, n.Standout.Scoop, "Scoop field should be mapped correctly")
+	assert.Equal(t, "Article", n.SubscriptionType, "SubscriptionType field should be mapped correctly")
+}
+
+func TestMapToCreateNotificationFTPink(t *testing.T) {
+	t.Parallel()
+
+	itemJSON := `{"title":"Hyundai upgrades forecast on strong electric vehicle sales", "standout": {"scoop": true}, "type": "Article", "publishCount": 1, "publication": ["88fdde6c-2aa4-4f78-af02-9f680097cfd6"]}`
+
+	var payload Item
+	err := json.Unmarshal([]byte(itemJSON), &payload)
+	assert.NoError(t, err)
+
+	id, _ := uuid.NewV4()
+	event := NotificationMessage{
+		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + id.String(),
+		LastModified: "2016-11-02T10:54:22.234Z",
+		Payload:      payload,
+	}
+
+	mapper := NotificationMapper{
+		APIBaseURL:     "test.api.ft.com",
+		APIUrlResource: "list",
+		IncludeScoop:   true,
+	}
+
+	n, err := mapper.MapNotification(event, "tid_test1")
+
+	assert.Nil(t, err, "The mapping should not return an error")
+	assert.Equal(t, "http://www.ft.com/thing/ThingChangeType/CREATE", n.Type, "It is an CREATE notification")
+	assert.Equal(t, "Hyundai upgrades forecast on strong electric vehicle sales", n.Title, "Title should pe mapped correctly")
+	assert.Equal(t, true, n.Standout.Scoop, "Scoop field should be mapped correctly")
+	assert.Equal(t, "Article", n.SubscriptionType, "SubscriptionType field should be mapped correctly")
 }

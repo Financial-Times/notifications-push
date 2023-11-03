@@ -156,6 +156,37 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 		return
 	}
 
+	isPublicationAllowed := false
+	pub := notification.Publication
+	if pub != nil {
+		pu, pubErr := pub.OnlyOneOrPink()
+		if pubErr != nil {
+			d.log.
+				WithTransactionID(notification.PublishReference).
+				WithField("resource", notification.APIURL).
+				WithError(pubErr).
+				Warn("Failed to evaluate notification")
+			return
+		}
+		isPublicationAllowed, err = d.evaluator.EvaluateNotificationAccessLevel(map[string]interface{}{"Publication": pu})
+		if err != nil {
+			d.log.
+				WithTransactionID(notification.PublishReference).
+				WithField("resource", notification.APIURL).
+				WithError(err).
+				Warn("Failed to evaluate notification")
+			return
+		}
+		d.log.
+			WithTransactionID(notification.PublishReference).
+			WithField("publication", pu).
+			WithField("isPublicationAllowed", isPublicationAllowed).
+			Info("Publication verification done.")
+	} else {
+		// If we have missing publication field, we consider this FT Pink content
+		isPublicationAllowed = true
+	}
+
 	for sub := range d.subscribers {
 		entry := logWithSubscriber(d.log, sub).
 			WithTransactionID(notification.PublishReference).
@@ -176,6 +207,11 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 			if !hasAccess {
 				skipped++
 				entry.Info("Skipping subscriber due to access level mismatch.")
+				continue
+			}
+			if !isPublicationAllowed {
+				skipped++
+				entry.Info("Skipping subscriber due to blocked publication.")
 				continue
 			}
 		}

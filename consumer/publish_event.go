@@ -61,7 +61,7 @@ type NotificationMessage struct {
 	ContentType  string
 	LastModified string
 	MessageType  string
-	Payload      interface{}
+	Payload      Item `json:"Payload,omitempty"`
 }
 
 // Matches is a method that returns True if the ContentURI of a publication event
