@@ -15,7 +15,7 @@ func TestMapToUpdateNotification(t *testing.T) {
 
 	itemJSON := `{"title":"This is a title", "standout": {"scoop": true}, "type": "Article", "publishCount": 2}`
 
-	var payload Item
+	var payload Payload
 
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
@@ -47,7 +47,7 @@ func TestMapToCreateNotification(t *testing.T) {
 
 	itemJSON := `{"title":"This is a title", "standout": {"scoop": true}, "type": "Article", "publishCount": 1}`
 
-	var payload Item
+	var payload Payload
 
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
@@ -77,7 +77,7 @@ func TestMapToCreateNotification(t *testing.T) {
 func TestMapToUpdateNotification_ForContentWithVersion3UUID(t *testing.T) {
 	t.Parallel()
 
-	payload := Item{}
+	payload := Payload{}
 
 	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8081/list/blah/" + uuid.NewV3(uuid.UUID{}, "id").String(),
@@ -102,7 +102,7 @@ func TestMapToDeleteNotification(t *testing.T) {
 	t.Parallel()
 
 	itemJSON := `{"deleted": true}`
-	var payload Item
+	var payload Payload
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
 
@@ -128,7 +128,7 @@ func TestMapToDeleteNotification_ContentTypeHeader(t *testing.T) {
 	t.Parallel()
 
 	itemJSON := `{"deleted": true}`
-	var payload Item
+	var payload Payload
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
 
@@ -156,7 +156,7 @@ func TestNotificationMapper_MapNotification_Page(t *testing.T) {
 	t.Parallel()
 
 	itemJSON := `{"title": "Page title", "type": "Page"}`
-	var payload Item
+	var payload Payload
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
 
@@ -185,7 +185,7 @@ func TestNotificationMapper_MapNotification_Page(t *testing.T) {
 func TestNotificationMappingFailure(t *testing.T) {
 	t.Parallel()
 
-	payload := Item{}
+	payload := Payload{}
 
 	event := NotificationMessage{
 		ContentURI:   "http://list-transformer-pr-uk-up.svc.ft.com:8080/list/blah",
@@ -207,7 +207,7 @@ func TestNotificationMappingFieldsNotExtractedFromPayload(t *testing.T) {
 	t.Parallel()
 
 	itemJSON := `{}`
-	var payload Item
+	var payload Payload
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
 
@@ -246,7 +246,7 @@ func TestNotificationMappingMetadata(t *testing.T) {
 	testTID := "tid_test"
 
 	itemJSON := `{"ContentID": "d1b430b9-0ce2-4b85-9c7b-5b700e8519fe"}`
-	var payload Item
+	var payload Payload
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
 
@@ -302,7 +302,7 @@ func TestNotificationMappingEmptyStandoutForLists(t *testing.T) {
 	t.Parallel()
 
 	itemJSON := `{"title":"This is a title", "type": "List"}`
-	var payload Item
+	var payload Payload
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
 
@@ -335,7 +335,7 @@ func TestNotificationMappingEmptyStandoutForPages(t *testing.T) {
 	t.Parallel()
 
 	itemJSON := `{"title":"This is a title", "type": "Page"}`
-	var payload Item
+	var payload Payload
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
 
@@ -369,7 +369,7 @@ func TestMapToCreateNotificationSustainableViews(t *testing.T) {
 
 	itemJSON := `{"title":"Policymakers and business urged to push plant-based products", "standout": {"scoop": true}, "type": "Article", "publishCount": 1, "publication": ["8e6c705e-1132-42a2-8db0-c295e29e8658"]}`
 
-	var payload Item
+	var payload Payload
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
 
@@ -400,7 +400,7 @@ func TestMapToCreateNotificationFTPink(t *testing.T) {
 
 	itemJSON := `{"title":"Hyundai upgrades forecast on strong electric vehicle sales", "standout": {"scoop": true}, "type": "Article", "publishCount": 1, "publication": ["88fdde6c-2aa4-4f78-af02-9f680097cfd6"]}`
 
-	var payload Item
+	var payload Payload
 	err := json.Unmarshal([]byte(itemJSON), &payload)
 	assert.NoError(t, err)
 
