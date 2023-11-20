@@ -358,6 +358,13 @@ Clients
 
 Example client code is provided in `bin/client` directory
 
+Spark for everyone (S4E)
+-------------------------
+
+### Blocking notifications by publication
+If you need to block any notifications from specific publication you need to edit the rego rule in  
+`opa_modules/special_content.rego` and add the publication `uuid` in the `block_notication_for_publication` list.
+
 ### Logging
 
 * The application uses [go-logger](https://github.com/Financial-Times/go-logger ); the log file is initialised in [app.go](app.go).

@@ -32,27 +32,19 @@ func (n NotificationMapper) MapNotification(event NotificationMessage, transacti
 		return dispatch.NotificationModel{}, fmt.Errorf("ContentURI does not contain a UUID")
 	}
 
-	notificationPayloadMap, ok := event.Payload.(map[string]interface{})
-	if !ok {
-		return dispatch.NotificationModel{}, fmt.Errorf("invalid payload type: %T", event.Payload)
-	}
-
 	eventType := n.UpdateEventType
-	title := getValueFromPayload("title", notificationPayloadMap)
-	editorialDesk := getValueFromPayload("editorialDesk", notificationPayloadMap)
-	contentType := getValueFromPayload("type", notificationPayloadMap)
+	contentType := event.Payload.ContentType
 	if contentType == "" && event.MessageType == annotationMessageType {
 		contentType = dispatch.AnnotationsType
 	}
 
 	// If it's a create event.
-	publishCountStr := fmt.Sprintf("%v", notificationPayloadMap[payloadPublishCountKey])
-	if publishCountStr == "1" {
+	if event.Payload.PublishCount == 1 {
 		eventType = dispatch.ContentCreateType
 	}
 
 	// If it's a delete event.
-	if isTrue, deletedIsPresent := notificationPayloadMap[payloadDeletedKey].(bool); deletedIsPresent && isTrue {
+	if event.Payload.Deleted {
 		eventType = dispatch.ContentDeleteType
 		contentType = resolveTypeFromMessageHeader(event.ContentType)
 	}
@@ -63,14 +55,14 @@ func (n NotificationMapper) MapNotification(event NotificationMessage, transacti
 		APIURL:           fmt.Sprintf("%s/%s/%s", n.APIBaseURL, n.APIUrlResource, uuid),
 		PublishReference: transactionID,
 		LastModified:     event.LastModified,
-		EditorialDesk:    editorialDesk,
-		Title:            title,
+		EditorialDesk:    event.Payload.EditorialDesk,
+		Title:            event.Payload.Title,
 		SubscriptionType: contentType,
+		Publication:      event.Payload.Publication,
 	}
 
-	if n.IncludeScoop {
-		scoop := getScoopFromPayload(notificationPayloadMap)
-		notification.Standout = &dispatch.Standout{Scoop: scoop}
+	if event.Payload.Standout != nil {
+		notification.Standout = &dispatch.Standout{Scoop: event.Payload.Standout.Scoop}
 	}
 
 	return notification, nil
@@ -95,24 +87,4 @@ func resolveTypeFromMessageHeader(contentTypeHeader string) string {
 	default:
 		return ""
 	}
-}
-
-func getScoopFromPayload(notificationPayloadMap map[string]interface{}) bool {
-	var standout = notificationPayloadMap["standout"]
-	if standout != nil {
-		standoutMap, ok := standout.(map[string]interface{})
-		if ok && standoutMap["scoop"] != nil {
-			return standoutMap["scoop"].(bool)
-		}
-	}
-
-	return false
-}
-
-func getValueFromPayload(key string, payload map[string]interface{}) string {
-	if payload[key] != nil {
-		return payload[key].(string)
-	}
-
-	return ""
 }

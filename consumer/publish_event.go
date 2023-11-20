@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Financial-Times/kafka-client-go/v4"
+	"github.com/Financial-Times/notifications-push/v5/publication"
 )
 
 // NotificationQueueMessage is a wrapper for the queue consumer message type
@@ -61,11 +62,31 @@ type NotificationMessage struct {
 	ContentType  string
 	LastModified string
 	MessageType  string
-	Payload      interface{}
+	Payload      Payload `json:"Payload,omitempty"`
 }
 
 // Matches is a method that returns True if the ContentURI of a publication event
 // matches a allowlist regexp
 func (e NotificationMessage) Matches(allowlist *regexp.Regexp) bool {
 	return allowlist.MatchString(e.ContentURI)
+}
+
+// Item struct represents the payload in NotificationMessage
+// We use omitempty to indicate nonmandatory fields
+type Payload struct {
+	ContentType   string                    `json:"type"`
+	Title         string                    `json:"title"`
+	Publication   *publication.Publications `json:"publication,omitempty"`
+	EditorialDesk string                    `json:"editorialDesk,omitempty"`
+	PublishCount  int                       `json:"publishCount,omitempty"`
+	Deleted       bool                      `json:"deleted,omitempty"`
+	Standout      *Standout                 `json:"standout,omitempty"`
+	ContentID     string                    `json:"ContentID"`
+}
+
+// Standout
+type Standout struct {
+	EditorsChoice bool `json:"editorsChoice"`
+	Exclusive     bool `json:"exclusive"`
+	Scoop         bool `json:"scoop"`
 }

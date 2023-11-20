@@ -1,6 +1,9 @@
 package dispatch
 
-import "github.com/Financial-Times/notifications-push/v5/access"
+import (
+	"github.com/Financial-Times/notifications-push/v5/access"
+	"github.com/Financial-Times/notifications-push/v5/publication"
+)
 
 // subscription types
 const (
@@ -38,6 +41,7 @@ type NotificationModel struct {
 	Standout         *Standout
 	SubscriptionType string
 	IsE2ETest        bool
+	Publication      *publication.Publications
 }
 
 // NotificationResponse view

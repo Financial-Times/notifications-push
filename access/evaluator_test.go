@@ -48,6 +48,24 @@ func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 			want:         true,
 			wantErr:      assert.NoError,
 		},
+		{
+			name:      "SustainableViews notification",
+			evalQuery: defaultEvalQuery,
+			notification: map[string]interface{}{
+				"Publication": "8e6c705e-1132-42a2-8db0-c295e29e8658",
+			},
+			want:    false,
+			wantErr: assert.NoError,
+		},
+		{
+			name:      "FT Pink notification",
+			evalQuery: defaultEvalQuery,
+			notification: map[string]interface{}{
+				"Publication": "88fdde6c-2aa4-4f78-af02-9f680097cfd6",
+			},
+			want:    true,
+			wantErr: assert.NoError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
