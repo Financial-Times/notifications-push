@@ -60,19 +60,6 @@ func Verify(ps Publications) (string, bool) {
 	return "", v
 }
 
-// IsSunstainableViews return true if the content is generated or used
-// by the publication
-// Will return true in the case there is more than one publication supported
-func (p Publications) IsSustainableViews() bool {
-	sv, _ := uuid.Parse(SustainableViews)
-	for _, v := range p.UUIDS {
-		if v == sv {
-			return true
-		}
-	}
-	return false
-}
-
 // Return string version of the uuids of the publication
 // For now we expect only one publication in the list
 // If there are many publications in the list, returns only FT Pink uuid if available
