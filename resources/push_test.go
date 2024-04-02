@@ -389,7 +389,7 @@ func TestHeartbeat(t *testing.T) {
 }
 
 func TestPushNotificationDelay(t *testing.T) {
-	t.Parallel()
+	// Unstable when in parallel()
 
 	l := logger.NewUPPLogger("TEST", "PANIC")
 

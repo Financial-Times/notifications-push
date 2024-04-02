@@ -49,7 +49,7 @@ func main() {
 	consumerGroupID := app.String(cli.StringOpt{
 		Name:   "consumer_group_id",
 		Value:  "",
-		Desc:   "Kafka qroup id used for message consuming.",
+		Desc:   "Kafka group id used for message consuming.",
 		EnvVar: "GROUP_ID",
 	})
 	apiBaseURL := app.String(cli.StringOpt{

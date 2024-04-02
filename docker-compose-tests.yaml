@@ -1,0 +1,78 @@
+version: '3'
+services:
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+      args:
+        GITHUB_USERNAME: "${GITHUB_USERNAME}"
+        GITHUB_TOKEN: "${GITHUB_TOKEN}"
+    container_name: test-runner
+    environment:
+      - CGO_ENABLED=1
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - docker_bridge
+    command: [ "go", "test", "-mod=readonly", "-v", "-race", "-tags=integration", "./..." ]
+    depends_on:
+      - kafka
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - '9092:9092'
+      - '19092:19092'
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_INTERNAL://localhost:19092
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    networks:
+      - docker_bridge
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "300m"
+        mode: "non-blocking"
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    ports:
+      - '2181:2181'
+    networks:
+      - docker_bridge
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "300m"
+        mode: "non-blocking"
+        max-buffer-size: "5m"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  # Only when execute manually to monitor Kafka Topics
+#  kafka-ui:
+#    image: provectuslabs/kafka-ui:latest
+#    depends_on:
+#      - kafka
+#    ports:
+#      - '8585:8080'
+#    networks:
+#      - docker_bridge
+#    logging:
+#      driver: "json-file"
+#      options:
+#        max-size: "300m"
+#        mode: "non-blocking"
+#        max-buffer-size: "5m"
+#    environment:
+#      KAFKA_CLUSTERS_0_NAME: notifications-push-test-cluster
+#      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+#      DYNAMIC_CONFIG_ENABLED: 'true'
+
+networks:
+  docker_bridge:
+    driver: bridge
