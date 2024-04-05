@@ -1,0 +1,36 @@
+FROM golang:1.21
+
+ENV PROJECT=notifications-push
+ENV REPO_PATH="github.com/Financial-Times/${PROJECT}"
+
+ARG GITHUB_USERNAME
+ARG GITHUB_TOKEN
+
+COPY . $GOPATH/src/${REPO_PATH}
+
+RUN echo "Fetching dependencies..." \
+&& git config --global url."https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com" \
+&& git clone https://github.com/vishnubob/wait-for-it.git \
+&& cd wait-for-it \
+&& mv ./wait-for-it.sh $GOPATH/src/${REPO_PATH} \
+&& go env -w GOPRIVATE=github.com/Financial-Times
+
+WORKDIR $GOPATH/src/${REPO_PATH}
+
+# Build application with local parameters. May add GOOS=osx/linux/windows
+RUN GOOS=linux go build -mod=readonly . && export NOTIFICATIONS_RESOURCE=content && \
+      export API_URL_RESOURCE=content \
+            && export KAFKA_ADDRESS=kafka:9092 \
+            && export API_BASE_URL="http://docker:8090" \
+            && export INTERNAL_BASE_URL="http://docker:8080" \
+            && export GROUP_ID=notifications-push-local-service \
+            && export TOPIC=PostPublicationEvents \
+            && export NOTIFICATIONS_DELAY=10 \
+            && export CONTENT_TYPE_ALLOWLIST="application/vnd.ft-upp-article+json,application/vnd.ft-upp-audio+json,application/vnd.ft-upp-live-blog-post-internal+json,application/vnd.ft-upp-live-blog-package-internal+json" \
+            && export CONTENT_URI_ALLOWLIST="^http://(content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder)?(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*\$" \
+            && export ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
+            && export SUPPORTED_SUBSCRIPTION_TYPE="Article,ContentRelation,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content" \
+            && export DEFAULT_SUBSCRIPTION_TYPE="Article" \
+            && export OPA_FILE_LOCATION="./opa_modules/special_content.rego"
+
+CMD [ "/notifications-push" ]

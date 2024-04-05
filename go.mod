@@ -8,6 +8,7 @@ require (
 	github.com/Financial-Times/kafka-client-go/v4 v4.2.2
 	github.com/Financial-Times/service-status-go v0.0.0-20160323111542-3f5199736a3d
 	github.com/gofrs/uuid v4.0.0+incompatible
+	github.com/google/uuid v1.4.0
 	github.com/gorilla/mux v1.8.0
 	github.com/jawher/mow.cli v0.0.0-20170430135212-8327d12beb75
 	github.com/open-policy-agent/opa v0.56.0
@@ -44,7 +45,6 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/uuid v1.4.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect

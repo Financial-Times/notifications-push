@@ -186,6 +186,7 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 		// If we have missing publication field, we consider this FT Pink content
 		isPublicationAllowed = true
 	}
+	isRelatedContent := notification.Type == RelatedContentType
 
 	for sub := range d.subscribers {
 		entry := logWithSubscriber(d.log, sub).
@@ -212,6 +213,11 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 			if !isPublicationAllowed {
 				skipped++
 				entry.Info("Skipping subscriber due to blocked publication.")
+				continue
+			}
+			if isRelatedContent && !sub.Options().ReceiveInternalUnstable {
+				skipped++
+				entry.Info("Skipping subscriber due to RELATEDCONTENТ notification, without policy InternalUnstable.")
 				continue
 			}
 		}

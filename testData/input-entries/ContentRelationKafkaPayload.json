@@ -1,0 +1,41 @@
+{
+  "headers": {
+    "Message-Type": "cms-content-published",
+    "Origin-System-Id": "http://cmdb.ft.com/systems/methode-web-pub",
+    "Content-Type": "application/vnd.ft-upp-article+json",
+    "X-Request-Id": "TEST-CONTENT-123",
+    "Message-Timestamp": "2024-04-02T15:13:26.329Z"
+  },
+  "body": {
+    "payload": {
+      "relation": "e6c66168-85d0-4390-a730-e9ae2acb79f2",
+      "destination": "b4c8be20-e3d1-4f93-b384-43e1038bb680",
+      "firstPublishedDate": "",
+      "identifiers": [
+        {
+          "authority": "http://api.ft.com/system/cct",
+          "identifierValue": "e6c66168-85d0-4390-a730-e9ae2acb79f2"
+        }
+      ],
+      "lastModified": "2024-03-18T15:27:02Z",
+      "publishReference": "tid_cct_contentRelation_e6c66168-85d0-4390-a730-e9ae2acb79f2_1710775622157",
+      "publishedDate": "2024-03-18T15:27:02.156Z",
+      "relationProperties": {
+        "usageHints": [
+          "teaser-trailer"
+        ],
+        "clipSetProperties": {
+          "autoplay": false,
+          "loop": false,
+          "muted": false
+        }
+      },
+      "relationType": "hasPromotionalContent",
+      "source": "d6da6530-a398-4221-8c67-8fd989aa23d9",
+      "type": "ContentRelation",
+      "is_related_content_notification": true
+    },
+    "lastModified": "2020-08-11T09:00:00.020Z",
+    "contentURI": "http://methode-article-internal-components-mapper.svc.ft.com/internalcomponents/661516b6-2917-42fb-92b9-326bb205ae53"
+  }
+}

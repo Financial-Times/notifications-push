@@ -23,7 +23,7 @@ go install
 
 * Start the service using environment variables:
 
-  For content push notifications:
+  For **Article** content push notifications:
 ```
 export NOTIFICATIONS_RESOURCE=content \
     && export API_URL_RESOURCE=content \
@@ -31,7 +31,7 @@ export NOTIFICATIONS_RESOURCE=content \
     && export GROUP_ID=notifications-push-yourtest \
     && export TOPIC=PostPublicationEvents \
     && export NOTIFICATIONS_DELAY=10 \
-    && export API_BASE_URL="http://api.ft.com" \
+    && export API_BASE_URL="http://api-t.ft.com" \
     && export CONTENT_TYPE_ALLOWLIST="application/vnd.ft-upp-article-internal+json,application/vnd.ft-upp-audio+json,application/vnd.ft-upp-live-blog-post-internal+json,application/vnd.ft-upp-live-blog-package-internal+json" \
     && export CONTENT_URI_ALLOWLIST="^http://(content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder)?(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$" \
     && export ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio" \
@@ -39,7 +39,7 @@ export NOTIFICATIONS_RESOURCE=content \
     && export DEFAULT_SUBSCRIPTION_TYPE="Article" \
     && ./notifications-push
 ``` 
-or for list push notifications:   
+or for **list** push notifications:   
 ```
 export NOTIFICATIONS_RESOURCE=lists \
     && export API_URL_RESOURCE=lists \
@@ -47,14 +47,14 @@ export NOTIFICATIONS_RESOURCE=lists \
     && export GROUP_ID=notifications-push-yourtest \
     && export TOPIC=PostPublicationEvents \
     && export NOTIFICATIONS_DELAY=10 \
-    && export API_BASE_URL="http://api.ft.com" \
+    && export API_BASE_URL="http://api-t.ft.com" \
     && export CONTENT_TYPE_ALLOWLIST="application/vnd.ft-upp-list+json" \
     && export CONTENT_URI_ALLOWLIST="$." \
     && export DEFAULT_SUBSCRIPTION_TYPE="List" \
     && ./notifications-push
 ```
 
-or for pages push notifications: 
+or for **pages** push notifications: 
 ```
 export NOTIFICATIONS_RESOURCE=pages \
     && export API_URL_RESOURCE=pages \
@@ -62,14 +62,14 @@ export NOTIFICATIONS_RESOURCE=pages \
     && export GROUP_ID=notifications-push-yourtest \
     && export TOPIC=PostPublicationEvents \
     && export NOTIFICATIONS_DELAY=10 \
-    && export API_BASE_URL="http://api.ft.com" \
+    && export API_BASE_URL="http://api-t.ft.com" \
     && export CONTENT_TYPE_ALLOWLIST="application/vnd.ft-upp-page+json" \
     && export CONTENT_URI_ALLOWLIST="$." \
     && export DEFAULT_SUBSCRIPTION_TYPE="Page" \
     && ./notifications-push
 ```
 
-or for annotations push notifications:
+or for **annotations** push notifications:
 ```
 export NOTIFICATIONS_RESOURCE=annotations \
     && export API_URL_RESOURCE=content \
@@ -78,14 +78,14 @@ export NOTIFICATIONS_RESOURCE=annotations \
     && export GROUP_ID=notifications-push-yourtest \
     && export TOPIC=PostConceptAnnotations \
     && export NOTIFICATIONS_DELAY=10 \
-    && export API_BASE_URL="http://api.ft.com" \
+    && export API_BASE_URL="http://api-t.ft.com" \
     && export CONTENT_TYPE_ALLOWLIST="application/json" \
     && export CONTENT_URI_ALLOWLIST="^http://(pac|next-video)\\.annotations-rw-neo4j\\.svc\\.ft\\.com/annotations/[\\w-]+.*$" \
     && export DEFAULT_SUBSCRIPTION_TYPE="Annotations" \
     && ./notifications-push
 ```
 
-* or via command-line parameters:
+* or via command-line parameters (for **Article** type):
 
 ```
 ./notifications-push \
@@ -94,7 +94,7 @@ export NOTIFICATIONS_RESOURCE=annotations \
     --consumer_group_id="notifications-push" \
     --topic="PostPublicationEvents" \
     --notifications_delay=10 \
-    --api_base_url="http://api.ft.com" \
+    --api_base_url="http://api-t.ft.com" \
     --api_key_validation_endpoint="t800/a" \
     --content_type_allowlist="application/vnd.ft-upp-article+json" \
     --content_uri_allowlist="^http://(content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder)?(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$" \

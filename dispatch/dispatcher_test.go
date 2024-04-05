@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	typeArticle       = "Article"
-	annotationSubType = "Annotations"
-	opaFile           = "../opa_modules/special_content.rego"
+	typeArticle                = "Article"
+	annotationSubType          = "Annotations"
+	opaFile                    = "../opa_modules/special_content.rego"
+	waitForNotificationTimeout = 10 // 10 Milliseconds
 )
 
 var contentSubscribeTypes = []string{"Article", "ContentPackage", "Audio"}
@@ -203,7 +204,8 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 }
 
 func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testing.T) {
-	t.Parallel()
+	// Unstable when executed in parallel
+	//t.Parallel()
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
@@ -227,14 +229,14 @@ func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testin
 	notBefore := time.Now()
 	d.Send(e2eTestNotification)
 
-	monitorMsg, err := waitForNotification(m.Notifications(), 10*time.Millisecond)
+	monitorMsg, err := waitForNotification(m.Notifications(), waitForNotificationTimeout*time.Millisecond)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 
 	verifyNotificationResponse(t, e2eTestNotification, notBefore, time.Now(), monitorMsg)
 
-	_, err = waitForNotification(s.Notifications(), 10*time.Millisecond)
+	_, err = waitForNotification(s.Notifications(), waitForNotificationTimeout*time.Millisecond)
 	if err == nil {
 		t.Fatal("expected non nil error")
 	}
