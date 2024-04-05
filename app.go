@@ -1,6 +1,7 @@
 package main
 
 import (
+	//nolint:goimports
 	"net"
 	"net/http"
 	"net/url"
@@ -210,6 +211,7 @@ func main() {
 
 		opaClient := opa.NewOpenPolicyAgentClient(*opaURL, paths, opa.WithLogger(log))
 		opaAgent := access.NewOpenPolicyAgent(opaClient, log)
+
 		if err != nil {
 			log.WithError(err).Fatalf("failed to create ops agent")
 		}

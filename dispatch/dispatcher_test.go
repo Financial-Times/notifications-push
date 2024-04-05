@@ -26,7 +26,6 @@ const (
 	annotationSubType          = "Annotations"
 	opaFile                    = "../opa_modules/special_content.rego"
 	waitForNotificationTimeout = 10 // 10 Milliseconds
-
 )
 
 var contentSubscribeTypes = []string{"Article", "ContentPackage", "Audio"}

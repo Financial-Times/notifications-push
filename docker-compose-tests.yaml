@@ -40,3 +40,108 @@ services:
     container_name: opa-container
     ports:
       - 8181:8181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - '9092:9092'
+      - '19092:19092'
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_INTERNAL://localhost:19092
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    networks:
+      - docker_bridge
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "300m"
+        mode: "non-blocking"
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    ports:
+      - '2181:2181'
+    networks:
+      - docker_bridge
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "300m"
+        mode: "non-blocking"
+        max-buffer-size: "5m"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  local-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        GITHUB_USERNAME: "${GITHUB_USERNAME}"
+        GITHUB_TOKEN: "${GITHUB_TOKEN}"
+    container_name: notifications-push-local-service
+    environment:
+      - NOTIFICATIONS_RESOURCE=content
+      - API_URL_RESOURCE=content
+      - GROUP_ID=notifications-push-local
+      - TOPIC=PostPublicationEvents
+      - NOTIFICATIONS_DELAY=0
+      - CONTENT_TYPE_ALLOWLIST=application/vnd.ft-upp-article+json,application/vnd.ft-upp-audio+json,application/vnd.ft-upp-live-blog-post-internal+json,application/vnd.ft-upp-live-blog-package-internal+json
+      - CONTENT_URI_ALLOWLIST=^http://(content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder)?(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*\$
+      - ALLOWED_ALL_CONTENT_TYPE=Article,ContentPackage,Audio
+      - SUPPORTED_SUBSCRIPTION_TYPE=Article,ContentRelation,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content
+      - KAFKA_ADDRESS=kafka:9092
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - API_BASE_URL=http://api-gateway-mock:8090
+      - INTERNAL_BASE_URL=http://local-service:8080
+      - DEFAULT_SUBSCRIPTION_TYPE=Article
+      - OPA_FILE_LOCATION=./opa_modules/special_content.rego
+    ports:
+      - '8080:8080'
+    networks:
+      - docker_bridge
+    command: [ "./notifications-push" ]
+    depends_on:
+      - kafka
+
+  api-gateway-mock:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock
+    container_name: notifications-push-api-gateway-mock
+    environment:
+      - API_BASE_URL=api-gateway-mock:8090
+    ports:
+      - '8090:8090'
+    networks:
+      - docker_bridge
+    command: [ "go", "run", "-mod=readonly", "-v", "-tags=mock", "./testData/api_gateway_mock.go" ]
+
+  # Only when execute manually to monitor Kafka Topics
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    ports:
+      - '8585:8080'
+    networks:
+      - docker_bridge
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "300m"
+        mode: "non-blocking"
+        max-buffer-size: "5m"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: notifications-push-test-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: 'true'
+
+networks:
+  docker_bridge:
+    driver: bridge

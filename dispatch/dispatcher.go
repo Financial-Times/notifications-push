@@ -170,7 +170,7 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 			WithError(err).
 			Warn("Failed to evaluate OPA notifications-push policy")
 		return
-	}
+
 	hasAccess := evaluationResult.Allow
 
 	isRelatedContent := notification.Type == RelatedContentType
@@ -194,6 +194,11 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 			if !hasAccess {
 				skipped++
 				entry.Info("Skipping subscriber due to ", strings.Join(evaluationResult.Reasons[:], ", "))
+				continue
+			}
+			if isRelatedContent && !sub.Options().ReceiveInternalUnstable {
+				skipped++
+				entry.Info("Skipping subscriber due to RELATEDCONTENТ notification, without policy InternalUnstable.")
 				continue
 			}
 			if isRelatedContent && !sub.Options().ReceiveInternalUnstable {

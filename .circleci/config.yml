@@ -48,6 +48,7 @@ workflows:
           context:
             - cm-team-dockerhub
             - cm-team-github
+
   snyk-scanning:
     jobs:
       - ft-golang-ci/scan:
@@ -55,4 +56,3 @@ workflows:
           context:
             - cm-team-snyk
             - cm-team-github
-

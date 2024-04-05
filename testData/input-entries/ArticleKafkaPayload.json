@@ -1,0 +1,20 @@
+{
+  "headers": {
+    "Content-Type": "application/vnd.ft-upp-article+json",
+    "X-Request-Id": "TEST-CONTENT-123",
+    "Message-Id": "e9234cdf-0e45-4d87-8276-cbe018bafa60",
+    "Message-Timestamp": "2019-10-02T15:13:26.329Z",
+    "Message-Type": "cms-content-published",
+    "Origin-System-Id": "http://cmdb.ft.com/systems/cct"
+  },
+  "body": {
+    "payload": {
+      "title": "Synthetic message",
+      "type": "Article",
+      "standout": {"scoop": false},
+      "is_related_content_notification": true
+    },
+    "contentUri": "synthetic/3cc23068-e501-11e9-9743-db5a370481bc",
+    "lastModified": "2019-10-02T15:13:19.52Z"
+  }
+}

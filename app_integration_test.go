@@ -118,6 +118,7 @@ func TestPushNotifications(t *testing.T) {
 	hc := resources.NewHealthCheck(queue, apiGatewayGTGURL, nil, "notifications-push", l)
 
 	keyProcessorURL, _ := url.Parse(server.URL + apiGatewayValidateURL)
+	// We need a PolicyProcessor, which may return different policies based on API key
 	policyProcessorURL, _ := url.Parse(server.URL + apiGatewayPoliciesURL)
 
 	keyProcessor := access.NewKeyProcessor(keyProcessorURL, http.DefaultClient, l)
@@ -148,6 +149,7 @@ func TestPushNotifications(t *testing.T) {
 	testClientWithNotifications(ctx, t, server.URL, "All", expectedArticleNotificationBody)
 	testClientShouldNotReceiveNotification(ctx, t, server.URL, "ContentPackage", expectedArticleNotificationBody)
 	testClientWithXPolicyNotifications(ctx, t, server.URL, "Article", expectedArticleNotificationBody, router, "TEST_POLICY")
+
 	reg.AssertNumberOfCalls(t, "RegisterOnShutdown", 5)
 
 	// message producer
@@ -288,6 +290,7 @@ func testClientWithXPolicyNotifications(ctx context.Context, t *testing.T, serve
 	}).Methods("GET")
 
 	ch, err := startSubscriber(ctx, serverURL, subType)
+
 	assert.NoError(t, err)
 	go func() {
 		body := <-ch
@@ -369,6 +372,44 @@ func testClientWithNONotifications(ctx context.Context, t *testing.T, serverURL 
 			}
 		}
 	}()
+}
+
+func startSubscriberWithXPolicy(ctx context.Context, serverURL string, subType string, policy string) (<-chan string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, serverURL+"/content/notifications-push?type="+subType, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Api-Key", "123456INTERNAL_UNSTABLE")
+	req.Header.Set("X-Policy", policy)
+
+	var resp *http.Response
+	fmt.Printf("Request URL: %s", req.URL.String())
+	resp, err = http.DefaultClient.Do(req) //nolint:bodyclose
+	if err != nil {
+		return nil, err
+	}
+
+	ch := make(chan string)
+	go func() {
+		defer close(ch)
+		defer resp.Body.Close()
+
+		buf := make([]byte, 4096)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				idx, err := resp.Body.Read(buf)
+				if err != nil {
+					return
+				}
+				ch <- string(buf[:idx])
+			}
+		}
+	}()
+
+	return ch, nil
 }
 
 func startSubscriber(ctx context.Context, serverURL string, subType string) (<-chan string, error) {

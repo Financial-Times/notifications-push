@@ -1,6 +1,8 @@
 FROM golang:1
 
 ENV PROJECT=notifications-push
+ENV REPO_PATH="github.com/Financial-Times/${PROJECT}"
+
 
 ARG GITHUB_USERNAME
 ARG GITHUB_TOKEN
