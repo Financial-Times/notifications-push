@@ -11,6 +11,7 @@ services:
     depends_on:
       - kafka
     environment:
+      - CGO_ENABLED=1
       - ALLOWED_ALL_CONTENT_TYPE="Article,ContentPackage,Audio"
       - API_BASE_URL="http://api-t.ft.com"
       - API_URL_RESOURCE=content
@@ -26,19 +27,43 @@ services:
       - SUPPORTED_SUBSCRIPTION_TYPE="Article,ContentRelation,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content"
       - TOPIC=PostPublicationEvents
     command: go test -mod=readonly -v -race -tags=integration ./...
+
   kafka:
     image: confluentinc/cp-kafka:latest
+    ports:
+      - '9092:9092'
+      - '19092:19092'
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_INTERNAL://localhost:19092
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "300m"
+        mode: "non-blocking"
     depends_on:
       - zookeeper
+
+  # Only when execute manually to monitor Kafka Topics
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
     ports:
-      - '19092:19092'
-    restart: always
+      - '8585:8080'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "300m"
+        mode: "non-blocking"
+        max-buffer-size: "5m"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_INTERNAL://kafka:19092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: 'true'
+
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     ports:

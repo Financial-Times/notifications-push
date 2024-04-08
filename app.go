@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Financial-Times/kafka-client-go/v4" //nolint:goimports
 	"net"
 	"net/http"
 	"net/url"
@@ -49,7 +50,7 @@ func main() {
 	consumerGroupID := app.String(cli.StringOpt{
 		Name:   "consumer_group_id",
 		Value:  "",
-		Desc:   "Kafka group id used for message consuming.",
+		Desc:   "Kafka qroup id used for message consuming.",
 		EnvVar: "GROUP_ID",
 	})
 	apiBaseURL := app.String(cli.StringOpt{
@@ -184,11 +185,23 @@ func main() {
 			"E2E_TEST_IDS":  *e2eTestUUIDs,
 		}).Infof("[Startup] notifications-push is starting ")
 
-		kafkaConsumer, err := createConsumer(log, *consumerAddress, *consumerGroupID, *kafkaTopic, *consumerLagTolerance)
-		if err != nil {
-			log.WithError(err).Fatalf("could not create Kafka consumer for %s and topic %s", *consumerAddress, *kafkaTopic)
+		// Kafka may need 11 seconds to start properly if containers started simultaneously
+		maxAttempts := 12
+		var kafkaConsumer *kafka.Consumer
+		var err error
+		for attempt := 1; attempt <= maxAttempts; attempt++ {
+			kafkaConsumer, err = createConsumer(log, *consumerAddress, *consumerGroupID, *kafkaTopic, *consumerLagTolerance)
+			if err != nil {
+				log.WithError(err).Infof("could not create Kafka consumer for %s and topic %s attempt: %d", *consumerAddress, *kafkaTopic, attempt)
+				time.Sleep(1 * time.Second) // Wait for 1 second before retrying
+			}
+			if err == nil {
+				break
+			}
 		}
-
+		if err != nil {
+			log.WithError(err).Fatalf("could not create Kafka consumer for %s and topic %s give up", *consumerAddress, *kafkaTopic)
+		}
 		evaluator, err := access.CreateEvaluator(
 			"data.specialContent.allow",
 			[]string{*opaFileLocation},

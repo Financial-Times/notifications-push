@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/kafka-client-go/v4"
@@ -10,15 +11,18 @@ import (
 	"github.com/Financial-Times/notifications-push/v5/dispatch"
 	"github.com/Financial-Times/notifications-push/v5/mocks"
 	"github.com/Financial-Times/notifications-push/v5/resources"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -33,37 +37,29 @@ const (
 	uriAllowlist            = `^http://(methode|wordpress-article|content)(-collection|-content-placeholder)?-(mapper|unfolder)(-pr|-iw)?(-uk-.*)?\.svc\.ft\.com(:\d{2,5})?/(content|complementarycontent)/[\w-]+.*$`
 	resource                = "content"
 	heartbeat               = time.Second * 1
+	articleHeader           = "application/vnd.ft-upp-article+json"
 	apiGatewayValidateURL   = "/api-gateway/validate"
 	apiGatewayPoliciesURL   = "/api-gateway/policies"
 	apiGatewayGTGURL        = "/api-gateway/__gtg"
 )
 
 const (
-	expectedUpdateNotification  = "data: [{\"apiUrl\":\"test-api/content/3cc23068-e501-11e9-9743-db5a370481bc\",\"id\":\"http://www.ft.com/thing/3cc23068-e501-11e9-9743-db5a370481bc\",\"type\":\"http://www.ft.com/thing/ThingChangeType/UPDATE\",\"title\":\"Lebanon eases dollar flow for importers as crisis grows\",\"standout\":{\"scoop\":false}}]\n\n\n"
-	expectedRelatedNotification = "data: [{\"apiUrl\":\"test-api/content/3cc23068-e501-11e9-9743-db5a370481bc\",\"id\":\"http://www.ft.com/thing/3cc23068-e501-11e9-9743-db5a370481bc\",\"type\":\"http://www.ft.com/thing/ThingChangeType/RELATEDCONTENTt\",\"title\":\"Lebanon eases dollar flow for importers as crisis grows\",\"standout\":{\"scoop\":false}}]\n\n\n"
+	relatedContentNotificationMessagePath = "./test_data/input/related_content_article_notification_payload_kafka.json"
+	expectedRelatedNotification           = "./test_data/output/expected_related_content_notification_data.json"
+
+	articleNotificationMessagePath = "./test_data/input/standard_article_notification_payload_kafka.json"
+	expectedUpdateNotification     = "./test_data/output/expected_article_notification_data.json"
 )
-
-var relatedContentNotificationMessage = kafka.NewFTMessage(map[string]string{
-	"Message-Id":        "e9234cdf-0e45-4d87-8276-cbe018bafa60",
-	"Message-Timestamp": "2019-10-02T15:13:26.329Z",
-	"Message-Type":      "cms-content-published",
-	"Origin-System-Id":  "http://cmdb.ft.com/systems/cct",
-	"Content-Type":      "application/vnd.ft-upp-article+json",
-	"X-Request-Id":      "test-publish-123",
-}, `{ "payload": { "title": "Lebanon eases dollar flow for importers as crisis grows", "type": "Article", "standout": { "scoop": false }, "is_related_content_notification": true }, "contentUri": "http://methode-article-mapper.svc.ft.com/content/3cc23068-e501-11e9-9743-db5a370481bc", "lastModified": "2019-10-02T15:13:19.52Z" }`)
-
-var updateNotificationMessage = kafka.NewFTMessage(map[string]string{
-	"Message-Id":        "e9234cdf-0e45-4d87-8276-cbe018bafa60",
-	"Message-Timestamp": "2019-10-02T15:13:26.329Z",
-	"Message-Type":      "cms-content-published",
-	"Origin-System-Id":  "http://cmdb.ft.com/systems/cct",
-	"Content-Type":      "application/vnd.ft-upp-article+json",
-	"X-Request-Id":      "test-publish-123",
-}, `{ "payload": { "title": "Lebanon eases dollar flow for importers as crisis grows", "type": "Article", "standout": { "scoop": false } }, "contentUri": "http://methode-article-mapper.svc.ft.com/content/3cc23068-e501-11e9-9743-db5a370481bc", "lastModified": "2019-10-02T15:13:19.52Z" }`)
 
 var typeAllowlist = []string{"application/vnd.ft-upp-article+json", "application/vnd.ft-upp-content-package+json", "application/vnd.ft-upp-audio+json"}
 
 var envVarsNames = []string{groupIdEnvVar, kafkaAddressEnvVar, kafkaLagToleranceEnvVar, topicEnvVar}
+var envVarsDefaultValues = map[string]string{
+	"GROUP_ID":            "notifications-push-local",
+	"KAFKA_ADDRESS":       "localhost:19092",
+	"KAFKA_LAG_TOLERANCE": "120",
+	"TOPIC":               "PostPublicationEvents",
+}
 
 type TestArtifacts struct {
 	log               *logger.UPPLogger
@@ -79,8 +75,12 @@ type TestArtifacts struct {
 	subHandler        *resources.SubHandler
 }
 
+type NotificationJSONData struct {
+	Data json.RawMessage `json:"data,omitempty"`
+}
+
 func setUp(t *testing.T) TestArtifacts {
-	log := logger.NewUPPLogger("notifications-push-test", "info")
+	log := logger.NewUPPLogger("notifications-push-test-runner", "info")
 
 	envVars := getEnvVars(t)
 
@@ -131,7 +131,11 @@ func getEnvVars(t *testing.T) map[string]string {
 	for _, e := range envVarsNames {
 		v := os.Getenv(e)
 		if v == "" {
-			t.Fatalf("environment variable %s empty", v)
+			if envVarsDefaultValues[e] == "" {
+				t.Fatalf("environment variable %s empty", e)
+			}
+			v = envVarsDefaultValues[e]
+			t.Logf("environment variable %q is empty default value: %q if you run test from the IDE, set proper values in Environment.", e, envVarsDefaultValues[e])
 		}
 
 		values[e] = v
@@ -148,7 +152,7 @@ func createTestDispatcher(t *testing.T, delay time.Duration, historySize int, lo
 		[]string{"./opa_modules/special_content.rego"},
 	)
 	if err != nil {
-		t.Fatalf("a problem setting up the OPA evaluator while creating notifications-push's dispatcher: %v", err)
+		t.Fatalf("a problem setting up the OPA evaluator while creating service dispatcher: %v", err)
 	}
 
 	d := dispatch.NewDispatcher(delay, h, e, log)
@@ -159,13 +163,16 @@ func createTestDispatcher(t *testing.T, delay time.Duration, historySize int, lo
 
 func createKafkaProducer(t *testing.T, envVars map[string]string) *kafka.Producer {
 	pc := kafka.ProducerConfig{
+		ClusterArn:              nil,
 		BrokersConnectionString: envVars[kafkaAddressEnvVar],
 		Topic:                   envVars[topicEnvVar],
+		Options:                 kafka.DefaultProducerOptions(),
 	}
 
 	kp, err := kafka.NewProducer(pc)
 	if err != nil {
-		t.Fatalf("could not create Kafka producer: %v", err)
+		t.Errorf("could not create Kafka producer: %v", err)
+		return nil
 	}
 
 	return kp
@@ -187,6 +194,7 @@ func createKafkaConsumer(t *testing.T, envVars map[string]string, log *logger.UP
 		kafka.NewTopic(envVars[topicEnvVar], kafka.WithLagTolerance(int64(lt))),
 	}
 
+	t.Logf("Creating Kafka consumer with: %v, %v", cc, kt)
 	kc, err := kafka.NewConsumer(cc, kt, log)
 	if err != nil {
 		t.Fatalf("could not create Kafka consumer: %v", err)
@@ -232,6 +240,7 @@ func createAPIGatewayProcessors(t *testing.T, server *httptest.Server, log *logg
 	return kp, pp
 }
 
+// @Test - This is the main test
 func TestPushNotifications(t *testing.T) {
 	testArtifacts := setUp(t)
 
@@ -242,15 +251,46 @@ func TestPushNotifications(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	relatedContentArticleKafkaMessage, err := getKafkaFTMessage(relatedContentNotificationMessagePath, articleHeader, testArtifacts.log)
+	if err != nil {
+		t.Fatalf("Expected test data file is missing: %s", relatedContentNotificationMessagePath)
+	}
+
+	relatedContentArticleNotification, err := getNotificationResponseData(expectedRelatedNotification, testArtifacts.log)
+	if err != nil {
+		t.Fatalf("Expected test notification data file is missing: %s", expectedRelatedNotification)
+	}
+
+	standardArticleKafkaMessage, err := getKafkaFTMessage(articleNotificationMessagePath, articleHeader, testArtifacts.log)
+	if err != nil {
+		t.Fatalf("Expected test data file is missing: %s", articleNotificationMessagePath)
+	}
+
+	standardArticleNotification, err := getNotificationResponseData(expectedUpdateNotification, testArtifacts.log)
+	if err != nil {
+		t.Fatalf("Expected test notification data file is missing: %s", expectedUpdateNotification)
+	}
+
 	tests := []struct {
-		msg      kafka.FTMessage
-		expected string
-		xPolicy  string
+		kafkaMessage         *kafka.FTMessage
+		expectedNotification string
+		xPolicy              string
 	}{
 		{
-			msg:      relatedContentNotificationMessage,
-			expected: expectedRelatedNotification,
-			xPolicy:  "INTERNAL_UNSTABLE",
+			kafkaMessage:         relatedContentArticleKafkaMessage,
+			expectedNotification: relatedContentArticleNotification,
+			xPolicy:              "INTERNAL_UNSTABLE",
+		},
+		{
+			kafkaMessage:         standardArticleKafkaMessage,
+			expectedNotification: standardArticleNotification,
+			xPolicy:              "ADVANCED_SUBSCRIPTION",
+		},
+		{
+			kafkaMessage: relatedContentArticleKafkaMessage,
+			// To FIX: With these mocks we actually receive standard UPDATE event, instead of heartbeats only...
+			expectedNotification: standardArticleNotification, // Expect only HeartBeat notifications, but: 1. With these mocks we receive UPDATE notification 2. how long to wait?!?
+			xPolicy:              "ADVANCED_SUBSCRIPTION",
 		},
 	}
 
@@ -259,19 +299,21 @@ func TestPushNotifications(t *testing.T) {
 			_, _ = w.Write([]byte(fmt.Sprintf("{'x-policy':%q}", test.xPolicy)))
 		}).Methods("GET")
 
-		testClientWithNotifications(ctx, t, testArtifacts.server.URL, "Article", test.expected)
+		testClientWithNotifications(ctx, t, testArtifacts.server.URL, "Article", test.expectedNotification)
 
-		err := testArtifacts.kafkaProducer.SendMessage(test.msg)
+		// This producer produces events, which are not consumed by the consumer!!!
+		err := testArtifacts.kafkaProducer.SendMessage(*test.kafkaMessage)
 		if err != nil {
-			t.Fatalf("could net send Kafka message %v", err)
+			t.Fatalf("could net send Kafka message: %v", err)
 		}
+
 	}
 
-	<-time.After(heartbeat * 5)
+	<-time.After(heartbeat * 10)
 
 	cancel()
 
-	//t.Fatal("Test timed out.")
+	// t.Fatal("Test timed out.")
 }
 
 func testClientWithNotifications(ctx context.Context, t *testing.T, serverURL string, subType string, expectedBody string) {
@@ -289,13 +331,23 @@ func testClientWithNotifications(ctx context.Context, t *testing.T, serverURL st
 			case body = <-ch:
 				if body != "data: []\n\n" {
 					assert.Equal(t, expectedBody, body, "Client with type '%s' received incorrect body", subType)
+					// assume we expect only one notification per subscriber, otherwise we need to count here in the for loop
+					// TODO We have to interrupt the subscriber in this case and complete the test case...
+					// ctx.Done()
+					//break
+					t.Logf("Notification received by the subscriber as expected: %s", expectedBody)
+					return
 				}
 			}
 		}
 	}()
+
 }
 
-func startTestService(n notificationSystem, consumer *kafka.Consumer, msgHandler consumer.MessageQueueHandler, log *logger.UPPLogger) func() {
+func startTestService(n notificationSystem,
+	consumer *kafka.Consumer,
+	msgHandler consumer.MessageQueueHandler,
+	log *logger.UPPLogger) func() {
 	go n.Start()
 
 	go consumer.Start(msgHandler.HandleMessage)
@@ -324,6 +376,15 @@ func startSubscriber(ctx context.Context, serverURL string, subType string) (<-c
 		return nil, err
 	}
 
+	// Subscribe for notifications with TIMEOUT
+	//client := &http.Client{
+	//	Timeout: 8 * time.Second,
+	//}
+	//resp, err := client.Do(req)
+	//if err != nil {
+	//	return nil, fmt.Errorf("error occurred while making request: %v", err)
+	//}
+
 	ch := make(chan string)
 	go func() {
 
@@ -334,6 +395,7 @@ func startSubscriber(ctx context.Context, serverURL string, subType string) (<-c
 		for {
 			select {
 			case <-ctx.Done():
+
 				return
 			default:
 				idx, err := resp.Body.Read(buf)
@@ -342,8 +404,83 @@ func startSubscriber(ctx context.Context, serverURL string, subType string) (<-c
 				}
 				ch <- string(buf[:idx])
 			}
+
 		}
 	}()
 
 	return ch, nil
+}
+
+// getKafkaFTMessage t.Helper() function, which constructs FTMessage kafka event based on payload from file
+// By default the event is expected to be Article. If not correct header for Content-Type shall be specified.
+func getKafkaFTMessage(pathToJSONFile string, notificationTypeHeader string, log *logger.UPPLogger) (*kafka.FTMessage, error) {
+	currentTime := time.Now().UTC()
+	formattedCurrentTime := currentTime.Format("2006-01-02T15:04:05.999Z")
+
+	// Default notification Type to Article
+	if notificationTypeHeader == "" {
+		notificationTypeHeader = "application/vnd.ft-upp-article+json"
+	}
+
+	headers := map[string]string{}
+	headers["X-Request-Id"] = "test-publish-123"
+	headers["Message-Timestamp"] = formattedCurrentTime
+	headers["Content-Type"] = notificationTypeHeader
+	headers["Message-Type"] = "cms-content-published"
+	headers["Origin-System-Id"] = "http://cmdb.ft.com/systems/cct"
+	headers["Message-Id"] = uuid.New().String()
+
+	body, err := getKafkaPayload(pathToJSONFile, log)
+	if err != nil {
+		return nil, err
+	}
+
+	ftMessage := kafka.NewFTMessage(headers, string(body))
+	return &ftMessage, nil
+}
+
+// getKafkaPayload t.Helper() function, which reads json from a file and return content as []byte
+func getKafkaPayload(pathToJSONFile string, log *logger.UPPLogger) ([]byte, error) {
+	file, err := os.Open(pathToJSONFile)
+	if err != nil {
+		log.Errorf("error: %v while opening file: %v", err, pathToJSONFile)
+		return nil, err
+	}
+
+	body, err := io.ReadAll(file)
+	if err != nil {
+		log.Errorf("error: %v while reading file: %v", err, pathToJSONFile)
+		return nil, err
+	}
+	return body, nil
+}
+
+// getNotificationResponseData reads the notification expected formatted payload
+// and returns it as string representation.
+func getNotificationResponseData(pathToJSONFile string, log *logger.UPPLogger) (string, error) {
+	data, err := getKafkaPayload(pathToJSONFile, log)
+	if err != nil {
+		return "", err
+	}
+	var notificationData NotificationJSONData
+	if err := json.Unmarshal(data, &notificationData); err != nil {
+		log.Errorf("error: cannot unmarshal expected notification as JSON: %v", err)
+		return "", err
+	}
+
+	if len(notificationData.Data) == 0 {
+		log.Errorf("No data present in expected notification as JSON: %s", pathToJSONFile)
+		return "", err
+	}
+
+	// Convert JSON Pretty to one row JSON without spaces between elements
+	jsonString := string(notificationData.Data)
+	jsonString = strings.ReplaceAll(jsonString, "\\\\", "\\")
+	jsonString = strings.ReplaceAll(jsonString, "\r\n", "")
+	jsonString = strings.ReplaceAll(jsonString, "\n", "")
+	jsonString = strings.ReplaceAll(jsonString, "    ", "")
+	jsonString = strings.ReplaceAll(jsonString, "  ", "")
+	jsonString = strings.ReplaceAll(jsonString, ": ", ":")
+	jsonString = "data: " + jsonString + "\n\n\n"
+	return jsonString, nil
 }

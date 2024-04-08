@@ -1,0 +1,13 @@
+{
+  "data": [
+    {
+      "apiUrl": "test-api/content/3cc23068-e501-11e9-9743-db5a370481bc",
+      "id": "http://www.ft.com/thing/3cc23068-e501-11e9-9743-db5a370481bc",
+      "type": "http://www.ft.com/thing/ThingChangeType/UPDATE",
+      "title": "Lebanon eases dollar flow for importers as crisis grows",
+      "standout": {
+        "scoop": false
+      }
+    }
+  ]
+}

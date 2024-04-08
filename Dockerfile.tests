@@ -1,4 +1,4 @@
-FROM golang:1
+FROM golang:1.21
 
 ENV PROJECT=notifications-push
 ENV ORG_PATH="github.com/Financial-Times"
