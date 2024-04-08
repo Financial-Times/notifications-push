@@ -49,6 +49,11 @@ func (n NotificationMapper) MapNotification(event NotificationMessage, transacti
 		contentType = resolveTypeFromMessageHeader(event.ContentType)
 	}
 
+	// If it's a related content event.
+	if event.Payload.IsRelatedContentNotification {
+		eventType = dispatch.RelatedContentType
+	}
+
 	notification := dispatch.NotificationModel{
 		Type:             eventType,
 		ID:               "http://www.ft.com/thing/" + uuid,

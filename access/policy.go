@@ -10,11 +10,13 @@ import (
 )
 
 const advancedNotificationsXPolicy = "ADVANCED_NOTIFICATIONS"
+const internalUnstableXPolicy = "INTERNAL_UNSTABLE"
 
 var xPoliciesPattern = regexp.MustCompile(`['"]x-policy['"]\s*:\s*['"](.*)?['"]`)
 
 type NotificationSubscriptionOptions struct {
-	ReceiveAdvancedNotifications bool
+	ReceiveAdvancedNotifications       bool
+	ReceiveRelatedContentNotifications bool
 }
 
 type PolicyProcessor struct {
@@ -31,7 +33,8 @@ func NewPolicyProcessor(u *url.URL, c *http.Client) *PolicyProcessor {
 
 func (pp *PolicyProcessor) GetNotificationSubscriptionOptions(ctx context.Context, k string) (*NotificationSubscriptionOptions, error) {
 	opts := &NotificationSubscriptionOptions{
-		ReceiveAdvancedNotifications: false,
+		ReceiveAdvancedNotifications:       false,
+		ReceiveRelatedContentNotifications: false,
 	}
 
 	policies, err := pp.getXPolicies(ctx, k)
@@ -42,6 +45,11 @@ func (pp *PolicyProcessor) GetNotificationSubscriptionOptions(ctx context.Contex
 	for _, p := range policies {
 		if p == advancedNotificationsXPolicy {
 			opts.ReceiveAdvancedNotifications = true
+			break
+		}
+
+		if p == internalUnstableXPolicy {
+			opts.ReceiveRelatedContentNotifications = true
 			break
 		}
 	}

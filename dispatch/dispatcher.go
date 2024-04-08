@@ -187,6 +187,8 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 		isPublicationAllowed = true
 	}
 
+	isRelatedContent := notification.Type == RelatedContentType
+
 	for sub := range d.subscribers {
 		entry := logWithSubscriber(d.log, sub).
 			WithTransactionID(notification.PublishReference).
@@ -212,6 +214,11 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 			if !isPublicationAllowed {
 				skipped++
 				entry.Info("Skipping subscriber due to blocked publication.")
+				continue
+			}
+			if isRelatedContent && !sub.Options().ReceiveRelatedContentNotifications {
+				skipped++
+				entry.Info("Skipping subscriber due to RELATEDCONTENТ notification, without policy InternalUnstable.")
 				continue
 			}
 		}

@@ -1,0 +1,16 @@
+FROM golang:1
+
+ENV PROJECT=notifications-push
+ENV ORG_PATH="github.com/Financial-Times"
+ENV SRC_FOLDER="${GOPATH}/src/${ORG_PATH}/${PROJECT}"
+
+ARG GITHUB_USERNAME
+ARG GITHUB_TOKEN
+
+WORKDIR ${SRC_FOLDER}
+
+COPY . .
+
+RUN echo "Fetching dependencies..." \
+  && git config --global url."https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com" \
+  && go mod download

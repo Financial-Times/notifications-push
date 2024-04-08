@@ -25,6 +25,7 @@ const (
 	ContentCreateType    = "http://www.ft.com/thing/ThingChangeType/CREATE"
 	ContentDeleteType    = "http://www.ft.com/thing/ThingChangeType/DELETE"
 	AnnotationUpdateType = "http://www.ft.com/thing/ThingChangeType/ANNOTATIONS_UPDATE"
+	RelatedContentType   = "http://www.ft.com/thing/ThingChangeType/RELATEDCONTENT"
 )
 
 // NotificationModel model
