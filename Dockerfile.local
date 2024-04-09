@@ -33,4 +33,4 @@ RUN GOOS=linux go build -mod=readonly . && export NOTIFICATIONS_RESOURCE=content
             && export DEFAULT_SUBSCRIPTION_TYPE="Article" \
             && export OPA_FILE_LOCATION="./opa_modules/special_content.rego"
 
-CMD [ "/notifications-push" ]
+ENTRYPOINT ["./wait-for-it.sh", "kafka:9092", "-t", "30", "--"]
