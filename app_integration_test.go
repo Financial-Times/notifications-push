@@ -63,19 +63,29 @@ var invalidContentURIMsg = kafka.NewFTMessage(map[string]string{
 	"Content-Type":      "application/json",
 	"X-Request-Id":      "test-publish-123",
 }, `{"contentUri": "http://invalid.svc.ft.com/annotations/4de8b414-c5aa-11e9-a8e9-296ca66511c9","lastModified": "2019-10-02T15:13:19.52Z","payload": {"uuid":"4de8b414-c5aa-11e9-a8e9-296ca66511c9","annotations":[{"thing":{ "id":"http://www.ft.com/thing/68678217-1d06-4600-9d43-b0e71a333c2a","predicate":"about"}}]}}`)
+var articleMsgWithRelatedContentNotificationFlag = kafka.NewFTMessage(map[string]string{
+	"Message-Id":        "e9234cdf-0e45-4d87-8276-cbe018bafa60",
+	"Message-Timestamp": "2019-10-02T15:13:26.329Z",
+	"Message-Type":      "cms-content-published",
+	"Origin-System-Id":  "http://cmdb.ft.com/systems/cct",
+	"Content-Type":      "application/vnd.ft-upp-article+json",
+	"X-Request-Id":      "test-publish-1234",
+}, `{ "payload": { "title": "Lebanon eases dollar flow for importers as crisis grows", "type": "Article", "standout": { "scoop": false }, "is_related_content_notification": true }, "contentUri": "http://methode-article-mapper.svc.ft.com/content/3cc23068-e501-11e9-9743-db5a370481bc", "lastModified": "2019-10-02T15:13:19.52Z" }`)
+
+// handlers vars
+var (
+	apiGatewayValidateURL = "/api-gateway/validate"
+	apiGatewayPoliciesURL = "/api-gateway/policies"
+	apiGatewayGTGURL      = "/api-gateway/__gtg"
+	heartbeat             = time.Second * 1
+	resource              = "content"
+)
 
 func TestPushNotifications(t *testing.T) {
 	t.Parallel()
 
 	l := logger.NewUPPLogger("TEST", "info")
-	// handlers vars
-	var (
-		apiGatewayValidateURL = "/api-gateway/validate"
-		apiGatewayPoliciesURL = "/api-gateway/policies"
-		apiGatewayGTGURL      = "/api-gateway/__gtg"
-		heartbeat             = time.Second * 1
-		resource              = "content"
-	)
+
 	// dispatch vars
 	var (
 		delay       = time.Millisecond * 200
@@ -128,16 +138,17 @@ func TestPushNotifications(t *testing.T) {
 		_, _ = w.Write([]byte("{'x-policy':''"))
 	}).Methods("GET")
 
-	// context that controls the live of all subscribers
+	// context that controls the life of all subscribers
 	ctx, cancel := context.WithCancel(context.Background())
 
-	testHealthcheckEndpoints(ctx, t, server.URL, queue, hc)
+	testHealthCheckEndpoints(ctx, t, server.URL, queue, hc)
 
 	testClientWithNONotifications(ctx, t, server.URL, heartbeat, "Audio")
 	testClientWithNotifications(ctx, t, server.URL, "Article", expectedArticleNotificationBody)
 	testClientWithNotifications(ctx, t, server.URL, "All", expectedArticleNotificationBody)
 	testClientShouldNotReceiveNotification(ctx, t, server.URL, "ContentPackage", expectedArticleNotificationBody)
-	reg.AssertNumberOfCalls(t, "RegisterOnShutdown", 4)
+	testClientWithXPolicyNotifications(ctx, t, server.URL, "Article", expectedArticleNotificationBody, router, "TEST_POLICY")
+	reg.AssertNumberOfCalls(t, "RegisterOnShutdown", 5)
 
 	// message producer
 	go func() {
@@ -146,6 +157,7 @@ func TestPushNotifications(t *testing.T) {
 			syntheticMsg,
 			invalidContentTypeMsg,
 			invalidContentURIMsg,
+			articleMsgWithRelatedContentNotificationFlag,
 		}
 		var buff bytes.Buffer
 		log := logger.NewUnstructuredLogger()
@@ -173,8 +185,7 @@ func TestPushNotifications(t *testing.T) {
 
 }
 
-func testHealthcheckEndpoints(ctx context.Context, t *testing.T, serverURL string, queue *mocks.KafkaConsumer, hc *resources.HealthCheck) {
-
+func testHealthCheckEndpoints(ctx context.Context, t *testing.T, serverURL string, queue *mocks.KafkaConsumer, hc *resources.HealthCheck) {
 	tests := map[string]struct {
 		url            string
 		expectedStatus int
@@ -269,6 +280,30 @@ func testHealthcheckEndpoints(ctx context.Context, t *testing.T, serverURL strin
 	}
 }
 
+// Tests a subscriber that expects only notifications because of its X-Policy: INTERNAL_UNSTABLE
+func testClientWithXPolicyNotifications(ctx context.Context, t *testing.T, serverURL string, subType string, expectedBody string, router *mux.Router, policy string) {
+	router.HandleFunc(apiGatewayPoliciesURL, func(w http.ResponseWriter, _ *http.Request) {
+		// We may add logic to get X-Api-Policy from request and based on it to return x-policy instead of param
+		_, _ = w.Write([]byte("{'x-policy':'" + policy + "'"))
+	}).Methods("GET")
+
+	ch, err := startSubscriber(ctx, serverURL, subType)
+	assert.NoError(t, err)
+	go func() {
+		body := <-ch
+		assert.Equal(t, "data: []\n\n", body, "Client with type '%s' expects to receive heartbeat message when connecting to the service.", subType)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case body = <-ch:
+				assert.Equal(t, expectedBody, body, "Client with type '%s' received incorrect body", subType)
+			}
+		}
+	}()
+}
+
 // Tests a subscriber that expects only notifications
 func testClientWithNotifications(ctx context.Context, t *testing.T, serverURL string, subType string, expectedBody string) {
 	ch, err := startSubscriber(ctx, serverURL, subType)
@@ -328,7 +363,7 @@ func testClientWithNONotifications(ctx context.Context, t *testing.T, serverURL 
 				return
 			case body := <-ch:
 				delta := time.Since(start)
-				assert.InEpsilon(t, heartbeat.Nanoseconds(), delta.Nanoseconds(), 0.05, "No Notification Client with type '%s' expects to receive heatbests on time.")
+				assert.InEpsilon(t, heartbeat.Nanoseconds(), delta.Nanoseconds(), 0.05, "No Notification Client with type '%s' expects to receive heartbeat on time.")
 				assert.Equal(t, "data: []\n\n", body, "No Notification Client with type '%s' expects to receive only heartbeat messages.")
 				start = start.Add(heartbeat)
 			}
@@ -343,7 +378,8 @@ func startSubscriber(ctx context.Context, serverURL string, subType string) (<-c
 	}
 	req.Header.Set("X-Api-Key", "test-key")
 
-	resp, err := http.DefaultClient.Do(req) //nolint:bodyclose
+	var resp *http.Response
+	resp, err = http.DefaultClient.Do(req) //nolint:bodyclose
 	if err != nil {
 		return nil, err
 	}

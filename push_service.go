@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -30,7 +31,7 @@ func startService(srv *http.Server, n notificationSystem, consumer *kafka.Consum
 
 	go func() {
 		err := srv.ListenAndServe()
-		if err != http.ErrServerClosed {
+		if !errors.Is(err, http.ErrServerClosed) {
 			log.WithError(err).Error("http server")
 		}
 	}()

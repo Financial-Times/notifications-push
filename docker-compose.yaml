@@ -8,28 +8,34 @@ services:
       - "2181:2181"
 
   kafka:
-    image: wurstmeister/kafka:0.8.2.2
+    image: wurstmeister/kafka
     ports:
       - "9092:9092"
     depends_on:
       - zookeeper
     environment:
       KAFKA_ADVERTISED_PORT: 9092
-      KAFKA_ADVERTISED_HOST_NAME: 172.17.0.1
-      #KAFKA_ADVERTISED_HOST_NAME: 192.168.1.239
+      KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_ZOOKEEPER_CONNECT: zookeeper
       KAFKA_CREATE_TOPICS: "PostPublicationEvents:1:1,PostConceptAnnotations:1:1"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
   app:
-    image: local/notifications-push:latest
+    # image: local/notifications-push-app:latest
+    build:
+      context: .
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
     environment:
-      KAFKA_ADDRS: "zookeeper:2181"
+      CGO_ENABLED: 1
+      KAFKA_ADDRESS: kafka:9092
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       API_BASE_URL: "http://api-t.ft.com"
       GROUP_ID: "notifications-push-test1"
       TOPIC: "PostPublicationEvents"
-      NOTIFICATIONS_DELAY: "10"
+      NOTIFICATIONS_DELAY: 10
       NOTIFICATIONS_RESOURCE: "content"
       API_URL_RESOURCE: "content"
       CONTENT_URI_ALLOWLIST: "^http://(content|upp)(-collection|-content-placeholder|-notifications-creator)?(-mapper|-unfolder)?(-pr|-iw)?(-uk-.*)?\\.svc\\.ft\\.com(:\\d{2,5})?/(content|complementarycontent)/[\\w-]+.*$"
@@ -37,6 +43,7 @@ services:
       ALLOWED_ALL_CONTENT_TYPE: "Article,ContentPackage,Audio"
       SUPPORTED_SUBSCRIPTION_TYPE: "Annotations,Article,ContentPackage,Audio,All,LiveBlogPackage,LiveBlogPost,Content"
       DEFAULT_SUBSCRIPTION_TYPE: "Article"
+      OPA_FILE_LOCATION: "./opa_modules/special_content.rego"
       APP_PORT: 8080
     ports:
       - 8000:8080
