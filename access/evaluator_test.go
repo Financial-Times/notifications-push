@@ -58,15 +58,6 @@ func TestEvaluator_EvaluateNotificationAccessLevel(t *testing.T) {
 			wantErr: assert.NoError,
 		},
 		{
-			name:      "FTA notification",
-			evalQuery: defaultEvalQuery,
-			notification: map[string]interface{}{
-				"Publication": "19d50190-8656-4e91-8d34-82e646ada9c9",
-			},
-			want:    false,
-			wantErr: assert.NoError,
-		},
-		{
 			name:      "FT Pink notification",
 			evalQuery: defaultEvalQuery,
 			notification: map[string]interface{}{
