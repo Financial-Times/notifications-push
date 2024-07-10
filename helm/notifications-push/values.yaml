@@ -5,6 +5,7 @@ service:
   name: "" # The name of the service, should be defined in the specific app-configs folder.
   hasHealthcheck: "true"
   isResilient: "false"
+  serviceAccountName: eksctl-notifications-push-serviceaccount
 replicaCount: 2
 image:
   repository: coco/notifications-push
