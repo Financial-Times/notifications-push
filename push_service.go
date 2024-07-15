@@ -67,8 +67,9 @@ func initRouter(r *mux.Router,
 	r.HandleFunc("/__history", resources.History(h, log)).Methods("GET")
 }
 
-func createConsumer(log *logger.UPPLogger, address, groupID string, topic string, lagTolerance int) (*kafka.Consumer, error) {
+func createConsumer(log *logger.UPPLogger, kafkaClusterArn, address, groupID string, topic string, lagTolerance int) (*kafka.Consumer, error) {
 	consumerConfig := kafka.ConsumerConfig{
+		ClusterArn:              &kafkaClusterArn,
 		BrokersConnectionString: address,
 		ConsumerGroup:           groupID,
 		OffsetFetchInterval:     2 * time.Minute,

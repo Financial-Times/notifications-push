@@ -18,87 +18,93 @@ spec:
         app: {{ .Values.service.name }}
         visualize: "true"
     spec:
+      serviceAccountName: {{ .Values.service.serviceAccountName }}
       affinity:
-          podAntiAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - {{ .Values.service.name }}
+                  - key: app
+                    operator: In
+                    values:
+                      - {{ .Values.service.name }}
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - name: {{ .Values.service.name }}
-        image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        env:
-        - name: APP_NAME
-          value: {{ .Values.service.name }}
-        - name: KAFKA_ADDRESS
-          valueFrom:
-            configMapKeyRef:
-              name: global-config
-              key: msk.kafka.broker.url
-        - name: KAFKA_LAG_TOLERANCE
-          value: "120"
-        - name: API_BASE_URL
-          valueFrom:
-            configMapKeyRef:
-              name: global-config
-              key: api.host.with.protocol
-        - name: GROUP_ID
-          # set this as the pod name so it's unique per instance
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: TOPIC
-          value: {{ .Values.env.TOPIC }}
-        - name: NOTIFICATIONS_DELAY
-          valueFrom:
-            configMapKeyRef:
-              name: global-config
-              key: cache-max-age
-        - name: NOTIFICATIONS_RESOURCE
-          value: {{ .Values.env.NOTIFICATIONS_RESOURCE }}
-        - name: CONTENT_URI_ALLOWLIST
-          value: {{ .Values.env.CONTENT_URI_ALLOWLIST }}
-        - name: CONTENT_TYPE_ALLOWLIST
-          value: {{ .Values.env.CONTENT_TYPE_ALLOWLIST }}
-        - name: ALLOWED_ALL_CONTENT_TYPE
-          value: {{ .Values.env.ALLOWED_ALL_CONTENT_TYPE }}
-        - name: SUPPORTED_SUBSCRIPTION_TYPE
-          value: {{ .Values.env.SUPPORTED_SUBSCRIPTION_TYPE }}
-        - name: DEFAULT_SUBSCRIPTION_TYPE
-          value: {{ .Values.env.DEFAULT_SUBSCRIPTION_TYPE }}
-        - name: E2E_TEST_IDS
-          value: {{ .Values.env.E2E_TEST_IDS }}
-        - name: API_KEY_POLICIES_ENDPOINT
-          value: {{ .Values.env.API_KEY_POLICIES_ENDPOINT }}
-        - name: API_KEY_VALIDATION_ENDPOINT
-          value: {{ .Values.env.API_KEY_VALIDATION_ENDPOINT }}
-        - name: OPA_FILE_LOCATION
-          value: {{ .Values.env.OPA_FILE_LOCATION }}
-        - name: MONITOR_NOTIFICATIONS
-          value: "{{ .Values.env.MONITOR_NOTIFICATIONS }}"
-        - name: INCLUDE_SCOOP
-          value: "{{ .Values.env.INCLUDE_SCOOP }}"
-        - name: UPDATE_EVENT_TYPE
-          value: {{ .Values.env.UPDATE_EVENT_TYPE }}
-        - name: API_URL_RESOURCE
-          value: {{ .Values.env.API_URL_RESOURCE }}
-        ports:
-        - containerPort: 8080
-        livenessProbe:
-          tcpSocket:
-            port: 8080
-          initialDelaySeconds: 5
-        readinessProbe:
-          httpGet:
-            path: "/__gtg"
-            port: 8080
-          initialDelaySeconds: 20
-          periodSeconds: 30
-          timeoutSeconds: 5
-        resources:
+        - name: {{ .Values.service.name }}
+          image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: APP_NAME
+              value: {{ .Values.service.name }}
+            - name: KAFKA_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: global-config
+                  key: msk.kafka.broker.url
+            - name: KAFKA_CLUSTER_ARN
+              valueFrom:
+                configMapKeyRef:
+                  name: global-config
+                  key: msk.kafka.cluster.arn
+            - name: KAFKA_LAG_TOLERANCE
+              value: "120"
+            - name: API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: global-config
+                  key: api.host.with.protocol
+            - name: GROUP_ID
+              # set this as the pod name so it's unique per instance
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: TOPIC
+              value: {{ .Values.env.TOPIC }}
+            - name: NOTIFICATIONS_DELAY
+              valueFrom:
+                configMapKeyRef:
+                  name: global-config
+                  key: cache-max-age
+            - name: NOTIFICATIONS_RESOURCE
+              value: {{ .Values.env.NOTIFICATIONS_RESOURCE }}
+            - name: CONTENT_URI_ALLOWLIST
+              value: {{ .Values.env.CONTENT_URI_ALLOWLIST }}
+            - name: CONTENT_TYPE_ALLOWLIST
+              value: {{ .Values.env.CONTENT_TYPE_ALLOWLIST }}
+            - name: ALLOWED_ALL_CONTENT_TYPE
+              value: {{ .Values.env.ALLOWED_ALL_CONTENT_TYPE }}
+            - name: SUPPORTED_SUBSCRIPTION_TYPE
+              value: {{ .Values.env.SUPPORTED_SUBSCRIPTION_TYPE }}
+            - name: DEFAULT_SUBSCRIPTION_TYPE
+              value: {{ .Values.env.DEFAULT_SUBSCRIPTION_TYPE }}
+            - name: E2E_TEST_IDS
+              value: {{ .Values.env.E2E_TEST_IDS }}
+            - name: API_KEY_POLICIES_ENDPOINT
+              value: {{ .Values.env.API_KEY_POLICIES_ENDPOINT }}
+            - name: API_KEY_VALIDATION_ENDPOINT
+              value: {{ .Values.env.API_KEY_VALIDATION_ENDPOINT }}
+            - name: OPA_FILE_LOCATION
+              value: {{ .Values.env.OPA_FILE_LOCATION }}
+            - name: MONITOR_NOTIFICATIONS
+              value: "{{ .Values.env.MONITOR_NOTIFICATIONS }}"
+            - name: INCLUDE_SCOOP
+              value: "{{ .Values.env.INCLUDE_SCOOP }}"
+            - name: UPDATE_EVENT_TYPE
+              value: {{ .Values.env.UPDATE_EVENT_TYPE }}
+            - name: API_URL_RESOURCE
+              value: {{ .Values.env.API_URL_RESOURCE }}
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet:
+              path: "/__gtg"
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
 {{ toYaml .Values.resources | indent 12 }}

@@ -40,6 +40,12 @@ func main() {
 		Desc:   "Comma separated kafka hosts for message consuming.",
 		EnvVar: "KAFKA_ADDRESS",
 	})
+	kafkaClusterArn := app.String(cli.StringOpt{
+		Name:   "kafka_cluster_arn",
+		Value:  "",
+		Desc:   "Comma separated Kafka cluster ARN for consuming messages.",
+		EnvVar: "KAFKA_CLUSTER_ARN",
+	})
 	consumerLagTolerance := app.Int(cli.IntOpt{
 		Name:   "consumer_lag_tolerance",
 		Value:  120,
@@ -177,14 +183,15 @@ func main() {
 
 	app.Action = func() {
 		log.WithFields(map[string]interface{}{
-			"KAFKA_TOPIC":   *kafkaTopic,
-			"GROUP_ID":      *consumerGroupID,
-			"KAFKA_ADDRESS": *consumerAddress,
-			"LAG_TOLERANCE": *consumerLagTolerance,
-			"E2E_TEST_IDS":  *e2eTestUUIDs,
+			"KAFKA_TOPIC":       *kafkaTopic,
+			"GROUP_ID":          *consumerGroupID,
+			"KAFKA_ADDRESS":     *consumerAddress,
+			"KAFKA_CLUSTER_ARN": *kafkaClusterArn,
+			"LAG_TOLERANCE":     *consumerLagTolerance,
+			"E2E_TEST_IDS":      *e2eTestUUIDs,
 		}).Infof("[Startup] notifications-push is starting ")
 
-		kafkaConsumer, err := createConsumer(log, *consumerAddress, *consumerGroupID, *kafkaTopic, *consumerLagTolerance)
+		kafkaConsumer, err := createConsumer(log, *kafkaClusterArn, *consumerAddress, *consumerGroupID, *kafkaTopic, *consumerLagTolerance)
 		if err != nil {
 			log.WithError(err).Fatalf("could not create Kafka consumer for %s and topic %s", *consumerAddress, *kafkaTopic)
 		}
