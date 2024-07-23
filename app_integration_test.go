@@ -410,14 +410,8 @@ func startSubscriber(ctx context.Context, serverURL string, subType string) (<-c
 
 func startDispatcher(delay time.Duration, historySize int, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History, error) {
 	h := dispatch.NewHistory(historySize)
-	e, err := access.CreateEvaluator(
-		"data.specialContent.allow",
-		[]string{"./opa_modules/special_content.rego"},
-	)
-	if err != nil {
-		return nil, h, err
-	}
-	d := dispatch.NewDispatcher(delay, h, e, log)
+	oa := access.GetOPAAgentForTesting(log)
+	d := dispatch.NewDispatcher(delay, h, oa, log)
 	go d.Start()
 	return d, h, nil
 }

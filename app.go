@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Financial-Times/opa-client-go"
+
 	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/notifications-push/v5/access"
 	"github.com/Financial-Times/notifications-push/v5/resources"
@@ -172,11 +174,17 @@ func main() {
 		Desc:   "Should the standout scoop field be included in the response.",
 		EnvVar: "INCLUDE_SCOOP",
 	})
-	opaFileLocation := app.String(cli.StringOpt{
-		Name:   "opaFileLocation",
-		Value:  "",
-		Desc:   "Location of the OPA rule file.",
-		EnvVar: "OPA_FILE_LOCATION",
+	opaURL := app.String(cli.StringOpt{
+		Name:   "opaURL",
+		Desc:   "Open Policy Agent sidecar address",
+		Value:  "http://localhost:8181",
+		EnvVar: "OPA_URL",
+	})
+	notificationsPushPolicyPath := app.String(cli.StringOpt{
+		Name:   "notificationsPushPolicyPath",
+		Desc:   "The path to the OPA module in OPA module",
+		Value:  "notifications_push/special_content",
+		EnvVar: "NOTIFICATIONS_PUSH_POLICY_PATH",
 	})
 
 	log := logger.NewUPPLogger(serviceName, *logLevel)
@@ -196,12 +204,14 @@ func main() {
 			log.WithError(err).Fatalf("could not create Kafka consumer for %s and topic %s", *consumerAddress, *kafkaTopic)
 		}
 
-		evaluator, err := access.CreateEvaluator(
-			"data.specialContent.allow",
-			[]string{*opaFileLocation},
-		)
+		paths := map[string]string{
+			access.NotificationPush: *notificationsPushPolicyPath,
+		}
+
+		opaClient := opa.NewOpenPolicyAgentClient(*opaURL, paths, opa.WithLogger(log))
+		opaAgent := access.NewOpenPolicyAgent(opaClient, log)
 		if err != nil {
-			log.WithError(err).Fatalf("failed to create evaluator")
+			log.WithError(err).Fatalf("failed to create ops agent")
 		}
 
 		httpClient := &http.Client{
@@ -236,7 +246,7 @@ func main() {
 		healthCheckEndpoint = baseURL.ResolveReference(healthCheckEndpoint)
 		hc := resources.NewHealthCheck(kafkaConsumer, healthCheckEndpoint.String(), requestStatusCode, serviceName, log)
 
-		dispatcher, history := createDispatcher(*delay, *historySize, evaluator, log)
+		dispatcher, history := createDispatcher(*delay, *historySize, opaAgent, log)
 
 		msgConfig := msgHandlerCfg{
 			BaseURL:              *apiBaseURL,

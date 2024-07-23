@@ -8,7 +8,6 @@ env:
   API_URL_RESOURCE: "lists"
   CONTENT_TYPE_ALLOWLIST: "application/vnd.ft-upp-list+json"
   API_KEY_VALIDATION_ENDPOINT: "push-api-internal/t800/a"
-  OPA_FILE_LOCATION: "./opa_modules/special_content.rego"
 
   # We don't want to match any content URIs for this deployment.
   CONTENT_URI_ALLOWLIST: "$."

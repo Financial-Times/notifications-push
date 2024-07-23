@@ -83,7 +83,7 @@ func createConsumer(log *logger.UPPLogger, kafkaClusterArn, address, groupID str
 	return kafka.NewConsumer(consumerConfig, kafkaTopic, log)
 }
 
-func createDispatcher(cacheDelay int, historySize int, evaluator *access.Evaluator, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History) {
+func createDispatcher(cacheDelay int, historySize int, evaluator access.Agent, log *logger.UPPLogger) (*dispatch.Dispatcher, dispatch.History) {
 	history := dispatch.NewHistory(historySize)
 	dispatcher := dispatch.NewDispatcher(time.Duration(cacheDelay)*time.Second, history, evaluator, log)
 	return dispatcher, history

@@ -17,14 +17,14 @@ const (
 // NewDispatcher creates and returns a new Dispatcher
 // Delay argument configures minimum delay between send notifications
 // History is a system that collects a list of all notifications send by Dispatcher
-func NewDispatcher(delay time.Duration, history History, evaluator *access.Evaluator, log *logger.UPPLogger) *Dispatcher {
+func NewDispatcher(delay time.Duration, history History, opaAgent access.Agent, log *logger.UPPLogger) *Dispatcher {
 	return &Dispatcher{
 		delay:       delay,
 		inbound:     make(chan NotificationModel),
 		subscribers: map[NotificationConsumer]struct{}{},
 		lock:        &sync.RWMutex{},
 		history:     history,
-		evaluator:   evaluator,
+		opaAgent:    opaAgent,
 		stopChan:    make(chan bool),
 		log:         log,
 	}
@@ -36,7 +36,7 @@ type Dispatcher struct {
 	subscribers map[NotificationConsumer]struct{}
 	lock        *sync.RWMutex
 	history     History
-	evaluator   *access.Evaluator
+	opaAgent    access.Agent
 	stopChan    chan bool
 	log         *logger.UPPLogger
 }
@@ -146,20 +146,9 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 		}
 	}()
 
-	hasAccess, err := d.evaluator.EvaluateNotificationAccessLevel(map[string]interface{}{"EditorialDesk": notification.EditorialDesk})
-	if err != nil {
-		d.log.
-			WithTransactionID(notification.PublishReference).
-			WithField("resource", notification.APIURL).
-			WithError(err).
-			Warn("Failed to evaluate notification")
-		return
-	}
-
-	isPublicationAllowed := false
-	pub := notification.Publication
-	if pub != nil {
-		pu, pubErr := pub.OnlyOneOrPink()
+	publication := ""
+	if notification.Publication != nil {
+		pu, pubErr := notification.Publication.OnlyOneOrPink()
 		if pubErr != nil {
 			d.log.
 				WithTransactionID(notification.PublishReference).
@@ -168,26 +157,23 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 				Warn("Failed to evaluate notification")
 			return
 		}
-		isPublicationAllowed, err = d.evaluator.EvaluateNotificationAccessLevel(map[string]interface{}{"Publication": pu})
-		if err != nil {
-			d.log.
-				WithTransactionID(notification.PublishReference).
-				WithField("resource", notification.APIURL).
-				WithError(err).
-				Warn("Failed to evaluate notification")
-			return
-		}
+		publication = pu
+	}
+	evaluationResult, err := d.opaAgent.EvaluateContentPolicy(map[string]interface{}{
+		"EditorialDesk": notification.EditorialDesk,
+		"Publication":   publication,
+	})
+	if err != nil {
 		d.log.
 			WithTransactionID(notification.PublishReference).
-			WithField("publication", pu).
-			WithField("isPublicationAllowed", isPublicationAllowed).
-			Info("Publication verification done.")
-	} else {
-		// If we have missing publication field, we consider this FT Pink content
-		isPublicationAllowed = true
+			WithField("resource", notification.APIURL).
+			WithError(err).
+			Warn("Failed to evaluate OPA notifications-push policy")
+		return
 	}
-	isRelatedContent := notification.Type == RelatedContentType
+	hasAccess := evaluationResult.Allow
 
+	isRelatedContent := notification.Type == RelatedContentType
 	for sub := range d.subscribers {
 		entry := logWithSubscriber(d.log, sub).
 			WithTransactionID(notification.PublishReference).
@@ -207,12 +193,7 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 			}
 			if !hasAccess {
 				skipped++
-				entry.Info("Skipping subscriber due to access level mismatch.")
-				continue
-			}
-			if !isPublicationAllowed {
-				skipped++
-				entry.Info("Skipping subscriber due to blocked publication.")
+				entry.Info("Skipping subscriber due to ", strings.Join(evaluationResult.Reasons[:], ", "))
 				continue
 			}
 			if isRelatedContent && !sub.Options().ReceiveInternalUnstable {

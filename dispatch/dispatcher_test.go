@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package dispatch
 
 import (
@@ -6,6 +9,9 @@ import (
 	"io"
 	"testing"
 	"time"
+
+	"github.com/Financial-Times/notifications-push/v5/publication"
+	"github.com/google/uuid"
 
 	"github.com/Financial-Times/notifications-push/v5/access"
 	hooks "github.com/sirupsen/logrus/hooks/test"
@@ -20,6 +26,7 @@ const (
 	annotationSubType          = "Annotations"
 	opaFile                    = "../opa_modules/special_content.rego"
 	waitForNotificationTimeout = 10 // 10 Milliseconds
+
 )
 
 var contentSubscribeTypes = []string{"Article", "ContentPackage", "Audio"}
@@ -43,6 +50,98 @@ var n2 = NotificationModel{
 	PublishReference: "tid_test2",
 	LastModified:     "2016-11-02T10:55:24.244Z",
 	SubscriptionType: "Article",
+}
+
+var nFTCentralBanking = NotificationModel{
+	APIURL:           "http://api.ft.com/content/7998974a-1e97-11e6-b286-cddde55ca122",
+	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
+	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
+	PublishReference: "tid_test_skipped",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
+	EditorialDesk:    "/FT/Professional/Central Banking",
+}
+
+var nFTPink = NotificationModel{
+	APIURL:           "http://api.ft.com/content/7998974a-1e97-11e6-b286-cddde55ca122",
+	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
+	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
+	PublishReference: "tid_test_sent",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
+	EditorialDesk:    "/FT/Pink",
+}
+
+var nSustainableViewsPublication = NotificationModel{
+	APIURL:           "http://api.ft.com/content/7998974a-1e97-11e6-b286-cddde55ca122",
+	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
+	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
+	PublishReference: "tid_test_skipped",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
+	Publication: &publication.Publications{
+		UUIDS: []uuid.UUID{
+			uuid.MustParse("8e6c705e-1132-42a2-8db0-c295e29e8658"),
+		},
+	},
+}
+
+var nFtaPublication = NotificationModel{
+	APIURL:           "http://api.ft.com/content/7998974a-1e97-11e6-b286-cddde55ca122",
+	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
+	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
+	PublishReference: "tid_test_skipped",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
+	Publication: &publication.Publications{
+		UUIDS: []uuid.UUID{
+			uuid.MustParse("19d50190-8656-4e91-8d34-82e646ada9c9"),
+		},
+	},
+}
+
+var nFTPinkPublication = NotificationModel{
+	APIURL:           "http://api.ft.com/content/7998974a-1e97-11e6-b286-cddde55ca122",
+	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
+	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
+	PublishReference: "tid_test_sent",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
+	Publication: &publication.Publications{
+		UUIDS: []uuid.UUID{
+			uuid.MustParse("88fdde6c-2aa4-4f78-af02-9f680097cfd6"),
+		},
+	},
+}
+
+var nnFTCentralBankingSustainableViewsPublication = NotificationModel{
+	APIURL:           "http://api.ft.com/content/7998974a-1e97-11e6-b286-cddde55ca122",
+	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
+	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
+	PublishReference: "tid_test_skipped",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
+	Publication: &publication.Publications{
+		UUIDS: []uuid.UUID{
+			uuid.MustParse("8e6c705e-1132-42a2-8db0-c295e29e8658"),
+		},
+	},
+	EditorialDesk: "/FT/Professional/Central Banking",
+}
+
+var nnFTCentralBankingFtPinkPublication = NotificationModel{
+	APIURL:           "http://api.ft.com/content/7998974a-1e97-11e6-b286-cddde55ca122",
+	ID:               "http://www.ft.com/thing/7998974a-1e97-11e6-b286-cddde55ca122",
+	Type:             "http://www.ft.com/thing/ThingChangeType/UPDATE",
+	PublishReference: "tid_test_skipped",
+	LastModified:     "2016-11-02T10:54:22.234Z",
+	SubscriptionType: "Article",
+	Publication: &publication.Publications{
+		UUIDS: []uuid.UUID{
+			uuid.MustParse("88fdde6c-2aa4-4f78-af02-9f680097cfd6"),
+		},
+	},
+	EditorialDesk: "/FT/Professional/Central Banking",
 }
 
 var annNotif = NotificationModel{
@@ -88,12 +187,8 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
-	e, err := access.CreateEvaluator(
-		"data.specialContent.allow",
-		[]string{opaFile},
-	)
-	assert.NoError(t, err)
-	d := NewDispatcher(delay, h, e, l)
+	oa := access.GetOPAAgentForTesting(l)
+	d := NewDispatcher(delay, h, oa, l)
 
 	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
@@ -124,6 +219,62 @@ func TestShouldDispatchNotificationsToMultipleSubscribers(t *testing.T) {
 	verifyNotificationResponse(t, n2, notBefore, time.Now(), actualN2MonitorMsg)
 }
 
+func TestFailToSendNotificationToBlockedPublicationOrEditorialDesk(t *testing.T) {
+	t.Parallel()
+
+	l := logger.NewUPPLogger("test", "info")
+	l.Out = io.Discard
+	hook := hooks.NewLocal(l.Logger)
+	defer hook.Reset()
+
+	h := NewHistory(historySize)
+	oa := access.GetOPAAgentForTesting(l)
+
+	d := NewDispatcher(delay, h, oa, l)
+	_, err := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
+		ReceiveAdvancedNotifications: false,
+	})
+	if err != nil {
+		return
+	}
+
+	go d.Start()
+	defer d.Stop()
+
+	d.Send(nFTPink)
+	time.Sleep(2 * time.Second)
+
+	d.Send(nFTCentralBanking)
+	time.Sleep(2 * time.Second)
+
+	d.Send(nFTPinkPublication)
+	time.Sleep(2 * time.Second)
+
+	d.Send(nSustainableViewsPublication)
+	time.Sleep(2 * time.Second)
+
+	d.Send(nFtaPublication)
+	time.Sleep(2 * time.Second)
+
+	d.Send(nnFTCentralBankingFtPinkPublication)
+	time.Sleep(2 * time.Second)
+
+	d.Send(nnFTCentralBankingSustainableViewsPublication)
+
+	time.Sleep(10 * time.Second)
+	skipped := 0
+	sent := 0
+	for _, e := range hook.AllEntries() {
+		switch e.Message {
+		case "Processed subscribers.":
+			skipped = skipped + e.Data["skipped"].(int)
+			sent = sent + e.Data["sent"].(int)
+		default:
+		}
+	}
+	assert.Equal(t, skipped, 5)
+	assert.Equal(t, sent, 2)
+}
 func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 	t.Parallel()
 
@@ -134,12 +285,9 @@ func TestShouldDispatchNotificationsToSubscribersByType(t *testing.T) {
 
 	h := NewHistory(historySize)
 
-	e, err := access.CreateEvaluator(
-		"data.specialContent.allow",
-		[]string{opaFile},
-	)
-	assert.NoError(t, err)
-	d := NewDispatcher(delay, h, e, l)
+	oa := access.GetOPAAgentForTesting(l)
+
+	d := NewDispatcher(delay, h, oa, l)
 
 	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
@@ -209,12 +357,9 @@ func TestShouldDispatchE2ETestNotificationsToMonitoringSubscribersOnly(t *testin
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
-	e, err := access.CreateEvaluator(
-		"data.specialContent.allow",
-		[]string{opaFile},
-	)
-	assert.NoError(t, err)
-	d := NewDispatcher(time.Millisecond, h, e, l)
+	oa := access.GetOPAAgentForTesting(l)
+
+	d := NewDispatcher(time.Millisecond, h, oa, l)
 
 	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
@@ -247,12 +392,9 @@ func TestCreateNotificationIsProperlyDispatchedToSubscribers(t *testing.T) {
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
-	e, err := access.CreateEvaluator(
-		"data.specialContent.allow",
-		[]string{opaFile},
-	)
-	assert.NoError(t, err)
-	d := NewDispatcher(time.Millisecond, h, e, l)
+	oa := access.GetOPAAgentForTesting(l)
+
+	d := NewDispatcher(time.Millisecond, h, oa, l)
 
 	m1, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: true,
@@ -304,12 +446,9 @@ func TestAddAndRemoveOfSubscribers(t *testing.T) {
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
 
-	e, err := access.CreateEvaluator(
-		"data.specialContent.allow",
-		[]string{opaFile},
-	)
-	assert.NoError(t, err)
-	d := NewDispatcher(delay, h, e, l)
+	oa := access.GetOPAAgentForTesting(l)
+
+	d := NewDispatcher(delay, h, oa, l)
 
 	m, _ := d.Subscribe("192.168.1.2", contentSubscribeTypes, true, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
@@ -346,12 +485,8 @@ func TestDispatchDelay(t *testing.T) {
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
 
-	e, err := access.CreateEvaluator(
-		"data.specialContent.allow",
-		[]string{opaFile},
-	)
-	assert.NoError(t, err)
-	d := NewDispatcher(delay, h, e, l)
+	oa := access.GetOPAAgentForTesting(l)
+	d := NewDispatcher(delay, h, oa, l)
 
 	s, _ := d.Subscribe("192.168.1.3", contentSubscribeTypes, false, &access.NotificationSubscriptionOptions{
 		ReceiveAdvancedNotifications: false,
@@ -378,12 +513,9 @@ func TestDispatchedNotificationsInHistory(t *testing.T) {
 
 	l := logger.NewUPPLogger("test", "panic")
 	h := NewHistory(historySize)
-	e, err := access.CreateEvaluator(
-		"data.specialContent.allow",
-		[]string{opaFile},
-	)
-	assert.NoError(t, err)
-	d := NewDispatcher(delay, h, e, l)
+	oa := access.GetOPAAgentForTesting(l)
+
+	d := NewDispatcher(delay, h, oa, l)
 
 	go d.Start()
 	defer d.Stop()
@@ -419,12 +551,9 @@ func TestInternalFailToSendNotifications(t *testing.T) {
 	defer hook.Reset()
 
 	h := NewHistory(historySize)
-	e, err := access.CreateEvaluator(
-		"data.specialContent.allow",
-		[]string{opaFile},
-	)
-	assert.NoError(t, err)
-	d := NewDispatcher(0, h, e, l)
+	oa := access.GetOPAAgentForTesting(l)
+
+	d := NewDispatcher(0, h, oa, l)
 
 	s1 := &MockSubscriber{}
 	s2 := &MockSubscriber{}
