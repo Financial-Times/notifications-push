@@ -6,22 +6,48 @@ orbs:
 executors:
   default-go:
     docker:
-      - image: golang:1
-        environment:
-          GOPATH: /go
+    - image: golang:1
+  default-ubuntu:
+    docker:
+      - image: cimg/base:current
+
+jobs:
+  test:
+    executor: default-ubuntu
+    working_directory: ~/notifications-push
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - checkout
+      - run:
+          name: Run integration tests
+          command:  docker-compose -f docker-compose-tests.yaml up -d --build && docker logs -f test-runner && export TESTS_STATUS_CODE=$(docker inspect test-runner --format="{{.State.ExitCode}}") &&  docker-compose -f docker-compose-tests.yaml down && exit $TESTS_STATUS_CODE
+  build-and-run-linters:
+    executor: default-go
+    steps:
+      - checkout
+      - ft-golang-ci/build
+      - ft-golang-ci/lint
 workflows:
   tests_and_docker:
     jobs:
-      - ft-golang-ci/build-and-test:
-          name: build-and-test-project
-          executor-name:
-            name: default-go
-          context: cm-team-github
+      - build-and-run-linters:
+          name: build-and-run-linters
+          context:
+            - cm-team-github
+      - test:
+          name: test-project
+          requires:
+            - build-and-run-linters
+          context:
+            - cm-team-github
       - ft-golang-ci/docker-build:
           name: build-docker-image
           requires:
-            - build-and-test-project
-          context: cm-team-github
+            - test-project
+          context:
+            - cm-team-dockerhub
+            - cm-team-github
   snyk-scanning:
     jobs:
       - ft-golang-ci/scan:
@@ -29,3 +55,4 @@ workflows:
           context:
             - cm-team-snyk
             - cm-team-github
+

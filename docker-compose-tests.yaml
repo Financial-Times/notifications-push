@@ -1,34 +1,15 @@
-version: '2'
-
+version: '3'
 services:
-
-  zookeeper:
-    image: wurstmeister/zookeeper
-    ports:
-      - "2181:2181"
-
-  kafka:
-    image: wurstmeister/kafka
-    ports:
-      - "9092:9092"
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_ADVERTISED_PORT: 9092
-      KAFKA_ADVERTISED_HOST_NAME: kafka
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper
-      KAFKA_CREATE_TOPICS: "PostPublicationEvents:1:1,PostConceptAnnotations:1:1"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-
-  app:
-    # image: local/notifications-push-app:latest
+  test-runner:
+    container_name: test-runner
     build:
       context: .
+      dockerfile: Dockerfile.tests
       args:
-        GITHUB_USERNAME: ${GITHUB_USERNAME}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
+        GITHUB_USERNAME: "${GITHUB_USERNAME}"
+        GITHUB_TOKEN: "${GITHUB_TOKEN}"
     environment:
+      OPA_URL: "http://opa:8181"
       CGO_ENABLED: 1
       KAFKA_ADDRESS: kafka:9092
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -46,5 +27,16 @@ services:
       APP_PORT: 8080
     ports:
       - 8000:8080
+    command: ["go", "test", "-mod=readonly", "-v", "-race", "-tags=integration", "./..."]
     depends_on:
-      - kafka
+      - opa
+  opa:
+    image: coco/cm-open-policy-agent:latest
+    environment:
+      GITHUB_USERNAME: "${GITHUB_USERNAME}"
+      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      OPA_VERSION: 0.67.0
+      OPA_BUNDLE_PROJECT: "notifications-push"
+    container_name: opa-container
+    ports:
+      - 8181:8181

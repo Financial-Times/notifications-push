@@ -24,3 +24,10 @@ env:
   INCLUDE_SCOOP: "false"
   PUSH_PORT: ""
   UPDATE_EVENT_TYPE: "http://www.ft.com/thing/ThingChangeType/UPDATE"
+  OPA_URL: "http://localhost:8181"
+  NOTIFICATIONS_PUSH_POLICY_PATH: "notifications_push/special_content"
+openPolicyAgentSidecar:
+  name: open-policy-agent
+  repository: openpolicyagent/opa
+  tag: 0.67.0
+  pullPolicy: IfNotPresent

@@ -36,6 +36,8 @@ spec:
           env:
             - name: APP_NAME
               value: {{ .Values.service.name }}
+            - name: OPA_URL
+              value: "{{ .Values.env.OPA_URL }}"
             - name: KAFKA_ADDRESS
               valueFrom:
                 configMapKeyRef:
@@ -83,8 +85,8 @@ spec:
               value: {{ .Values.env.API_KEY_POLICIES_ENDPOINT }}
             - name: API_KEY_VALIDATION_ENDPOINT
               value: {{ .Values.env.API_KEY_VALIDATION_ENDPOINT }}
-            - name: OPA_FILE_LOCATION
-              value: {{ .Values.env.OPA_FILE_LOCATION }}
+            - name: NOTIFICATIONS_PUSH_POLICY_PATH
+              value: {{.Values.env.NOTIFICATIONS_PUSH_POLICY_PATH}}
             - name: MONITOR_NOTIFICATIONS
               value: "{{ .Values.env.MONITOR_NOTIFICATIONS }}"
             - name: INCLUDE_SCOOP
@@ -108,3 +110,43 @@ spec:
             timeoutSeconds: 5
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+        {{- if .Values.openPolicyAgentSidecar }}
+        - name: "{{ .Values.openPolicyAgentSidecar.name }}"
+          image: "{{ .Values.openPolicyAgentSidecar.repository }}:{{ .Values.openPolicyAgentSidecar.tag }}"
+          imagePullPolicy: {{ .Values.openPolicyAgentSidecar.pullPolicy }}
+          env:
+            - name: POLICY_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: global-config
+                  key: opa.policy2.bucket
+          ports:
+            - name: http
+              containerPort: 8181
+          livenessProbe:
+            httpGet:
+              path: /health
+              scheme: HTTP
+              port: 8181
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health?bundle=true
+              scheme: HTTP
+              port: 8181
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          args:
+            - "run"
+            - "--ignore=.*"
+            - "--server"
+            - "--log-level=error"
+            - "--log-format=json-pretty"
+            - "--set=services.bundlesS3Bucket.url=$(POLICY_BUCKET)"
+            - "--set=services.bundlesS3Bucket.credentials.s3_signing.web_identity_credentials.aws_region=$(AWS_REGION)"
+            - "--set=bundles.notificationsPush.service=bundlesS3Bucket"
+            - "--set=bundles.notificationsPush.resource=notifications-push.bundle.tar.gz"
+            - "--set=bundles.notificationsPush.polling.min_delay_seconds=120"
+            - "--set=bundles.notificationsPush.polling.max_delay_seconds=300"
+            {{- end}}
