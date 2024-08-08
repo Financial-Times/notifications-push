@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/notifications-push/v5/hash"
+	"os"
 	"reflect"
 	"time"
 
@@ -103,7 +104,8 @@ func (s *StandardSubscriber) Options() *access.NotificationSubscriptionOptions {
 func (s *StandardSubscriber) Send(n NotificationResponse) error {
 	msg, err := buildStandardNotificationMsg(n)
 	hashForMsg := hash.ComputeMD5Hash(msg)
-	logger.NewUPPLogger("notifications-push", "INFO").Infof("hash for notifications with id:%s = %s ", n.ID, hashForMsg)
+	serviceName := os.Getenv("APP_NAME")
+	logger.NewUPPLogger(serviceName, "INFO").Infof("hash for notifications with id:%s = %s ", n.ID, hashForMsg)
 	if err != nil {
 		return err
 	}
