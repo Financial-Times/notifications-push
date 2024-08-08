@@ -180,7 +180,7 @@ func (h *SubHandler) listenForNotifications(ctx context.Context, s dispatch.Subs
 				return
 			}
 			hashForMsg := hash.ComputeMD5Hash(notification)
-			logEntry.Info("Notification sent to subscriber with id:%s , with msg:%s", s.ID(), hashForMsg)
+			logEntry.Infof("Notification sent to subscriber with id:%s , with msg:%s", s.ID(), hashForMsg)
 			if !timer.Stop() {
 				<-timer.C
 			}

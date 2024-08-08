@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/notifications-push/v5/hash"
-	"log"
 	"reflect"
 	"time"
 
@@ -103,7 +103,7 @@ func (s *StandardSubscriber) Options() *access.NotificationSubscriptionOptions {
 func (s *StandardSubscriber) Send(n NotificationResponse) error {
 	msg, err := buildStandardNotificationMsg(n)
 	hashForMsg := hash.ComputeMD5Hash(msg)
-	log.Default().Println("hash for notifications with id:%s = %s ", n.ID, hashForMsg)
+	logger.NewUPPLogger("notifications-push", "INFO").Infof("hash for notifications with id:%s = %s ", n.ID, hashForMsg)
 	if err != nil {
 		return err
 	}
