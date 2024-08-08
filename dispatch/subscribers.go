@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Financial-Times/notifications-push/v5/hash"
+	"log"
 	"reflect"
 	"time"
 
@@ -100,6 +102,8 @@ func (s *StandardSubscriber) Options() *access.NotificationSubscriptionOptions {
 // It removes the monitoring fields from the notification. Serializes it as string and pushes it to the subscriber
 func (s *StandardSubscriber) Send(n NotificationResponse) error {
 	msg, err := buildStandardNotificationMsg(n)
+	hashForMsg := hash.ComputeMD5Hash(msg)
+	log.Default().Println("hash for notifications with id:%s = %s ", n.ID, hashForMsg)
 	if err != nil {
 		return err
 	}

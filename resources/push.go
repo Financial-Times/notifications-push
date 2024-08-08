@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Financial-Times/notifications-push/v5/hash"
 	"net/http"
 	"strconv"
 	"strings"
@@ -178,6 +179,8 @@ func (h *SubHandler) listenForNotifications(ctx context.Context, s dispatch.Subs
 				logEntry.WithError(err).Error("Error while sending notification to subscriber")
 				return
 			}
+			hashForMsg := hash.ComputeMD5Hash(notification)
+			logEntry.Info("Notification sent to subscriber with id:%s , with msg:%s", s.ID(), hashForMsg)
 			if !timer.Stop() {
 				<-timer.C
 			}
