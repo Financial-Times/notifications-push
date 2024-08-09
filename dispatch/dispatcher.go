@@ -170,6 +170,7 @@ func (d *Dispatcher) forwardToSubscribers(notification NotificationModel) {
 			WithError(err).
 			Warn("Failed to evaluate OPA notifications-push policy")
 		return
+	}
 
 	hasAccess := evaluationResult.Allow
 

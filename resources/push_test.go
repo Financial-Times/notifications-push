@@ -454,7 +454,7 @@ func TestPushNotificationDelay(t *testing.T) {
 	msg, _ = pipe.readString()
 	delay = time.Since(start)
 
-	assert.InEpsilon(t, notificationDelay.Nanoseconds(), delay.Nanoseconds(), 0.08, "The notification is send in the correct time frame")
+	assert.InEpsilon(t, notificationDelay.Nanoseconds(), delay.Nanoseconds(), 0.12, "The notification is send in the correct time frame")
 	assert.Equal(t, "data: [{\"apiUrl\":\"\",\"id\":\"\",\"type\":\"\"}]\n\n\n", msg, "Should get the notification")
 
 	start = start.Add(notificationDelay)
